@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#231d18">
+<title>Last Survivor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow+Condensed:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sand:#d8a964; --rust:#8f3a17; --ember:#f2a03d; --oil:#231d18; --bone:#efe2c4; --blood:#c2381f;
+  --panel:rgba(35,29,24,.88); --panel-text:#efe2c4; --gauge-bg:rgba(35,29,24,.55);
+  color-scheme:light dark;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){ --panel:rgba(18,14,11,.93); --gauge-bg:rgba(18,14,11,.65); }
+}
+:root[data-theme="dark"]{ --panel:rgba(18,14,11,.93); --gauge-bg:rgba(18,14,11,.65); }
+*,*::before,*::after{box-sizing:inherit}
+canvas,#touch,#ctx,#stickBase{touch-action:none}   /* the game itself: no browser gestures */
+.tbox,.invbox,.panel,#tradeBody,#invBody,#pasteText{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}   /* menus and lists: scroll freely */
+html,body{height:100%;margin:0;overflow:hidden;background:var(--oil);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+  font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;color:var(--bone)}
+canvas{position:fixed;inset:0;display:block}
+.hidden{display:none!important}
+#ver{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(4px + env(safe-area-inset-bottom,0px));font:600 12px "Barlow Condensed",Arial,sans-serif;color:rgba(239,226,196,.45);pointer-events:none;z-index:5;letter-spacing:.05em}
+.mapopen #touch,.mapopen #ctx{display:none!important}
+
+#hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 0;
+  display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.gauges{display:grid;grid-template-columns:auto auto;gap:6px 10px;align-items:center;font-size:17px;font-weight:700}
+.gauges.nocar .carrow{display:none}
+.bar{width:clamp(110px,22vw,170px);height:11px;background:var(--gauge-bg);border:1px solid rgba(239,226,196,.55);
+  clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.bar i{display:block;height:100%;width:100%;background:var(--ember);transition:background .3s}
+.bar i.low{background:var(--blood)}
+#hpBar{background:#b9d27a}
+#condBar{background:var(--bone)}
+.gauges span.sm{font-size:15px;opacity:.92}
+.bar.sm{height:8px}
+#waterBar{background:#7fb3c4}#foodBar{background:#c9a35a}#restBar{background:#a99ad0}
+.note.warn{color:#ffb38a}
+#talk{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:0 12px calc(env(safe-area-inset-bottom,0px) + 14px)}
+.tbox{background:var(--panel);color:var(--panel-text);width:min(640px,100%);padding:16px 20px 18px;max-height:62vh;overflow:auto;
+  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+.tbox b{font:400 24px "Saira Stencil One",Impact,sans-serif;color:var(--ember)}
+.tbox p{font-size:20px;line-height:1.35;margin:8px 0 12px;max-width:52ch}
+#tOpts{display:flex;flex-direction:column;align-items:stretch;gap:7px}
+#tOpts button{font:700 19px "Barlow Condensed",Arial,sans-serif;text-align:left;background:transparent;color:var(--bone);border:1px solid rgba(239,226,196,.5);padding:9px 14px;cursor:pointer}
+#tOpts button:first-child{border-color:var(--ember)}
+#tradePanel,#invPanel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px);background:rgba(20,15,12,.55)}
+.invbox{background:var(--panel);color:var(--panel-text);width:min(640px,100%);max-height:100%;overflow:auto;padding:18px 20px 20px;
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.invhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.invhead h2{font:400 34px "Saira Stencil One",Impact,sans-serif;color:var(--ember);margin:0}
+.invbox h3{font:700 21px "Barlow Condensed",Arial,sans-serif;margin:16px 0 6px;color:var(--ember);display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.invbox h3 small{font-weight:500;font-size:16px;color:var(--bone);opacity:.8}
+.stats{font-size:17px;line-height:1.4;opacity:.92}
+.irow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(239,226,196,.15);font-size:18px}
+.irow .nm{flex:1;min-width:0}.irow .nm small{opacity:.7;font-size:15px;margin-left:6px}
+.irow i{width:12px;height:12px;flex:none;display:inline-block}
+.invbox button{font:700 16px "Barlow Condensed",Arial,sans-serif;background:transparent;color:var(--bone);border:1px solid rgba(239,226,196,.5);padding:6px 11px;cursor:pointer;flex:none}
+.invbox button.go{background:var(--ember);color:var(--oil);border-color:var(--ember)}
+.invbox button:disabled{opacity:.35;cursor:default}
+.empty{opacity:.65;font-size:17px;padding:6px 0}
+.part{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:17px}
+.part .pb{width:110px;height:9px;background:var(--gauge-bg);border:1px solid rgba(239,226,196,.4);flex:none}
+.part .pb b{display:block;height:100%;background:var(--bone)}
+.part .pb b.low{background:var(--blood)}
+.part .pn{width:92px;flex:none}
+.basket{position:sticky;top:-18px;background:var(--panel);padding:10px 0 8px;margin:0 0 4px;border-bottom:1px solid rgba(239,226,196,.25);z-index:1}
+.basket .tot{display:flex;justify-content:space-between;font-size:19px;margin-bottom:8px}
+.basket .tot b{color:var(--ember)}
+.basket .lines{font-size:16px;opacity:.9;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px}
+.basket .lines button{padding:3px 8px;font-size:15px}
+.price{min-width:44px;text-align:right;opacity:.85;font-size:16px}
+.note{grid-column:1 / span 2;font-size:16px;font-weight:500;opacity:.92}
+.leg{grid-column:1 / span 2;margin-top:2px;font-size:18px;line-height:1.15}
+.leg b{color:var(--ember);font-size:22px}
+.odo{text-align:right;line-height:1}
+.odo b{font-family:"Saira Stencil One",Impact,sans-serif;font-weight:400;font-size:40px;color:var(--bone)}
+.odo span{font-size:18px;margin-left:4px}
+.odo small{display:block;font-size:16px;margin-top:4px;opacity:.9}
+.hbtns{margin-top:8px;display:flex;gap:6px;justify-content:flex-end}
+.hbtns button{pointer-events:auto;background:var(--gauge-bg);color:var(--bone);border:1px solid rgba(239,226,196,.5);
+  font:700 16px "Barlow Condensed",Arial,sans-serif;padding:5px 13px;border-radius:2px}
+#msg{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 24%);transform:translateX(-50%);
+  font-family:"Saira Stencil One",Impact,sans-serif;font-size:clamp(22px,4vw,34px);color:var(--bone);
+  text-shadow:0 2px 0 var(--rust),0 0 18px rgba(0,0,0,.5);opacity:0;transition:opacity .35s;pointer-events:none;white-space:nowrap}
+#msg.on{opacity:1}
+
+#touch{display:none}
+.touch #touch{display:block}
+#stickBase{position:fixed;width:176px;height:176px;margin:-88px 0 0 -88px;border-radius:50%;
+  border:2px solid rgba(239,226,196,.45);background:rgba(35,29,24,.18);display:none;pointer-events:none}
+#stickKnob{position:absolute;left:50%;top:50%;width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;
+  background:rgba(242,160,61,.75);box-shadow:0 0 0 2px rgba(35,29,24,.5)}
+/* all action buttons sit on the left; steering is on the right */
+.abtn{position:fixed;border-radius:50%;border:2px solid rgba(239,226,196,.6);color:var(--bone);font:400 18px "Saira Stencil One",Impact,sans-serif;touch-action:none;display:none}
+.abtn.held{filter:brightness(1.4)}
+#bBrake,#bAttack{width:100px;height:100px;left:calc(26px + env(safe-area-inset-left,0px));bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+#bBoost,#bSneak{width:76px;height:76px;font-size:16px;left:calc(140px + env(safe-area-inset-left,0px));bottom:calc(32px + env(safe-area-inset-bottom,0px))}
+#bShoot{width:92px;height:92px;font-size:17px;left:calc(30px + env(safe-area-inset-left,0px));bottom:calc(142px + env(safe-area-inset-bottom,0px));background:rgba(194,56,31,.55)}
+.gunready:not(.onfoot) #bShoot{display:block}
+.touch.gunready:not(.onfoot) #ctx{bottom:calc(250px + env(safe-area-inset-bottom,0px))}
+#bReverse{width:76px;height:76px;font-size:14px;left:calc(230px + env(safe-area-inset-left,0px));bottom:calc(32px + env(safe-area-inset-bottom,0px));background:rgba(35,29,24,.5)}
+#bBrake{background:rgba(194,56,31,.55)}#bBoost{background:rgba(242,160,61,.45)}
+#bAttack{background:rgba(194,56,31,.55)}#bSneak{background:rgba(35,29,24,.5)}
+#bSneak.on{background:rgba(169,154,208,.7);color:var(--oil)}
+#bAttack,#bSneak,#ctx{transition:width .18s,height .18s,left .18s,bottom .18s,font-size .18s}
+.combat #bAttack{width:156px;height:156px;font-size:26px;box-shadow:0 0 0 4px rgba(194,56,31,.35)}
+.combat #bSneak{left:calc(196px + env(safe-area-inset-left,0px))}
+.touch.combat #ctx{bottom:calc(206px + env(safe-area-inset-bottom,0px))}
+body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,.onfoot #bAttack,.onfoot #bSneak{display:block}
+#ctx{position:fixed;left:calc(22px + env(safe-area-inset-left,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.touch #ctx{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+.cbtn{font:400 20px "Saira Stencil One",Impact,sans-serif;color:var(--oil);background:var(--ember);border:0;
+  padding:13px 22px;min-width:130px;touch-action:none;cursor:pointer;
+  clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)}
+.cbtn.alt{background:var(--bone)}
+.cbtn kbd{font:700 14px "Barlow Condensed",Arial,sans-serif;opacity:.7;margin-left:6px}
+
+#screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(ellipse at center,rgba(35,29,24,.15),rgba(35,29,24,.6))}
+#screen.show{display:flex}
+.panel{background:var(--panel);color:var(--panel-text);max-width:560px;width:100%;max-height:100%;overflow:auto;padding:26px 30px 22px;
+  clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px))}
+.panel h1{font-family:"Saira Stencil One",Impact,sans-serif;font-weight:400;font-size:clamp(40px,9vw,66px);
+  line-height:.95;margin:0 0 10px;color:var(--ember);text-shadow:3px 3px 0 var(--rust)}
+.panel p{font-size:20px;line-height:1.3;margin:0 0 14px;max-width:44ch}
+#sStats{font-size:21px;line-height:1.4;margin-bottom:12px}
+#sStats b{color:var(--ember)}
+#sBtns{display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.pbtn{font:700 21px "Barlow Condensed",Arial,sans-serif;background:transparent;color:var(--bone);
+  border:1px solid rgba(239,226,196,.55);padding:9px 20px;cursor:pointer;text-align:left;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+.pbtn.primary{font:400 23px "Saira Stencil One",Impact,sans-serif;background:var(--ember);color:var(--oil);border-color:var(--ember)}
+.pbtn:focus-visible,.cbtn:focus-visible{outline:3px solid var(--bone);outline-offset:3px}
+.panel .controls{font-size:16px;opacity:.85;margin:16px 0 0}
+#mapUi .mapbtns{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));top:calc(14px + env(safe-area-inset-top,0px));display:flex;gap:8px}
+#mapUi button{font:700 18px "Barlow Condensed",Arial,sans-serif;background:var(--gauge-bg);color:var(--bone);border:1px solid rgba(239,226,196,.55);padding:8px 14px;min-width:44px}
+#mapInfo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(560px,calc(100% - 24px));
+  background:var(--panel);color:var(--panel-text);padding:14px 18px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+#mapInfo b{font:400 26px "Saira Stencil One",Impact,sans-serif;color:var(--ember)}
+#mapInfo span{font-size:18px;line-height:1.3}
+.mibtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+#miBtns{display:contents}
+#mapUi #miBtns button{font:700 17px "Barlow Condensed",Arial,sans-serif}
+#pasteDlg,#markerDlg{z-index:60;position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,15,12,.5);padding:20px}
+.mdbox{background:var(--panel);color:var(--panel-text);width:min(460px,100%);padding:20px;display:flex;flex-direction:column;gap:12px;
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px))}
+.mdbox b{font:400 26px "Saira Stencil One",Impact,sans-serif;color:var(--ember)}
+#mdText{font:500 20px "Barlow Condensed",Arial,sans-serif;padding:10px 12px;background:#efe2c4;color:#231d18;border:0;width:100%}
+.mdbtns{display:flex;gap:10px}
+.mdbtns button{font:700 19px "Barlow Condensed",Arial,sans-serif;padding:9px 18px;background:transparent;color:var(--bone);border:1px solid rgba(239,226,196,.55)}
+.mdbtns button.go{background:var(--ember);color:var(--oil);border-color:var(--ember)}
+#mapUi #miGo{background:var(--ember);color:var(--oil);border:0;font:400 20px "Saira Stencil One",Impact,sans-serif;margin-top:4px}
+</style>
+</head>
+<body class="onfoot">
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="gauges" id="gauges">
+    <span>Health</span><div class="bar"><i id="hpBar"></i></div>
+    <span class="sm">Water</span><div class="bar sm"><i id="waterBar"></i></div>
+    <span class="sm">Food</span><div class="bar sm"><i id="foodBar"></i></div>
+    <span class="sm">Rest</span><div class="bar sm"><i id="restBar"></i></div>
+    <span class="carrow">Fuel</span><div class="bar carrow"><i id="fuelBar"></i></div>
+    <span class="carrow">Car</span><div class="bar carrow"><i id="condBar"></i></div>
+    <div class="note carrow" id="carName"></div>
+    <div class="note warn carrow" id="carWarn"></div>
+    <div class="note" id="inv"></div>
+    <div class="note" id="weap"></div>
+    <div class="note" id="compLine"></div>
+    <div class="leg" id="legBox">Heading to <b id="dest"></b><br><span id="destKm"></span></div>
+  </div>
+  <div class="odo">
+    <b id="spd">0</b><span id="spdUnit">km/h</span>
+    <small id="clock"></small>
+    <small id="wiped"></small>
+    <small id="dbg"></small>
+    <div class="hbtns"><button id="zoomBtn" class="hidden">Reset zoom</button><button id="toolsBtn" class="hidden">Tools</button><button id="gearBtn">Gear</button><button id="mapBtn">Map</button><button id="pauseBtn">Pause</button></div>
+  </div>
+</div>
+<div id="msg"></div>
+
+<div id="touch">
+  <div id="stickBase"><div id="stickKnob"></div></div>
+  <button id="bBrake" class="abtn">Brake</button>
+  <button id="bBoost" class="abtn">Boost</button>
+  <button id="bReverse" class="abtn">Reverse</button>
+  <button id="bShoot" class="abtn">Shoot</button>
+  <button id="bAttack" class="abtn">Attack</button>
+  <button id="bSneak" class="abtn">Sneak</button>
+</div>
+<div id="ctx"></div>
+<div id="ver"></div>
+<input id="saveFile" type="file" accept=".json,application/json,text/plain" class="hidden">
+<div id="pasteDlg" class="hidden"><div class="mdbox"><b>Paste a save</b>
+  <span style="font-size:17px;opacity:.85">Open the save file on this device, copy everything in it, and paste it here.</span>
+  <textarea id="pasteText" rows="6" autocomplete="off" spellcheck="false" style="font:15px monospace;padding:10px;background:#efe2c4;color:#231d18;border:0;width:100%;resize:vertical"></textarea>
+  <div class="mdbtns"><button id="pasteLoad" class="go">Load it</button><button id="pasteCancel">Cancel</button></div></div></div>
+<div id="markerDlg" class="hidden"><div class="mdbox"><b id="mdTitle">Name this marker</b>
+  <input id="mdText" type="text" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="e.g. Water tank, Camp, Look here">
+  <div class="mdbtns"><button id="mdSave" class="go">Save</button><button id="mdCancel">Cancel</button></div></div></div>
+<div id="talk" class="hidden"><div class="tbox"><b id="tName"></b><p id="tText"></p><div id="tOpts"></div></div></div>
+<div id="tradePanel" class="hidden"><div class="invbox"><div class="invhead"><h2>Trade</h2><button id="tradeClose">Done</button></div><div id="tradeBody"></div></div></div>
+<div id="invPanel" class="hidden"><div class="invbox"><div class="invhead"><h2>Gear</h2><button id="invClose">Close</button></div><div id="invBody"></div></div></div>
+<div id="mapUi" class="hidden">
+  <div class="mapbtns"><button id="mapZoomOut" aria-label="Zoom out">−</button><button id="mapZoomIn" aria-label="Zoom in">+</button><button id="mapClose">Close map</button></div>
+  <div id="mapInfo" class="hidden"><b id="miName"></b><span id="miDesc"></span><div class="mibtns"><button id="miGo">Set destination</button><span id="miBtns"></span></div></div>
+</div>
+
+<div id="screen" class="show">
+  <div class="panel">
+    <h1 id="sTitle">Last Survivor</h1>
+    <p id="sSub"></p>
+    <div id="sStats"></div>
+    <div id="sBtns"></div>
+    <p class="controls" id="sCtl">On foot: arrows or WASD to walk, Shift to run, E to get in a car.<br>Driving: arrows or WASD, B to brake, Down to reverse, G to shoot if you have a gun, Down plus a turn to slide, Shift to boost, E to get out.<br>F searches crates and car boots, R pours a jerrycan into a car, T patches it with scrap, Q drinks, C eats, Z sleeps in a stopped car, X talks to people, I opens your gear.<br>Combat: Space attacks, V sneaks. Equip weapons in your gear. Hit an unaware raider from behind for a takedown. Pinch with two fingers (or + and −) to zoom the view, and tap Reset zoom to go back. M opens the map (drag to pan, pinch or +/− to zoom, tap a place to plan a route), P pauses.<br>Touch: drag anywhere on the right side to move or steer; all action buttons are on the left.</p>
+  </div>
+</div>
+
+<script>
+/*SCRIPT*/
+</script>
+</body>
+</html>

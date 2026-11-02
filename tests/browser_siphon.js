@@ -1,0 +1,18 @@
+const {chromium,devices}=require('playwright');
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({...devices['iPad (gen 7) landscape'],hasTouch:true});const page=await ctx.newPage();
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('file://'+__dirname+'/../dist/index.html');await page.evaluate(()=>localStorage.clear());await page.reload();await page.waitForTimeout(700);
+  await page.locator('#sBtns button',{hasText:'Start'}).first().tap();await page.waitForTimeout(200);await page.locator('#sBtns button',{hasText:'Head out'}).tap();await page.waitForTimeout(300);
+  await page.evaluate(()=>{const L=window.__LT,o=L.LOCS[L.START],G=L.G;const c=L.makeCar('ute',o.x+5000,o.y+5000,0,{id:'bw',fuel:18,cond:45,engine:40,susp:20});c.tw=[60,20,80,5];G.cars.push(c);
+    G.hero.x=c.x+c.r+14;G.hero.y=c.y;G.cam.x=c.x;G.cam.y=c.y;G.hero.inv={jerrycan:1,hose:1,toolkit:1};G.clock=12*60;const k=G.cars.find(x=>x.id==='hero0');k.x=c.x;k.y=c.y+120;k.fuel=40;});
+  await page.waitForTimeout(500);console.log('buttons near the abandoned ute:',(await page.locator('#ctx button').allTextContents()).join(' | '));
+  await page.locator('#ctx button',{hasText:'Siphon'}).tap();await page.waitForTimeout(200);console.log('siphon panel:',await page.locator('#sSub').textContent());
+  await page.locator('#sBtns button').first().tap();await page.waitForTimeout(300);
+  console.log('after siphoning: jerry can',await page.evaluate(()=>Math.round(window.__LT.canFill(window.__LT.G.hero.inv))),'% | ute fuel',await page.evaluate(()=>Math.round(window.__LT.G.cars.find(c=>c.id==='bw').fuel)),'% | clock',await page.evaluate(()=>window.__LT.fmtClock(window.__LT.G.clock)));
+  await page.locator('#ctx button',{hasText:'Strip'}).tap();await page.waitForTimeout(200);console.log('strip options:',(await page.locator('#sBtns button').allTextContents()).join(' | '));
+  await page.screenshot({path:'/mnt/user-data/outputs/strip.png'});
+  await page.locator('#sBtns button').first().tap();await page.waitForTimeout(300);console.log('your pockets after stripping:',await page.evaluate(()=>JSON.stringify(window.__LT.G.hero.inv)));
+  await page.evaluate(()=>{const L=window.__LT,k=L.G.cars.find(x=>x.id==='hero0');L.G.hero.x=k.x+k.r+14;L.G.hero.y=k.y;});await page.waitForTimeout(400);
+  const pour=page.locator('#ctx button',{hasText:'Pour fuel'});console.log('Pour button:',await pour.count()?await pour.textContent():'none');if(await pour.count())await pour.tap();await page.waitForTimeout(200);
+  console.log('your Kestrel’s fuel after pouring:',await page.evaluate(()=>Math.round(window.__LT.G.cars.find(x=>x.id==='hero0').fuel)),'%');
+  console.log('page errors:',errors.length?errors.join(' | '):'none');await b.close();})();
