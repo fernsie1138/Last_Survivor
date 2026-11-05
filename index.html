@@ -238,7 +238,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='4.5';
+const VERSION='4.8';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -415,12 +415,18 @@ if(TEST_MODE)buildTestRoads();else (function(){
   for(let i=0;i<cities.length;i++){const prev=dij(cities[i].id);
     for(let j=i+1;j<cities.length;j++){let v=cities[j].id;while(prev.has(v)){const [u,ei]=prev.get(v);keep[ei].hw=true;v=u;}}}
   keep.forEach((e,i)=>roads.push(genRoad(e.a,e.b,1000+i*7919,e.hw?'highway':'gravel')));
-  // ruins hang off the network on dirt tracks (some are off the map entirely)
-  const rr2=rng(31337);
+  // ruins hang off the network on dirt tracks that branch off a main road at a junction (some ruins are off the map entirely).
+  // Each track is linked, for route-finding, to both towns at the ends of the road it leaves: the way there runs along that road
+  // to the junction (the leg's "via"), then up the track.
+  const rr2=rng(31337),mains=roads.length,pend=[];
   for(const ru of LOCS.filter(l=>l.type==='ruin')){if(rr2()<0.25)continue;
-    let best=null,bd=170000;for(const l of LOCS){if(l===ru)continue;const d=Math.hypot(l.x-ru.x,l.y-ru.y);if(d<bd&&landLine(ru,l)&&(l.type!=='ruin'||l.links.length)){bd=d;best=l;}}
-    if(best){const R=genRoad(best,ru,50000+ru.id*131,'dirt');roads.push(R);best.links.push({to:ru.id,road:roads.length-1,dir:1});ru.links.push({to:best.id,road:roads.length-1,dir:-1});}}
+    let best=null,bd=170000;for(let mr=0;mr<mains;mr++){const M=roads[mr];for(let i=10;i<M.n-10;i+=5){const d=Math.hypot(M.xs[i]-ru.x,M.ys[i]-ru.y);if(d>=bd)continue;
+        const jx=M.xs[i],jy=M.ys[i];if(LOCS.some(o=>Math.hypot(o.x-jx,o.y-jy)<o.rad+250))continue;if(!landLine({x:jx,y:jy},ru))continue;bd=d;best={mr,i};}}
+    if(!best)continue;const M=roads[best.mr],J={x:M.xs[best.i],y:M.ys[best.i],id:M.a},R=genRoad(J,ru,50000+ru.id*131,'dirt');R.junction={road:best.mr,i:best.i};roads.push(R);const di=roads.length-1;
+    for(const [end,toward] of [[M.a,1],[M.b,-1]]){const along=toward>0?M.cum[best.i]:M.len-M.cum[best.i],len=along+R.len;
+      pend.push([end,{to:ru.id,road:di,dir:1,len,via:{road:best.mr,dir:toward,i:best.i}}],[ru.id,{to:end,road:di,dir:-1,len,via:{road:best.mr,dir:-toward,i:best.i}}]);}}
   roads.forEach((R,ri)=>{if(R.cls==='dirt')return;LOCS[R.a].links.push({to:R.b,road:ri,dir:1});LOCS[R.b].links.push({to:R.a,road:ri,dir:-1});});
+  for(const [id,l] of pend)LOCS[id].links.push(l);   // the tracks after the main roads: a town's first link is always a road that starts in it
 })();
 const START=TEST_MODE?0:(function(){const outs=LOCS.filter(l=>l.type==='outpost'&&l.links.length>=2);let s=outs[0];for(const o of outs)if(o.x<s.x)s=o;
   const ri=LOCS.findIndex(l=>l.name==='Rust Hollow');if(ri>=0&&LOCS[ri]!==s)LOCS[ri].name=s.name;s.name='Rust Hollow';return s.id;})();
@@ -430,11 +436,11 @@ if(TEST_MODE)LOCS[3].goal=true;else (function(){const dist=routeDistances(START)
   const hv=LOCS.find(l=>l.name==='Haven');if(best&&hv&&best!==hv){hv.name=best.name;}if(best){best.name='Haven';best.goal=true;}})();
 function routeDistances(s){const dist=new Map([[s,0]]),done=new Set();
   for(;;){let u=-1,bd=Infinity;for(const [k,v] of dist)if(!done.has(k)&&v<bd){bd=v;u=k;}if(u<0)break;done.add(u);
-    for(const l of LOCS[u].links){const nd=bd+roads[l.road].len;if(nd<(dist.has(l.to)?dist.get(l.to):Infinity))dist.set(l.to,nd);}}return dist;}
+    for(const l of LOCS[u].links){const nd=bd+(l.len||roads[l.road].len);if(nd<(dist.has(l.to)?dist.get(l.to):Infinity))dist.set(l.to,nd);}}return dist;}
 function routePath(s,t){const dist=new Map([[s,0]]),prev=new Map(),done=new Set();
   for(;;){let u=-1,bd=Infinity;for(const [k,v] of dist)if(!done.has(k)&&v<bd){bd=v;u=k;}if(u<0||u===t)break;done.add(u);
-    for(const l of LOCS[u].links){const nd=bd+roads[l.road].len;if(nd<(dist.has(l.to)?dist.get(l.to):Infinity)){dist.set(l.to,nd);prev.set(l.to,[u,l]);}}}
-  if(s!==t&&!prev.has(t))return null;const legs=[];let v=t;while(v!==s){const [u,l]=prev.get(v);legs.unshift({from:u,to:v,road:l.road,dir:l.dir});v=u;}
+    for(const l of LOCS[u].links){const nd=bd+(l.len||roads[l.road].len);if(nd<(dist.has(l.to)?dist.get(l.to):Infinity)){dist.set(l.to,nd);prev.set(l.to,[u,l]);}}}
+  if(s!==t&&!prev.has(t))return null;const legs=[];let v=t;while(v!==s){const [u,l]=prev.get(v);legs.unshift({from:u,to:v,road:l.road,dir:l.dir,via:l.via});v=u;}
   return {legs,len:dist.get(t)};}
 // spatial grid of road segments
 const grid=new Map();
@@ -676,10 +682,8 @@ function getChunk(cx,cy){
       if(r()<0.14){const q=r();c.decor.push({x,y,kind:'gum',rot:r()*TAU,s:q<0.25?0.45+r()*0.3:q<0.8?0.85+r()*0.45:1.4+r()*0.8});}   // red gums, saplings to great old trees
       for(let g=0;g<2;g++)if(r()<0.55)c.decor.push({x:x+(r()-0.5)*28,y:y+(r()-0.5)*28,kind:'grass',rot:r()*TAU,s:0.8+r()*0.6});   // grass thick along the bank
       if(r()<0.1){const rad=6+r()*12,pts=[];for(let k=0;k<8;k++)pts.push(0.82+r()*0.22);c.rocks.push({x:x+(r()-0.5)*16,y:y+(r()-0.5)*16,r:rad,pts,rot:r()*TAU,river:true});}}}   // rounded river stones and boulders
-  // a rare stash hidden out in open country: worth leaving the road for
-  {const x=ox+60+r()*(CH-120),y=oy+60+r()*(CH-120),roll=r();
-    if(roll<0.012&&land(x,y)&&roadInfo(x,y).d>600&&!nearL(x,y,800)&&!obstacleAt(x,y,30,c))
-      c.boxes.push({id:'s'+cx+'_'+cy,kind:'esky',x,y,table:'stash',rolls:3,seed:hash2(cx*3+1,cy*5+2),biome:z.biome,persist:true});}
+  // (a rare esky stash used to lie out in open country here: removed in v4.8; the random draw is kept so the rest of the country stays the same)
+  {r();r();r();}
   chunks.set(k,c);return c;
 }
 function chunksAround(x,y,fn){const cx=Math.floor(x/CH),cy=Math.floor(y/CH);
@@ -779,7 +783,7 @@ function bigFits(m,others){const {x,y,maxR}=m;if(Math.abs(x)>WX-maxR||Math.abs(y
   if(landValue(x,y)<0.05||nearLoc(x,y,maxR+1300))return false;
   for(let k=0;k<16;k++){const a=k/16*TAU;if(landValue(x+Math.cos(a)*(maxR+200),y+Math.sin(a)*(maxR+200))<0.05)return false;}
   // rivers and canyons: rings of samples close enough together (every ~250 px) that a narrow one can't slip between them
-  for(const f of [1.04,0.7,0.35,0]){const n=f?Math.max(24,Math.ceil(TAU*maxR*f/250)):1;for(let j=0;j<n;j++){const a=j/n*TAU,rr=mesaR(m,a)*f,t=terrainRaw(x+Math.cos(a)*rr,y+Math.sin(a)*rr);if(t!==T.GROUND&&t!==T.DRY)return false;}}
+  for(const f of [1.04,0.97,0.7,0.35,0]){const n=f?Math.max(24,Math.ceil(TAU*maxR*f/250)):1;for(let j=0;j<n;j++){const a=j/n*TAU,rr=mesaR(m,a)*f,t=terrainRaw(x+Math.cos(a)*rr,y+Math.sin(a)*rr);if(t!==T.GROUND&&t!==T.DRY)return false;}}
   // no road anywhere under it or within ~400 px of its foot: every road point nearby, against the outline in its direction
   const R0=maxR+450;for(let gx=Math.floor((x-R0)/CELL);gx<=Math.floor((x+R0)/CELL);gx++)for(let gy=Math.floor((y-R0)/CELL);gy<=Math.floor((y+R0)/CELL);gy++){const arr=grid.get(gkey(gx,gy));if(!arr)continue;
     for(let k=0;k<arr.length;k+=2){const R=roads[arr[k]],s=arr[k+1],dx=R.xs[s]-x,dy=R.ys[s]-y,d=Math.hypot(dx,dy);if(d<mesaR(m,Math.atan2(dy,dx))+R.w/2+420)return false;}}
@@ -1044,9 +1048,12 @@ function carPair(a,b){
     if(a===hc||b===hc){SFX.hit(imp/400);G.shake=Math.max(G.shake,Math.min(10,imp/30));}
   }
 }
+// a vehicle finished off doesn't blow up: it catches fire and burns out where it stops, upright, on its side, or on its roof
+function burnOut(c){c.wrecked=true;c.burn=rand(40,70);c.smoulder=c.burn+rand(60,120);c.cond=0;c.fuel=0;const q=Math.random();c.roll=q<0.45?0:q<0.78?(Math.random()<0.5?1:-1)*Math.PI/2:Math.PI;
+  for(let i=0;i<12;i++){const a=Math.random()*TAU,s=rand(20,90);part({kind:'fire',x:c.x,y:c.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.4,.9),max:.9,size:rand(8,14),grow:-6,drag:3,col:'#ffb347'});}   // the fire takes hold
+  SFX.hit(0.5);}
 function wreckCar(c){
-  if(c.wrecked)return;c.wrecked=true;c.burn=8;c.cond=0;c.fuel=0;
-  explode(c.x,c.y,false);G.removed.add(c.id);
+  if(c.wrecked)return;burnOut(c);G.removed.add(c.id);
   if(c.driver==='hero'){exitCar(true);hurtHero(25,'wreck');showMsg('Thrown clear of the wreck',2.4);}
   c.driver=null;
 }
@@ -1510,7 +1517,7 @@ function startWipe(e){if(e.wipe>0||e.dead||e.driver!=='raider')return;if(window.
 // after the spin: half the time it burns, half the time the driver legs it and leaves the car
 function finishWipe(e){G.wiped++;raiderDown(e.fac);if(e.jobBoss)jobBossDown(e.jobBoss);
   const bag=(x,y)=>G.boxes.push({id:'rb'+(raiderSeq++),kind:'bag',x,y,table:'raider',rolls:e.type==='brute'?3:2,seed:(Math.random()*1e9)|0,persist:false,transient:true});
-  if(Math.random()<0.5){e.dead=true;explode(e.x,e.y,e.type==='brute');if(Math.random()<0.75)bag(e.x+rand(-30,30),e.y+rand(-30,30));}
+  if(Math.random()<0.5){e.driver=null;e.wipe=0;burnOut(e);e.vx*=0.3;e.vy*=0.3;e.speed=0;if(Math.random()<0.75)bag(e.x+rand(-30,30),e.y+rand(-30,30));}   // burnt out where it stopped (no explosion)
   else{const lf=spawnLooseFoe(e.x+rand(-30,30),e.y+rand(-30,30),Math.random()<0.6);if(lf)lf.fac=e.fac;  // the driver climbs out, dazed: some fight, some run
     e.driver=null;e.wipe=0;e.cond=rand(15,40);e.engine=rand(30,70);e.tyres=rand(20,70);e.susp=rand(30,70);e.fuel=rand(10,40);e.vx*=0.4;e.vy*=0.4;e.stagger=0;
     e.items=genLoot('raider',(Math.random()*1e9)|0,2);popText(e.x,e.y-26,'Driver fled','#efe2c4');}
@@ -1700,7 +1707,7 @@ function butcher(a){if(!a||a.butchered)return;a.butchered=true;G.clock+=a.sp==='
   showMsg('Butchered the '+a.S.name+': '+(a.S.meatN>1?a.S.meatN+' × ':'')+ITEMS[a.S.meat].name.toLowerCase(),2.2);}
 
 /* ===== townsfolk: daily routines, walking in and out of buildings ===== */
-const ROLE_LABEL={gatekeeper:'gatekeeper',drifter:'drifter',wanderer:'drifter',companion:'companion',publican:'publican',mechanic:'mechanic',doctor:'doctor',guard:'guard',settler:'settler',trader:'trader',scavenger:'scavenger'};
+const ROLE_LABEL={passenger:'passenger',gatekeeper:'gatekeeper',drifter:'drifter',wanderer:'drifter',companion:'companion',publican:'publican',mechanic:'mechanic',doctor:'doctor',guard:'guard',settler:'settler',trader:'trader',scavenger:'scavenger'};
 function npcLook(seed){const r=rng(seed),pick=a=>a[Math.floor(r()*a.length)];
   return {shirt:pick(['#8a5a3a','#5f6b45','#7c3a2a','#3f5a6a','#a8834a','#6a4a6a','#c9b28a','#4a4038']),skin:pick(['#d9b48c','#c49a6c','#8d5f3c','#e3c09a','#6b4428']),
     hat:r()<0.45?pick(['#5a3f2a','#3b3026','#a8834a','#2b2420']):null};}
@@ -1708,7 +1715,7 @@ function hourNow(){return (G.clock%DAY)/60;}
 function syncNPCs(){const b=body(),have=new Set(G.npcs.map(n=>n.def.id));
   for(const o of LOCS){if(!o.npcs.length||Math.hypot(o.x-b.x,o.y-b.y)>2800)continue;
     for(const def of o.npcs)if(!have.has(def.id)&&!G.npcGone.has(def.id)&&!G.flags['recruited_'+def.id]&&!G.flags['dead_'+def.id]&&compAvailable(def))G.npcs.push(spawnNPC(o,def));}
-  G.npcs=G.npcs.filter(n=>Math.hypot(n.loc.x-b.x,n.loc.y-b.y)<3600);}
+  G.npcs=G.npcs.filter(n=>n.def.role==='passenger'?!n.gone:Math.hypot(n.loc.x-b.x,n.loc.y-b.y)<3600);}
 function compAvailable(def){const C=def.comp&&COMPANIONS[def.comp];if(!C||!C.reserveOf)return true;const d=G.flags['deadDay_'+C.reserveOf];return d!==undefined&&Math.floor(G.clock/DAY)>=d+3;}
 function spawnNPC(o,def){const n={kind:'npc',def,loc:o,x:o.x,y:o.y,vx:0,vy:0,a:Math.random()*TAU,r:8,path:[],wait:rand(0,4),walk:0,stuck:0,
   look:npcLook(def.seed),talking:false,speed:0};
@@ -1722,7 +1729,7 @@ function indoorPoint(o,bi){const b=o.bld[bi];if(!b)return plazaPoint(o,Math.rand
 // where should this person be heading now? depends on their job and the time of day
 function chooseTarget(n){const o=n.loc,d=n.def,h=hourNow(),night=h<6||h>=21,r=Math.random;
   switch(d.role){
-    case 'gatekeeper':return {b:-1,x:d.post.x,y:d.post.y};   // stands outside the gate
+    case 'gatekeeper':case 'passenger':return {b:-1,x:d.post.x,y:d.post.y};   // stands outside the gate (or waits for their ride)
     case 'publican':{const b=o.bld[d.work];if(b&&r()<0.85){const p=b.L((r()-0.5)*(b.w-70),-b.h/2+36);return {b:d.work,x:p.x,y:p.y};}return night?indoorPoint(o,d.work):{b:-1,x:b.doorOut.x,y:b.doorOut.y};}
     case 'mechanic':{if(night)return indoorPoint(o,d.home);const b=o.bld[d.work];if(r()<0.6)return {b:-1,x:b.doorOut.x+rand(-30,30),y:b.doorOut.y+rand(-20,20)};return indoorPoint(o,d.work);}
     case 'doctor':case 'trader':return indoorPoint(o,d.work);
@@ -1785,6 +1792,7 @@ function planPath(n,t){const o=n.loc,pts=[];
 function updateNPC(n,dt){const h=G.hero;
   if(n.talking){n.a=Math.atan2(h.y-n.y,h.x-n.x);n.vx=n.vy=0;n.speed=0;return;}
   if(n.fleeT>0){n.fleeT-=dt;const ax=n.x-h.x,ay=n.y-h.y,l=Math.hypot(ax,ay)||1;n.vx=ax/l*60;n.vy=ay/l*60;n.x+=n.vx*dt;n.y+=n.vy*dt;n.a=Math.atan2(ay,ax);n.walk+=8*dt;n.speed=60;collideBuildings(n);return;}
+  if(n.def.role==='passenger'){passengerUpdate(n,dt);return;}
   if(n.def.role==='gatekeeper'){n.x=n.def.post.x;n.y=n.def.post.y;n.speed=0;n.vx=n.vy=0;const dh0=Math.hypot(h.x-n.x,h.y-n.y);if(dh0<400)n.a+=angDiff(Math.atan2(h.y-n.y,h.x-n.x),n.a)*Math.min(1,dt*4);return;}   // keeps the gate
   // stop and look at you when you're close and on foot
   const dh=Math.hypot(h.x-n.x,h.y-n.y);
@@ -2068,12 +2076,15 @@ function combatTarget(){const h=G.hero;if(h.inCar)return null;const W=heroWeapon
   for(const f of G.foes){if(f.dead||f.state==='flee')continue;const d=Math.hypot(f.x-h.x,f.y-h.y);if(d<bd&&losClear(h.x,h.y,f.x,f.y)){bd=d;best=f;}}
   for(const a of G.animals){if(a.state!=='attack'&&a.state!=='chase')continue;const d=Math.hypot(a.x-h.x,a.y-h.y);if(d<bd){bd=d;best=a;}}   // a snake or dingo coming at you
   return best;}
-// shooting from the driver's seat: any raider in range, in any direction, but harder to hit from a moving car
+// shooting from the driver's seat: out of the windscreen or the side windows, so ahead and out to either side (up to a little
+// behind square), never behind the car; harder to hit from a moving car. Your companion, in the passenger seat, can turn round.
+const DRIVE_ARC=1.9;   // radians either side of straight ahead: about 110 degrees
 function heroDriveShoot(){const h=G.hero,car=heroCar();if(!car||h.atkCd>0||state!=='play')return;const W=heroWeapon();if(!W.gun)return;
   if(!h.inv[W.ammo]){showMsg('Out of '+ITEMS[W.ammo].name.toLowerCase(),1.2);h.atkCd=0.4;SFX.click();return;}
-  let tg=null,bd=W.range*0.85;for(const e of G.cars){if(e.driver!=='raider'||e.wipe>0)continue;const d=Math.hypot(e.x-car.x,e.y-car.y);if(d<bd){bd=d;tg=e;}}
-  for(const f of G.foes){if(f.dead)continue;const d=Math.hypot(f.x-car.x,f.y-car.y);if(d<bd&&losClear(car.x,car.y,f.x,f.y)){bd=d;tg=f;}}
-  if(!tg){showMsg('Nothing in range',0.9);h.atkCd=0.25;return;}
+  const inArc=(x,y)=>Math.abs(angDiff(Math.atan2(y-car.y,x-car.x),car.a))<=DRIVE_ARC;let tg=null,bd=W.range*0.85,behind=false;
+  for(const e of G.cars){if(e.driver!=='raider'||e.wipe>0)continue;const d=Math.hypot(e.x-car.x,e.y-car.y);if(d<bd){if(inArc(e.x,e.y)){bd=d;tg=e;}else behind=true;}}
+  for(const f of G.foes){if(f.dead)continue;const d=Math.hypot(f.x-car.x,f.y-car.y);if(d<bd&&losClear(car.x,car.y,f.x,f.y)){if(inArc(f.x,f.y)){bd=d;tg=f;}else behind=true;}}
+  if(!tg){showMsg(behind?'Can’t shoot behind you from the wheel':'Nothing in range',0.9);h.atkCd=0.25;return;}
   const sway=Math.min(1,car.speed/400);invTake(h.inv,W.ammo,1);G.fightT=8;
   fireWeapon({kind:'hero',x:car.x,y:car.y},W,Math.atan2(tg.y-car.y,tg.x-car.x),0.04*sway,bd*(1+0.5*sway),tg.r);h.atkCd=W.cd*1.35;}
 function heroAttack(){const h=G.hero;if(h.inCar||h.atkCd>0||state!=='play')return;const W=heroWeapon();G.fightT=8;
@@ -2363,8 +2374,9 @@ function updateComp(dt){const c=G.comp;if(!c)return;const h=G.hero,car=heroCar()
   if(car&&!c.inCar&&c.state==='follow'){const d=Math.hypot(car.x-c.x,car.y-c.y);if(d<500&&car.speed<40){c.inCar=true;popText(car.x,car.y-30,c.def.name+' hops in','#efe2c4');}}
   if(c.inCar){if(!car){const lc=carById(G.lastCar)||{x:h.x,y:h.y,a:h.a};c.inCar=false;c.x=lc.x+Math.sin(lc.a)*(lc.def?lc.def.wid/2+16:24);c.y=lc.y-Math.cos(lc.a)*(lc.def?lc.def.wid/2+16:24);collideBuildings(c);return;}
     c.x=car.x;c.y=car.y;
-    // Tex leans out of the window at raider cars alongside
+    // your companion leans out of the window (or turns round in the seat) and shoots at raiders all round: cars, bikes and raiders on foot
     const CW=compWeapon(c);if(CW.gun&&c.cd<=0){let tg=null,bd=Math.min(280,CW.range*0.7);for(const e of G.cars){if(e.driver!=='raider'||e.wipe>0)continue;const d=Math.hypot(e.x-car.x,e.y-car.y);if(d<bd){bd=d;tg=e;}}
+      for(const f of G.foes){if(f.dead||f.townGuard)continue;const d=Math.hypot(f.x-car.x,f.y-car.y);if(d<bd&&losClear(car.x,car.y,f.x,f.y)){bd=d;tg=f;}}
       if(tg){c.cd=Math.max(1.3,CW.cd*1.3)+rand(0,0.6);invTake(c.inv,CW.ammo,1);fireWeapon({kind:'comp',x:car.x,y:car.y},CW,Math.atan2(tg.y-car.y,tg.x-car.x),0.12,bd,tg.r);}}
     return;}
   if(!car&&c.state==='follow'&&Math.hypot(h.x-c.x,h.y-c.y)>2500){c.x=h.x-30;c.y=h.y+30;}   // catch up if you got far ahead
@@ -2440,16 +2452,35 @@ function payJob(J,c){for(const k in J.reward){if(k==='jerrycan'){for(let i=0;i<J
 function acceptJob(J){const L=jobs();if(L.length>=3)return false;L.push(J);
   if(J.x!==undefined){const m={id:G.markerSeq++,x:Math.round(J.x),y:Math.round(J.y),text:J.title};G.markers.push(m);J.marker=m.id;}
   if(J.camp!==undefined){G.known.add(J.camp);}if(J.dest!==undefined)G.known.add(J.dest);
-  if(J.type==='passenger'){J.aboard=true;showMsg(J.who+' climbs aboard',2.2);}if(J.type==='package')invAdd(G.hero.inv,'package',1);return true;}
+  if(J.type==='passenger'){const g=G.npcs.find(n=>n.def.id===J.giver),o=LOCS[J.town],gx=g?g.x:o.x,gy=g?g.y:o.y;J.pax='waiting';J.px=gx+22;J.py=gy+10;J.paxTown=J.town;showMsg(J.who+' gets their things and waits for you',2.4);}if(J.type==='package')invAdd(G.hero.inv,'package',1);return true;}
+// where someone waits to be picked up in a town: outside the pub door, or near the middle of town
+function waitSpot(o){const pub=o.bld.find(b=>b.kind==='pub');if(pub){const p=pub.L(0,pub.h/2+34);return {x:p.x,y:p.y};}return {x:o.x+40,y:o.y+40};}
 function jobReady(J){const h=G.hero;if(J.type==='bounty'||J.type==='bounty_car')return !!J.killed;if(J.type==='camp')return !!G.flags['camp_'+J.camp];if(J.type==='item')return (h.inv[J.item]||0)>0;
-  if(J.type==='supplies')return Object.keys(J.need).every(k=>(h.inv[k]||0)>=J.need[k]);if(J.type==='fetch')return !!J.aboard;return false;}
+  if(J.type==='supplies')return Object.keys(J.need).every(k=>(h.inv[k]||0)>=J.need[k]);if(J.type==='fetch')return !!J.delivered;return false;}
 // arriving somewhere: passengers get off, packages get handed over, someone fetched climbs in
-function jobsArrive(o){for(const J of jobs().slice()){if(J.dest!==o.id)continue;
-  if(J.type==='passenger'&&J.aboard){J.aboard=false;setTimeout(()=>showMsg(J.who+' climbs out at '+o.name+' and pays you: '+rewardText(J.reward),3.2),0);payJob(J);}
-  else if(J.type==='package'&&G.hero.inv.package){invTake(G.hero.inv,'package',1);setTimeout(()=>showMsg('You hand the package over in '+o.name+'. Paid: '+rewardText(J.reward),3.2),0);payJob(J);}
-  else if(J.type==='fetch'&&!J.aboard){J.aboard=true;setTimeout(()=>showMsg(J.who+' climbs aboard. Take them back to '+LOCS[J.town].name,3),0);}}}
+function jobsArrive(o){for(const J of jobs().slice()){
+  if(J.type==='fetch'&&J.dest===o.id&&!J.pax){const w=waitSpot(o);J.pax='waiting';J.px=w.x;J.py=w.y;J.paxTown=o.id;setTimeout(()=>showMsg(J.who+' is waiting outside the '+(o.bld.some(b=>b.kind==='pub')?'pub':'square')+' for you',2.8),0);}
+  const home=J.type==='passenger'?J.dest:J.type==='fetch'?J.town:null;
+  if(home===o.id&&J.pax==='aboard'){paxGetOut(J,o);if(J.type==='passenger'){setTimeout(()=>showMsg(J.who+' climbs out at '+o.name+' and pays you: '+rewardText(J.reward),3.2),0);payJob(J);}else{J.delivered=true;setTimeout(()=>showMsg(J.who+' is home. Go and tell '+J.giverName,3),0);}}
+  if(J.type==='package'&&J.dest===o.id&&G.hero.inv.package){invTake(G.hero.inv,'package',1);setTimeout(()=>showMsg('You hand the package over in '+o.name+'. Paid: '+rewardText(J.reward),3.2),0);payJob(J);}}}
+// the passenger as someone you can see: standing at the pickup point; walking to your car and climbing in once you're in it
+// and stopped close by; climbing out at the other end and walking off into town
+function paxNPC(J){return G.npcs.find(n=>n.def.id==='pax_'+J.id);}
+function paxShow(J){if(paxNPC(J))return;const o=LOCS[J.paxTown];const n=spawnNPC(o,{id:'pax_'+J.id,name:J.who,role:'passenger',post:{x:J.px,y:J.py},seed:hash2(J.id.length,J.who.length)});n.job=J;G.npcs.push(n);}
+function paxGetOut(J,o){J.pax='out';const car=heroCar()||carById(G.lastCar)||{x:G.hero.x,y:G.hero.y,a:0,def:{wid:20}},side=car.def?car.def.wid/2+12:20;
+  const n=spawnNPC(o,{id:'pax_'+J.id+'_out',name:J.who,role:'passenger',post:{x:car.x-Math.sin(car.a)*side,y:car.y+Math.cos(car.a)*side},seed:hash2(J.id.length,J.who.length)});
+  n.job=J;n.leaving=4.5;const w=waitSpot(o);n.dest={x:w.x+rand(-40,40),y:w.y+rand(-40,40)};G.npcs.push(n);popText(n.x,n.y-30,J.who+' climbs out','#efe2c4');}
+function passengerUpdate(n,dt){const h=G.hero,car=heroCar(),J=n.job;
+  const walkTo=(x,y,sp)=>{const dx=x-n.x,dy=y-n.y,d=Math.hypot(dx,dy);if(d<2){n.speed=0;n.vx=n.vy=0;return d;}const v=Math.min(sp,d/dt);n.vx=dx/d*v;n.vy=dy/d*v;n.x+=n.vx*dt;n.y+=n.vy*dt;n.a=Math.atan2(dy,dx);n.speed=v;return d;};
+  if(n.leaving!==undefined){n.leaving-=dt;walkTo(n.dest.x,n.dest.y,34);if(n.leaving<=0)n.gone=true;return;}   // off into town
+  if(!J||J.pax!=='waiting'){n.gone=true;return;}
+  // your car's here and you're in it, stopped: walk to the passenger door and get in
+  if(car&&car.speed<40&&Math.hypot(car.x-n.x,car.y-n.y)<260){const side=car.def.wid/2+10,dx=car.x-Math.sin(car.a)*side,dy=car.y+Math.cos(car.a)*side;
+    if(walkTo(dx,dy,52)<8){J.pax='aboard';n.gone=true;popText(car.x,car.y-30,J.who+' climbs in','#efe2c4');showMsg(J.who+' is in. Off to '+LOCS[J.type==='passenger'?J.dest:J.town].name,2.6);}return;}
+  n.x+=(n.def.post.x-n.x)*Math.min(1,dt*2);n.y+=(n.def.post.y-n.y)*Math.min(1,dt*2);n.speed=0;n.vx=n.vy=0;   // waiting, watching for you
+  const dh=Math.hypot(h.x-n.x,h.y-n.y);if(dh<500)n.a+=angDiff(Math.atan2(h.y-n.y,h.x-n.x),n.a)*Math.min(1,dt*3);}
 // a wanted man (or woman) near their spot: they and a couple of hangers-on show up when you get close; a lost item's crate (and its guards)
-function jobsTick(){const b=body();for(const J of jobs()){if(J.x===undefined)continue;const d=Math.hypot(J.x-b.x,J.y-b.y);
+function jobsTick(){const b=body();for(const J of jobs()){if(J.pax==='waiting'&&Math.hypot(J.px-b.x,J.py-b.y)<2600)paxShow(J);if(J.x===undefined)continue;const d=Math.hypot(J.x-b.x,J.y-b.y);
   if((J.type==='bounty'||J.type==='bounty_car')&&!J.killed&&d<2600){const live=G.foes.some(f=>f.jobBoss===J.id&&!f.dead)||G.cars.some(c=>c.jobBoss===J.id&&!c.dead&&!c.wrecked);
     if(!live){if(J.car){const ri=roadInfo(J.x,J.y),R=roads[ri.r],i=ri.i,a=Math.atan2(R.ys[Math.min(R.n-1,i+1)]-R.ys[i],R.xs[Math.min(R.n-1,i+1)]-R.xs[i]);const rc=makeRaider('brute',J.x,J.y,a,0);rc.fac=J.target;rc.jobBoss=J.id;rc.boss=J.boss;rc.stab=rc.maxStab=rc.stab*1.6;G.cars.push(rc);
         for(let k=0;k<2;k++){const e=makeRaider('buggy',J.x-Math.cos(a)*(120+k*80),J.y-Math.sin(a)*(120+k*80),a,0);e.fac=J.target;G.cars.push(e);}G.encActive=true;}
@@ -2461,13 +2492,14 @@ function jobsTick(){const b=body();for(const J of jobs()){if(J.x===undefined)con
 // the boss falls (on foot or in a wreck): the job's done
 function jobBossDown(id){const J=jobs().find(j=>j.id===id);if(J&&!J.killed){J.killed=true;setTimeout(()=>showMsg(J.boss+' is dead. Go back to '+J.giverName+' for your pay',3),0);}}
 // the conversation: "Got any work?" and "About that job…" for anyone who has some
-Object.assign(DLG,{job_offer:{text:c=>{const J=jobOffer(c.n);if(!J)return '“Nothing right now. Try me in a few days.”';c.set('offer_'+c.n.def.id,J.id);return '“'+J.desc+'” ('+c.name+' will pay: '+rewardText(J.reward)+'.)';},
+Object.assign(DLG,{passenger_start:{text:c=>{const J=c.n.job;return J&&J.pax==='waiting'?'“Ready when you are. Bring the car round and I’ll hop in.”':'“Thanks for the ride.”';},opts:[{t:'Bye',go:null}]},
+  job_offer:{text:c=>{const J=jobOffer(c.n);if(!J)return '“Nothing right now. Try me in a few days.”';c.set('offer_'+c.n.def.id,J.id);return '“'+J.desc+'” ('+c.name+' will pay: '+rewardText(J.reward)+'.)';},
     opts:[{t:'I’ll do it',if:c=>!!jobOffer(c.n),do:c=>{const J=jobOffer(c.n);if(!acceptJob(J))return '“You’ve got your hands full already. Come back when you’ve finished something.” (Three jobs at a time.)';
         return '“Good. '+(J.type==='passenger'?J.who+' will ride with you.':J.type==='package'?'Here’s the package.':J.x!==undefined?'I’ve marked it on your map.':'Don’t be long.')+'”';}},
       {t:'Not right now',go:'__start'}]},
   job_turnin:{text:c=>{const J=jobs().find(j=>j.giver===c.n.def.id);if(!J)return '“Nothing between us.”';return jobReady(J)?'“You did it?”':'“'+J.title+'. '+(J.type==='fetch'&&!J.aboard?'Still waiting on '+J.who+'.':'Still waiting.')+'”';},
     opts:[{t:'It’s done. Here.',if:c=>{const J=jobs().find(j=>j.giver===c.n.def.id);return !!J&&jobReady(J);},do:c=>{const J=jobs().find(j=>j.giver===c.n.def.id);
-        if(J.type==='item')c.take(J.item,1);if(J.type==='supplies')for(const k in J.need)c.take(k,J.need[k]);if(J.type==='fetch')J.aboard=false;payJob(J,c);
+        if(J.type==='item')c.take(J.item,1);if(J.type==='supplies')for(const k in J.need)c.take(k,J.need[k]);payJob(J,c);
         return '“'+(J.type==='fetch'?J.who+' hugs them.':J.type==='item'?'They turn it over in their hands for a long moment.':'That’s a weight off.')+' Here, as promised.” ('+rewardText(J.reward)+')';}},
       {t:'Not yet',go:'__start'}]}});
 for(const k of Object.keys(DLG)){if(!k.endsWith('_start')||['gatekeeper_start','companion_start','wanderer_start'].includes(k))continue;const N=DLG[k];if(!N.opts)continue;
@@ -2875,8 +2907,11 @@ function updateHud(){const h=G.hero,car=heroCar(),fc=focusCar();
     setHud('dest','text',LOCS[G.leg.to].name);
     setHud('destKm','text',(G.onLeg?legRemaining().toFixed(1)+' km of road left':'Off the road, follow the arrow')+fin);}
 }
-function legRemaining(){const L=G.leg,R=roads[L.road],ri=body().ri;
-  const at=ri.r===L.road?R.cum[ri.i]+ri.t*(R.cum[ri.i+1]-R.cum[ri.i]):(L.dir>0?0:R.len);
+function legRemaining(){const L=G.leg,R=roads[L.road],ri=body().ri,pos=(Q,r)=>Q.cum[r.i]+r.t*(Q.cum[Math.min(Q.n-1,r.i+1)]-Q.cum[r.i]);
+  if(L.via){const M=roads[L.via.road],jc=M.cum[L.via.i],viaLen=L.via.dir>0?M.len-jc:jc;   // a leg along a main road to a track junction (or back)
+    if(ri.r===L.via.road){const p=pos(M,ri);return km(L.dir>0?Math.abs(jc-p)+R.len:(L.via.dir>0?M.len-p:p));}
+    const at=ri.r===L.road?pos(R,ri):(L.dir>0?0:R.len);return km(L.dir>0?R.len-at:at+(L.dir<0?viaLen:0));}
+  const at=ri.r===L.road?pos(R,ri):(L.dir>0?0:R.len);
   return km(L.dir>0?R.len-at:at);}
 function updateCtx(){
   const acts=state==='play'?getActions():[],key=acts.map(a=>a.k+a.label).join('|');if(key===ctxKey)return;ctxKey=key;
@@ -2960,7 +2995,7 @@ function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
   return '<div class="irow"><i style="background:'+it.icon+'"></i><span class="nm">'+it.name+(n>1?' ×'+n:'')+'<small>'+(Math.round(it.kg*n*10)/10)+' kg</small></span>'+b+'</div>';}
 function renderInv(){const h=G.hero,o=otherInv(),car=invCar();let html='';
   html+='<div class="stats">Health '+Math.round(h.hp)+'%, water '+Math.round(h.water)+'%, food '+Math.round(h.food)+'%, rest '+Math.round(h.rest)+'%. '+fmtClock(G.clock)+'.</div>';
-  html+=(jobs().length?'<h3>Jobs</h3>'+jobs().map(J=>'<div class="stats"><b>'+J.title+'</b> for '+J.giverName+' in '+LOCS[J.town].name+'. '+J.desc+(jobReady(J)?' <i>Done: go back for your pay.</i>':'')+(J.aboard?' ('+J.who+' is with you.)':'')+' Pays: '+rewardText(J.reward)+'.</div>').join(''):'');
+  html+=(jobs().length?'<h3>Jobs</h3>'+jobs().map(J=>'<div class="stats"><b>'+J.title+'</b> for '+J.giverName+' in '+LOCS[J.town].name+'. '+J.desc+(jobReady(J)?' <i>Done: go back for your pay.</i>':'')+(J.pax==='aboard'?' ('+J.who+' is with you.)':J.pax==='waiting'?' ('+J.who+' is waiting for you in '+LOCS[J.paxTown].name+'.)':'')+' Pays: '+rewardText(J.reward)+'.</div>').join(''):'');
   html+='<h3>Standing</h3><div class="stats">'+Object.keys(FACTIONS).filter(facKnown).map(f=>FACTIONS[f].name+': '+repTier(rep(f)).toLowerCase()+' ('+(rep(f)>0?'+':'')+Math.round(rep(f))+')').join(', ')+'.</div>';
   if(G.comp){const p=G.comp;html+='<div class="stats">'+p.def.name+' the '+p.C.title+': '+(p.state==='down'?'down!':Math.round(p.hp)+'% health, '+(p.inCar?'riding with you':p.state==='wait'?'waiting':'following'))+', '+(p.weapon?ITEMS[p.weapon].name.toLowerCase()+(WEAPONS[ITEMS[p.weapon].weapon].gun?' ('+compAmmo(p)+')':''):'a club')+'.</div>';}
   html+='<h3>You carry<small>'+invWeight(h.inv)+' of '+HERO_CAP+' kg</small></h3>';
@@ -4551,7 +4586,8 @@ function syncDynamic3(){const sc=V3.scene,seen=new Set(),b=body();
       e={m,wrecked:c.wrecked,hero:c.driver==='hero'};V3.cars.set(c,e);}seen.add(c);
     const L=c.def.len,W2=c.def.wid,fx=Math.cos(c.a),fy=Math.sin(c.a),gy=groundY3(c.x,c.y);
     const hf=groundY3(c.x+fx*L*0.4,c.y+fy*L*0.4),hbk=groundY3(c.x-fx*L*0.4,c.y-fy*L*0.4),hr=groundY3(c.x-fy*W2*0.45,c.y+fx*W2*0.45),hl=groundY3(c.x+fy*W2*0.45,c.y-fx*W2*0.45);
-    e.m.position.set(c.x,Math.max(gy,(hf+hbk)/2),c.y);e.m.rotation.set(-Math.atan2(hr-hl,W2*0.9),-c.a,Math.atan2(hf-hbk,L*0.8),'YZX');}
+    e.m.position.set(c.x,Math.max(gy,(hf+hbk)/2),c.y);e.m.rotation.set(-Math.atan2(hr-hl,W2*0.9),-c.a,Math.atan2(hf-hbk,L*0.8),'YZX');
+    if(c.roll){e.m.rotation.x+=c.roll;e.m.position.y+=Math.abs(Math.abs(c.roll)-Math.PI)<0.1?W2*0.72:W2*0.5;}}   // a wreck on its side (lifted by half its width) or on its roof (by its height)
   // riders on the raiders' motorbikes: a raider in the saddle, crouched low over the tank like a racer, a machete in the right hand
   for(const c of G.cars){const e=V3.cars.get(c);if(!e)continue;const want=c.type==='bike'&&c.driver==='raider'&&!c.wrecked&&c.wipe<=0;
     if(want&&!e.rider&&HB3.ok&&CHAR3.tpl){e.rider=makeHeroBody3(charSpec3(hashStr3(c.id||'b'),'foe',c.fac));e.rider.mixer.stopAllAction();setCharWeapon3(e.rider,'machete');e.riderPose=-1;}
@@ -4963,6 +4999,8 @@ function driveHero(car,inp,dt){
   G.dist+=car.speed*dt/M;
   return {thr,boost};
 }
+// on the main road part of a leg that runs to (or from) a dirt-track junction, which way is "the right way"
+function legViaDir(L,ri){const V=L.via;if(L.dir>0)return ri.i<V.i?1:-1;return V.dir;}   // going to the track: toward the junction; coming off it: toward the town
 function update(dt){
   G.time+=dt;const h=G.hero;let car=heroCar();const inp=readInput(car);let eng={thr:0,boost:false};
   survival(dt,car);
@@ -4979,7 +5017,11 @@ function update(dt){
   if(compOnFoot()){const cp=G.comp;for(const c of G.cars){if(c.speed<110||c===car)continue;const d=Math.hypot(cp.x-c.x,cp.y-c.y);if(d<c.r+cp.r){hurtComp((c.speed-80)*0.3);const l=d||1;cp.x+=(cp.x-c.x)/l*12;cp.y+=(cp.y-c.y)/l*12;}}}
   if(!heroCar())for(const f of G.foes){if(f.dead)continue;const dx=f.x-h.x,dy=f.y-h.y,d=Math.hypot(dx,dy),m=f.r+h.r;if(d<m&&d>1e-4){f.x+=dx/d*(m-d)*0.5;f.y+=dy/d*(m-d)*0.5;h.x-=dx/d*(m-d)*0.5;h.y-=dy/d*(m-d)*0.5;}}
   for(const f of G.foes){if(f.dead)continue;for(const c of G.cars){if(c.speed<60)continue;const d=Math.hypot(f.x-c.x,f.y-c.y);   // cars hit people on foot
-    if(d<c.r+f.r){const rel=Math.hypot(c.vx,c.vy);if(rel>110){const l=d||1;hitFoe(f,(rel-80)*0.35,(f.x-c.x)/l,(f.y-c.y)/l,rel*0.8);if(c===car){c.cond-=2;SFX.hit(0.4);}}}}}
+    if(d<c.r+f.r){const rel=Math.hypot(c.vx,c.vy);if(rel>110){
+      // someone about to be run down dives out of the way, four times in five (decided once per car coming at them)
+      if(f.dodgeFor!==c||G.time>(f.dodgeT||0)){f.dodgeFor=c;f.dodgeOk=Math.random()<0.8;}f.dodgeT=G.time+1.2;   // one roll of the dice per car coming at them
+      if(f.dodgeOk){const fx=Math.cos(c.a),fy=Math.sin(c.a),side=((f.x-c.x)*-fy+(f.y-c.y)*fx)>=0?1:-1,push=c.def.wid/2+f.r+14;f.x+=-fy*side*push*0.6;f.y+=fx*side*push*0.6;f.vx=-fy*side*220;f.vy=fx*side*220;f.stun=0.7;f.dodged=(f.dodged||0)+1;popText(f.x,f.y-24,'Dodged!','#efe2c4');continue;}
+      const l=d||1;hitFoe(f,(rel-80)*0.35,(f.x-c.x)/l,(f.y-c.y)/l,rel*0.8);if(c===car){c.cond-=2;SFX.hit(0.4);}}}}}
   G.foes=G.foes.filter(f=>!(f.dead&&f.deadT<=0)&&!f.gone);G.noises=[];
   for(const c of G.cars){if(c.dead||c.wrecked)continue;
     if(c.driver==='raider'){if(c.wipe<=0&&(c.stab<=0||c.cond<=0))startWipe(c);}
@@ -4989,6 +5031,7 @@ function update(dt){
       if(Math.random()<0.08+dmg*0.5){const shade=Math.round(168-dmg*130),col='#'+[shade,shade-6,shade-14].map(v=>Math.max(0,v).toString(16).padStart(2,'0')).join('');
         part({kind:'smoke',x:hx+rand(-3,3),y:hy+rand(-3,3),vx:-c.vx*0.3+rand(-10,10),vy:-c.vy*0.3+rand(-10,10),life:rand(1.2,2.2),max:2.2,size:4+dmg*5,grow:10+dmg*12,drag:1.2,col,lift:11});}
       if(c.cond<15&&Math.random()<0.12)part({kind:'fire',x:hx+rand(-3,3),y:hy+rand(-3,3),vx:0,vy:0,life:.35,max:.35,size:4,grow:-6,drag:1,col:'#ffb347',lift:12});}}
+  for(const c of G.cars)if(c.smoulder>0&&!(c.burn>0)){c.smoulder-=dt;if(Math.random()<0.15)smoke(c.x,c.y,7);}   // the fire's out: a thin smoke for a while
   for(const c of G.cars)if(c.burn>0){c.burn-=dt;if(Math.random()<0.5)part({kind:'fire',x:c.x+rand(-10,10),y:c.y+rand(-6,6),vx:0,vy:rand(-20,0),life:.5,max:.5,size:9,grow:-8,drag:1,col:'#ff9a3a'});if(Math.random()<0.4)smoke(c.x,c.y,10);}
   G.cars=G.cars.filter(c=>!c.dead&&!c.gone&&Number.isFinite(c.x)&&Number.isFinite(c.y));   // never keep a car whose position has gone bad
   car=heroCar();const b=body();
@@ -5004,10 +5047,10 @@ function update(dt){
     if(near<G.encWarn.at||G.encWarn.t<=0){showMsg(G.encWarn.msg,2.6);G.encWarn=null;}}   // coming head-on: the call comes once they're close (you may have seen their dust first)
   if(G.encActive&&!raidingNow&&!G.encWarn){G.encActive=false;showMsg(pickLine(RAID_CLEAR),2.4);}
   // route guidance
-  if(G.leg){const L=G.leg;G.onLeg=b.ri.r===L.road&&b.ri.d<300;
-    G.nearT-=dt;if(!G.onLeg&&G.nearT<=0){G.nearT=0.4;const R=roads[L.road];let bd=1e18,bi=0;
-      for(let i=0;i<R.n;i+=4){const q=(R.xs[i]-b.x)**2+(R.ys[i]-b.y)**2;if(q<bd){bd=q;bi=i;}}G.legNear={x:R.xs[bi],y:R.ys[bi]};}
-    if(car&&G.onLeg&&car.speed>120&&b.dir!==L.dir){G.wrongT+=dt;if(G.wrongT>1.6){G.wrongT=-4;showMsg('Wrong way',1.6);}}else if(G.wrongT>0)G.wrongT=0;else G.wrongT=Math.min(0,G.wrongT+dt);
+  if(G.leg){const L=G.leg,onVia=!!L.via&&b.ri.r===L.via.road&&b.ri.d<300;G.onLeg=(b.ri.r===L.road&&b.ri.d<300)||onVia;
+    G.nearT-=dt;if(!G.onLeg&&G.nearT<=0){G.nearT=0.4;let bd=1e18,bx=0,by=0;for(const rr of L.via?[L.road,L.via.road]:[L.road]){const R=roads[rr];
+      for(let i=0;i<R.n;i+=4){const q=(R.xs[i]-b.x)**2+(R.ys[i]-b.y)**2;if(q<bd){bd=q;bx=R.xs[i];by=R.ys[i];}}}G.legNear={x:bx,y:by};}
+    if(car&&G.onLeg&&car.speed>120&&b.dir!==(onVia?legViaDir(L,b.ri):L.dir)){G.wrongT+=dt;if(G.wrongT>1.6){G.wrongT=-4;showMsg('Wrong way',1.6);}}else if(G.wrongT>0)G.wrongT=0;else G.wrongT=Math.min(0,G.wrongT+dt);
   }
   else G.onLeg=false;
   if(!car)collectPickups();
@@ -5046,7 +5089,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
