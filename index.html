@@ -238,7 +238,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='5.0';
+const VERSION='5.1';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1101,6 +1101,7 @@ const ITEMS={
   toolkit:{name:'Toolkit',kg:3,tool:true,icon:'#b8862f'},
   knife:{name:'Knife',kg:0.3,weapon:'knife',icon:'#8a8478'},
   compass:{name:'Compass',kg:0.1,icon:'#b8862f'},
+  billy:{name:'Billy can',kg:0.6,icon:'#8a8478'},billy_full:{name:'Billy can of river water',kg:1.6,icon:'#6f8a94'},
   tyreiron:{name:'Tyre iron',kg:2,weapon:'tyreiron',icon:'#55504a'},
   bat:{name:'Cricket bat',kg:1.2,weapon:'bat',icon:'#c9a35a'},
   machete:{name:'Machete',kg:1,weapon:'machete',icon:'#9c958a'},
@@ -1181,7 +1182,7 @@ Object.assign(WEAPONS,{
   pipeclub:{name:'Pipe club',melee:true,dmg:16,range:34,arc:1.3,cd:0.6,knock:120,noise:120},
   spikedbat:{name:'Spiked bat',melee:true,dmg:21,range:38,arc:1.6,cd:0.58,knock:170,noise:120}});
 const VALUE={water:16,beans:8,jerky:4,bandage:6,medkit:30,jerrycan:18,scrap:4,tyre:35,parts:45,springs:40,toolkit:40,
-  compass:30,knife:10,tyreiron:12,bat:18,machete:30,bow:45,crossbow:80,arrows:1,bolts:2,revolver:160,shotgun:210,rifle:280,bullets:4,shells:5,rounds:6,
+  compass:30,billy:18,billy_full:18,knife:10,tyreiron:12,bat:18,machete:30,bow:45,crossbow:80,arrows:1,bolts:2,revolver:160,shotgun:210,rifle:280,bullets:4,shells:5,rounds:6,
   cloth:3,wire:5,powder:8,durries:15,watch:45,pipeclub:14,spikedbat:28,
   kit_roobar:120,kit_longtank:140,kit_offroad:110,kit_heavysusp:110,kit_blower:220,kit_armour:180,kit_spikes:90};
 // trade goods and materials turn up in loot
@@ -1249,7 +1250,7 @@ function buyPrice(o,k,qtyVal){let p=(qtyVal??VALUE[k])*priceMods(o).buy;
 function sellPrice(o,k){return Math.max(1,Math.floor(VALUE[k]*priceMods(o).sell));}
 // ---- what each trader has today (restocked every morning) ----
 const STOCK_LISTS={
-  trader:[['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
+  trader:[['billy',1],['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
   mechanic:[['jerrycan',1],['hose',2],['tyre',3],['parts',2],['springs',2],['scrap',6],['wire',3],['toolkit',1],['kit_roobar',1],['kit_longtank',1],['kit_offroad',1],['kit_heavysusp',1],['kit_spikes',1]],
   publican:[['water',3],['beans',4],['jerky',4],['durries',2]],
   doctor:[['bandage',6],['medkit',2],['cloth',3]],
@@ -1475,6 +1476,9 @@ function getActions(){
       if(h.inv.scrap&&c.cond<99)acts.push({k:'T',label:'Patch up',alt:true,fn:()=>patchCar(c)});}
     else if(b)acts.push({k:'F',label:boxItems(b)&&invCount(b.items)?'Search':'Search (empty)',fn:()=>openInv({kind:'box',box:b})});
     const cc=carcassNear(36);if(cc)acts.push({k:'U',label:'Butcher the '+cc.S.name,fn:()=>butcher(cc)});
+    // a billy: fill it at a river, then boil it over a little fire (an hour) for a bottle's worth of safe water
+    if(h.inv.billy&&atRiver(h.x,h.y))acts.push({k:'B',label:'Fill the billy',fn:fillBilly});
+    if(h.inv.billy_full)acts.push({k:'N',label:'Boil the billy (1 hour)',alt:true,fn:boilBilly});
     const bed=!c&&h.rest<95?nearestBed(22):null;if(bed)acts.push({k:'Z',label:'Rest on the bed',fn:()=>bedPanel(bed)});
     const sv=salvageTarget();if(sv){acts.push({k:'J',label:'Siphon fuel',alt:true,fn:()=>siphonPanel(sv)});acts.push({k:'K',label:'Strip parts',alt:true,fn:()=>stripPanel(sv)});}
     const n=nearestNPC(46),cp=compActive()&&!G.comp.inCar?G.comp:null,cpd=cp?Math.hypot(cp.x-h.x,cp.y-h.y):1e9;
@@ -3027,6 +3031,13 @@ function bedPanel(bed){const h=G.hero;
     buttons:[{label:'Sleep until rested (about '+need+(need===1?' hour)':' hours)'),primary:true,fn:()=>doBedRest(need,bed)},
       {label:'Nap for 2 hours',fn:()=>doBedRest(2,bed)},{label:'Get up',fn:()=>{getUp();state='play';hidePanel();}}]});}
 function getUp(){const h=G.hero,L0=h.lying;if(!L0)return;h.x=L0.fromX;h.y=L0.fromY;h.lying=null;}
+// the billy can: at the river's edge you dip it full; boiling it takes an hour beside a small fire, and the water's good to drink
+function atRiver(x,y){for(let k=0;k<9;k++){const a=k/8*TAU,d=k===8?0:46;if(terrainAt(x+Math.cos(a)*d,y+Math.sin(a)*d)===T.RIVER)return true;}return false;}
+function fillBilly(){const h=G.hero;if(!h.inv.billy)return;invTake(h.inv,'billy',1);invAdd(h.inv,'billy_full',1);SFX.pick();showMsg('You fill the billy at the river. Boil it before you drink it',2.6);}
+function boilBilly(){const h=G.hero;if(!h.inv.billy_full)return;if(G.foes.some(f=>!f.dead&&f.state==='alert'&&Math.hypot(f.x-h.x,f.y-h.y)<900)||G.cars.some(c=>c.driver==='raider')){showMsg('Not with raiders about',1.8);return;}
+  G.clock+=60;h.water=Math.max(0,h.water-2.5);h.food=Math.max(0,h.food-1.25);h.rest=Math.max(0,h.rest-1);
+  for(let i=0;i<10;i++)part({kind:'fire',x:h.x+15+rand(-4,4),y:h.y+rand(-4,4),vx:0,vy:rand(-12,0),life:rand(.4,.8),max:.8,size:rand(4,7),grow:-5,drag:2,col:'#ffb347',lift:3});smoke(h.x+15,h.y,6);   // the little fire
+  invTake(h.inv,'billy_full',1);invAdd(h.inv,'billy',1);invAdd(h.inv,'water',1);SFX.pick();showMsg('An hour by the fire: the billy’s boiled. A bottle of clean water. '+fmtClock(G.clock).split(', ')[1],3);}
 function doBedRest(hours,bed){const h=G.hero,rate=bedRate(bed),risk=bedRisk(bed);let slept=0,woken=false;
   for(let i=0;i<hours;i++){G.clock+=60;slept++;h.rest=Math.min(100,h.rest+rate);h.hp=Math.min(h.maxHp||100,h.hp+(bed.b.ruined?1:3));
     h.water=Math.max(0,h.water-2.5);h.food=Math.max(0,h.food-1.25);if(h.water<=0)h.hp-=8;if(h.food<=0)h.hp-=3;if(Math.random()<risk){woken=true;break;}}
@@ -5199,7 +5210,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
