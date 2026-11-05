@@ -238,7 +238,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='4.9';
+const VERSION='5.0';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -905,6 +905,11 @@ const CARS={
   van:{name:'Dune Runner panel van',style:'van',len:50,wid:26,maxSpeed:430,acc:310,grip:5.8,turn:2.4,mass:1.9,burn:0.95,off:0.5,col:'#3f6a66',trim:'#f2a03d',pitch:1.05,armor:1.25,boot:150},
   cruiser:{name:'Landmaster 4x4',style:'cruiser',len:46,wid:27,maxSpeed:390,acc:300,grip:6.8,turn:2.4,mass:2.3,burn:0.9,off:0.88,col:'#d6cbb2',trim:'#5a4636',pitch:0.85,armor:1.7,boot:110},
   bike:{name:'Trailhawk motorbike',style:'bike',len:30,wid:11,maxSpeed:520,acc:500,grip:5,turn:3.4,mass:0.7,burn:0.45,off:0.72,col:'#8f3a17',trim:'#c9c2b5',pitch:1.6,armor:0.6,boot:8,stab:55,soft:1.5},
+  // trucks: heavy and slow, long (collision is a string of circles down their length, not one big one)
+  semi:{name:'Prime mover and trailer',style:'semi',len:150,wid:26,maxSpeed:340,acc:110,grip:3.4,turn:1.25,mass:5,burn:2.4,off:0.3,col:'#6a6a5a',trim:'#9a8a6a',pitch:0.6,armor:3,boot:120,stab:400,soft:0.3},
+  tanker:{name:'Fuel tanker',style:'tanker',len:140,wid:26,maxSpeed:330,acc:105,grip:3.4,turn:1.25,mass:5,burn:2.4,off:0.3,col:'#7a6a4a',trim:'#9a8a6a',pitch:0.6,armor:3,boot:60,stab:400,soft:0.3},
+  flatbed:{name:'Flatbed truck',style:'flatbed',len:80,wid:24,maxSpeed:370,acc:150,grip:3.6,turn:1.7,mass:3,burn:1.7,off:0.4,col:'#5a6a6a',trim:'#9a8a6a',pitch:0.7,armor:2.2,boot:90,stab:280,soft:0.4},
+  pickup:{name:'Pickup truck',style:'pickup',len:52,wid:23,maxSpeed:450,acc:260,grip:4.3,turn:2.4,mass:1.6,burn:1.1,off:0.65,col:'#7a5a3a',trim:'#c9c2b5',pitch:0.95,armor:1.4,boot:40,stab:160,soft:0.7},
   buggy:{name:'Raider buggy',style:'buggy',len:38,wid:22,maxSpeed:530,acc:430,grip:5,turn:3.2,mass:1,burn:0.9,off:0.7,col:'#8f3a17',trim:'#d8cdb5',pitch:1.3,armor:0.9,boot:20,stab:100,soft:1},
   brute:{name:'Raider war wagon',style:'brute',len:56,wid:32,maxSpeed:470,acc:330,grip:6,turn:2.4,mass:2.4,burn:1.4,off:0.6,col:'#5a4636',trim:'#9c958a',pitch:0.75,armor:1.8,boot:60,stab:170,soft:0.55}};
 let carSeq=0;
@@ -922,7 +927,7 @@ function carDead(c){return c.engine<=0?'engine':c.cond<=0?'body':null;}
 function makeCar(type,x,y,a,o){if(type==='kestrel'&&!CARS.kestrel)type='radiant';   // the hero's car was the Kestrel until v4.5 (older saves); the name is kept for a car to come
   const d=CARS[type];o=Object.assign({},o||{});const ty=o.tyres,tw=o.tw;delete o.tyres;delete o.tw;
   const c=Object.assign({kind:'car',id:'v'+(carSeq++),type,def:d,x,y,a,vx:0,vy:0,speed:0,vf:0,slip:0,steer:0,flash:0,stagger:0,
-    onRoad:true,ri:NOROAD,acc:d.acc,maxSpeed:d.maxSpeed,drag:0.18,grip:d.grip,turn:d.turn,mass:d.mass,r:d.len/2.3,
+    onRoad:true,ri:NOROAD,acc:d.acc,maxSpeed:d.maxSpeed,drag:0.18,grip:d.grip,turn:d.turn,mass:d.mass,r:d.len>70?d.wid*0.62:d.len/2.3,segs:d.len>70?[-0.36,-0.12,0.12,0.36].map(f=>f*d.len):null,
     dir:1,fuel:100,cond:100,engine:100,susp:100,items:{},ups:{},driver:null,touched:false,wrecked:false,burn:0,sleep:0,wipe:0,wobT:Math.random()*10},o);
   addTyres(c,tw);if(ty!==undefined&&!tw)c.tyres=ty;return c;}
 function onRoadAt(c){const s=surfaceAt(c.x,c.y);c.ri=s.ri;c.onRoad=s.on;c.surf=s.cls;c.terr=terrainAt(c.x,c.y);
@@ -1021,8 +1026,13 @@ function collideWorld(b){
       const nx=nlx*cs-nly*sn,ny=nlx*sn+nly*cs,push=b.r-d;b.x+=nx*push;b.y+=ny*push;bounce(b,nx,ny);}
   });
 }
+// the circles a vehicle is made of for bumping into others: one for most, a string down the length of a truck
+function carCircles(c){if(!c.segs)return [[c.x,c.y]];const ca=Math.cos(c.a),sa=Math.sin(c.a);return c.segs.map(o=>[c.x+ca*o,c.y+sa*o]);}
 function carPair(a,b){
-  const dx=b.x-a.x,dy=b.y-a.y,min=a.r+b.r,d2=dx*dx+dy*dy;if(d2>=min*min||d2<1e-6)return;
+  if((a.segs||b.segs)&&Math.hypot(b.x-a.x,b.y-a.y)>a.r+b.r+Math.max(a.def.len,b.def.len)*0.5)return;
+  let dx=b.x-a.x,dy=b.y-a.y,min=a.r+b.r,d2=dx*dx+dy*dy;
+  if(a.segs||b.segs){let best=1e18;for(const [ax,ay] of carCircles(a))for(const [bx,by] of carCircles(b)){const q=(bx-ax)**2+(by-ay)**2;if(q<best){best=q;dx=bx-ax;dy=by-ay;}}d2=best;}
+  if(d2>=min*min||d2<1e-6)return;
   const ma=(a.wrecked?a.mass*3:a.mass)+upMods(a).mass,mb=(b.wrecked?b.mass*3:b.mass)+upMods(b).mass;
   const d=Math.sqrt(d2),nx=dx/d,ny=dy/d,pen=min-d,ia=1/ma,ib=1/mb,s=ia+ib;
   a.x-=nx*pen*ia/s;a.y-=ny*pen*ia/s;b.x+=nx*pen*ib/s;b.y+=ny*pen*ib/s;a.sleep=b.sleep=0;
@@ -1043,6 +1053,7 @@ function carPair(a,b){
     }
     SFX.hit(imp/400);
   } else {
+    if(imp>110&&((a===hc&&b.convoy)||(b===hc&&a.convoy))){const o=a===hc?b:a,sg=a===hc?1:-1,vp=hc.vx*nx*sg+hc.vy*ny*sg,vo=-(o.vx*nx*sg+o.vy*ny*sg);if(hc.speed>80&&vp>=vo)convoyProvoked(o);}   // you rammed a convoy (not it running into you)
     if(ra)a.stab-=imp*0.1*a.soft;if(rb)b.stab-=imp*0.1*b.soft;
     const dmg=Math.max(0,imp-80)*0.03;if(!ra)a.cond-=dmg/a.def.armor;if(!rb)b.cond-=dmg/b.def.armor;
     if(a===hc||b===hc){SFX.hit(imp/400);G.shake=Math.max(G.shake,Math.min(10,imp/30));}
@@ -1053,7 +1064,7 @@ function burnOut(c){c.wrecked=true;c.burn=rand(40,70);c.smoulder=c.burn+rand(60,
   for(let i=0;i<12;i++){const a=Math.random()*TAU,s=rand(20,90);part({kind:'fire',x:c.x,y:c.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.4,.9),max:.9,size:rand(8,14),grow:-6,drag:3,col:'#ffb347'});}   // the fire takes hold
   SFX.hit(0.5);}
 function wreckCar(c){
-  if(c.wrecked)return;burnOut(c);G.removed.add(c.id);
+  if(c.wrecked)return;burnOut(c);G.removed.add(c.id);if(c.convoy&&invCount(c.items)){G.boxes.push({id:'cg'+c.id,kind:'crate',x:c.x+rand(-20,20),y:c.y+rand(-20,20),items:c.items,persist:false,transient:true});c.items={};}   // the cargo, spilt
   if(c.driver==='hero'){exitCar(true);hurtHero(25,'wreck');showMsg('Thrown clear of the wreck',2.4);}
   c.driver=null;
 }
@@ -1515,7 +1526,7 @@ function makeRaider2(type,x,y,a,v,d){
 function startWipe(e){if(e.wipe>0||e.dead||e.driver!=='raider')return;if(window.__stats){const k='wipe_'+(e.ri&&e.ri.d>e.ri.w/2+18?'offroad':'')+(e.lastHit||'');window.__stats[k]=(window.__stats[k]||0)+1;}e.wipe=1.2;e.spin=(Math.random()<0.5?-1:1)*rand(5,9);e.stab=0;
   popText(e.x,e.y-26,'Wiped out','#f2a03d');SFX.screech();}
 // after the spin: half the time it burns, half the time the driver legs it and leaves the car
-function finishWipe(e){G.wiped++;raiderDown(e.fac);if(e.jobBoss)jobBossDown(e.jobBoss);
+function finishWipe(e){G.wiped++;if(e.convoy)changeRep(e.fac,-5);else raiderDown(e.fac);if(e.jobBoss)jobBossDown(e.jobBoss);
   const bag=(x,y)=>G.boxes.push({id:'rb'+(raiderSeq++),kind:'bag',x,y,table:'raider',rolls:e.type==='brute'?3:2,seed:(Math.random()*1e9)|0,persist:false,transient:true});
   if(Math.random()<0.5){e.driver=null;e.wipe=0;burnOut(e);e.vx*=0.3;e.vy*=0.3;e.speed=0;if(Math.random()<0.75)bag(e.x+rand(-30,30),e.y+rand(-30,30));}   // burnt out where it stopped (no explosion)
   else{const lf=spawnLooseFoe(e.x+rand(-30,30),e.y+rand(-30,30),Math.random()<0.6);if(lf)lf.fac=e.fac;  // the driver climbs out, dazed: some fight, some run
@@ -1619,6 +1630,55 @@ function updateRaider(e,dt){
 // rocks and wrecks within reach of a car, gathered once per frame for its look-ahead rays
 function nearObstacles(e){const out=[];chunksAround(e.x,e.y,ch=>{for(const k of ch.rocks)if(Math.abs(k.x-e.x)<400&&Math.abs(k.y-e.y)<400)out.push({x:k.x,y:k.y,r:k.r*0.85});
   for(const w of ch.wrecks)if(Math.abs(w.x-e.x)<400&&Math.abs(w.y-e.y)<400)out.push({x:w.x,y:w.y,r:36});});return out;}
+
+/* ===== convoys: trucks under escort, driving between towns =====
+   A faction's convoy (Settlers, Freeholders, Fuel Kings, Iron Legion, Drovers): an escort car in front, one to three trucks
+   (the Fuel Kings run tankers), a car or a couple of motorbikes at the back. They keep to their side of the road at a steady
+   pace, slower than you, and keep their spacing. If the faction dislikes you, the escorts peel off and come for you while
+   the trucks drive on; otherwise they leave you be, unless you start something (ram them or shoot at them), and then they
+   turn on you and the faction thinks a lot less of you. A truck that's burnt out leaves its cargo lying in the road. */
+const CONVOY_FACS=['settlers','freeholders','fuelkings','ironlegion','drovers'];
+const CONVOY_LOOK={settlers:{lead:'ute',trucks:['flatbed','semi'],rear:['pickup','bike']},freeholders:{lead:'wagon',trucks:['flatbed','semi'],rear:['pickup']},
+  fuelkings:{lead:'cruiser',trucks:['tanker','tanker','semi'],rear:['cruiser','bike']},ironlegion:{lead:'cruiser',trucks:['semi','flatbed'],rear:['cruiser','bike']},drovers:{lead:'pickup',trucks:['semi','flatbed','flatbed'],rear:['bike','pickup']}};
+const CARGO={semi:{water:4,beans:4,scrap:3,cloth:3,parts:1},tanker:{jerrycan:3},flatbed:{scrap:4,tyre:1,wire:2,powder:2}};
+let convoySeq=0;
+function convoyHostile(fac){return rep(fac)<=-15;}
+function spawnConvoy(ri,i,dir,fac){const R=roads[ri],look=CONVOY_LOOK[fac],C={id:'cv'+(convoySeq++),fac,dir,road:ri,speed:250+Math.random()*40,cars:[],hostile:convoyHostile(fac),told:false};
+  const kinds=[look.lead];const nT=1+Math.floor(Math.random()*Math.min(3,look.trucks.length));for(let k=0;k<nT;k++)kinds.push(look.trucks[k%look.trucks.length]);
+  const rear=look.rear[Math.floor(Math.random()*look.rear.length)];if(rear==='bike'){kinds.push('bike','bike');}else kinds.push(rear);
+  let s=R.cum[i];const at=sv=>{let j=i;while(j>0&&j<R.n-1&&(dir>0?R.cum[j]>sv:R.cum[j]<sv))j-=dir;return j;};
+  kinds.forEach((t,k)=>{const len=CARS[t].len,j=clamp(at(s),1,R.n-2),a=Math.atan2(R.ys[j+dir]-R.ys[j],R.xs[j+dir]-R.xs[j]),nx=-Math.sin(a),ny=Math.cos(a),lane=-R.w*0.22;   // keep left
+    const c=makeCar(t,R.xs[j]+nx*lane,R.ys[j]+ny*lane,a,{id:C.id+'_'+k,driver:'convoy',convoy:C,fac,order:k,truck:['semi','tanker','flatbed'].includes(t),items:CARGO[t]?Object.assign({},CARGO[t]):{},vx:Math.cos(a)*C.speed,vy:Math.sin(a)*C.speed});
+    c.stab=c.maxStab=CARS[t].stab||120;C.cars.push(c);G.cars.push(c);s-=dir*(len/2+(C.cars[k+1]?0:0)+len/2+60);});
+  (G.convoys||(G.convoys=[])).push(C);return C;}
+// once in a while, out on a main road, a convoy comes along it (ahead of you coming the other way, or behind you catching up... slowly)
+function convoyTick(dt){G.convoys=G.convoys||[];const an=f=>(/^[AEIOU]/.test(FACTIONS[f].name)?'An ':'A ')+FACTIONS[f].name;G.convoyT=(G.convoyT??rand(40,90))-dt;const b=body();
+  for(const C of G.convoys){C.cars=C.cars.filter(c=>G.cars.includes(c));const live=C.cars.filter(c=>!c.wrecked&&c.driver==='convoy');
+    const far=C.cars.every(c=>Math.hypot(c.x-b.x,c.y-b.y)>7000);if(!C.cars.length||far||C.done){for(const c of C.cars)if(!c.wrecked&&(c.driver==='convoy'||c.driver==='raider'))c.gone=true;C.dead=true;continue;}
+    // first sight of them
+    if(!C.told&&C.cars.some(c=>Math.hypot(c.x-b.x,c.y-b.y)<1500)){C.told=true;showMsg(an(C.fac)+' convoy'+(C.hostile?'. They know you, and they’re coming for you':'. They pay you no mind'),3);if(C.hostile)convoyTurn(C,false);}}
+  G.convoys=G.convoys.filter(C=>!C.dead);
+  if(G.convoyT>0||G.convoys.length>=1||state!=='play'||G.encActive||G.cars.some(c=>c.driver==='raider'))return;   /* not in the middle of a raid */G.convoyT=rand(90,180);const ri=b.ri;if(ri.r<0||ri.d>300)return;const R=roads[ri.r];if(R.cls==='dirt')return;
+  if(nearLoc(b.x,b.y,2500))return;const dir=Math.random()<0.5?1:-1,start=clamp(ri.i+(Math.random()<0.6?dir*-1:dir)*Math.round(rand(2000,3200)/40),8,R.n-9);   // usually ahead of you, coming toward you
+  const fromLoc=Math.random();const fac=CONVOY_FACS[Math.floor(fromLoc*CONVOY_FACS.length)];spawnConvoy(ri.r,start,(start>ri.i?-1:1)*(Math.random()<0.7?1:-1)||1,fac);}
+// the escorts come for you (hostile faction, or you've attacked them): they drive like raiders; the trucks keep going
+function convoyTurn(C,provoked){if(C.turned)return;C.turned=true;C.hostile=true;for(const c of C.cars){if(c.wrecked||c.truck)continue;c.driver='raider';c.mode='chase';c.modeT=rand(1,2.5);c.side=Math.random()<0.5?-1:1;c.wipe=0;c.spin=0;c.fuel=100;}
+  G.encActive=true;if(provoked){changeRep(C.fac,-10);showMsg('You’ve attacked a '+FACTIONS[C.fac].name+' convoy. The escorts turn on you',3);}}
+function convoyProvoked(c){if(c&&c.convoy&&!c.convoy.turned)convoyTurn(c.convoy,true);}
+// driving: follow the road on the left side, keep the gap to the one in front
+function updateConvoyCar(e,dt){const C=e.convoy,R=roads[C.road];if(!R){e.gone=true;return;}const ri=e.ri.r===C.road?e.ri:roadInfo(e.x,e.y,0);
+  let i=ri.r===C.road?ri.i:nearestIdx(R,e.x,e.y);if((C.dir>0&&i>=R.n-6)||(C.dir<0&&i<=5)){C.done=true;return;}   // reached the end of the road (into a town): gone
+  const look=Math.round((40+e.speed*0.35)/40)+2,j=clamp(i+C.dir*look,0,R.n-2),a=Math.atan2(R.ys[j+1]-R.ys[j],R.xs[j+1]-R.xs[j])+(C.dir<0?Math.PI:0),lane=-R.w*0.22;
+  const tx=R.xs[j]-Math.sin(a)*lane,ty=R.ys[j]+Math.cos(a)*lane;
+  // the gap to the vehicle ahead in the column
+  let want=C.speed;const ahead=C.cars.filter(c=>c!==e&&!c.wrecked&&c.order<e.order&&c.driver==='convoy').sort((p,q)=>q.order-p.order)[0];
+  if(ahead){const gap=Math.hypot(ahead.x-e.x,ahead.y-e.y)-(ahead.def.len+e.def.len)/2,goal=60;want=clamp(ahead.speed+(gap-goal)*1.4,0,C.speed*1.3);}
+  // something in the way (a car stopped in the lane, you on foot): ease off and pull out round it
+  let txx=tx,tyy=ty;const fx=Math.cos(e.a),fy=Math.sin(e.a),obs=G.cars.filter(c=>c!==e&&!(c.convoy===C&&c.driver==='convoy')).concat(G.hero.inCar?[]:[G.hero]);
+  for(const o of obs){const dx=o.x-e.x,dy=o.y-e.y,al=dx*fx+dy*fy,lat=-dx*fy+dy*fx;if(al>0&&al<e.def.len/2+150&&Math.abs(lat)<(e.def.wid+(o.def?o.def.wid:10))*0.75){want=Math.min(want,Math.max(25,(al-e.def.len/2-40)*1.6));
+      const side=lat>0?-1:1;txx+=-fy*side*R.w*0.45;tyy+=fx*side*R.w*0.45;}}
+  const diff=angDiff(Math.atan2(tyy-e.y,txx-e.x),e.a),thr=e.vf<want?1:e.vf>want+30?-0.6:0;driveCar(e,thr,clamp(diff*2.2,-1,1),dt,false,false);}
+function nearestIdx(R,x,y){let bd=1e18,bi=0;for(let k=0;k<R.n;k+=3){const d=(R.xs[k]-x)**2+(R.ys[k]-y)**2;if(d<bd){bd=d;bi=k;}}return bi;}
 
 /* ===== wildlife: snakes, rabbits, dingoes and kangaroos =====
    Sparse. They appear in the open country around you (ahead of you when you're driving) and fade out behind.
@@ -2090,7 +2150,7 @@ const DRIVE_ARC=1.9;   // radians either side of straight ahead: about 110 degre
 function heroDriveShoot(){const h=G.hero,car=heroCar();if(!car||h.atkCd>0||state!=='play')return;const W=heroWeapon();if(!W.gun)return;
   if(!h.inv[W.ammo]){showMsg('Out of '+ITEMS[W.ammo].name.toLowerCase(),1.2);h.atkCd=0.4;SFX.click();return;}
   const inArc=(x,y)=>Math.abs(angDiff(Math.atan2(y-car.y,x-car.x),car.a))<=DRIVE_ARC;let tg=null,bd=W.range*0.85,behind=false;
-  for(const e of G.cars){if(e.driver!=='raider'||e.wipe>0)continue;const d=Math.hypot(e.x-car.x,e.y-car.y);if(d<bd){if(inArc(e.x,e.y)){bd=d;tg=e;}else behind=true;}}
+  for(const e of G.cars){if(!(e.driver==='raider'||(e.driver==='convoy'&&e.convoy.hostile&&!e.wrecked))||e.wipe>0)continue;const d=Math.hypot(e.x-car.x,e.y-car.y);if(d<bd){if(inArc(e.x,e.y)){bd=d;tg=e;}else behind=true;}}
   for(const f of G.foes){if(f.dead)continue;const d=Math.hypot(f.x-car.x,f.y-car.y);if(d<bd&&losClear(car.x,car.y,f.x,f.y)){if(inArc(f.x,f.y)){bd=d;tg=f;}else behind=true;}}
   if(!tg){showMsg(behind?'Can’t shoot behind you from the wheel':'Nothing in range',0.9);h.atkCd=0.25;return;}
   const sway=Math.min(1,car.speed/400);invTake(h.inv,W.ammo,1);G.fightT=8;
@@ -2129,7 +2189,8 @@ function stepBullets(dt){const h=G.hero,hc=heroCar();
       if(b.owner==='hero'){for(const f of G.foes){if(f.dead||Math.hypot(f.x-b.x,f.y-b.y)>f.r+3)continue;const l=Math.hypot(b.vx,b.vy);hitFoe(f,b.dmg,b.vx/l,b.vy/l,60);b.dead=true;break;}
         if(!b.dead)for(const n of G.npcs){if(Math.hypot(n.x-b.x,n.y-b.y)<n.r+3){assault(n);b.dead=true;break;}}
         if(!b.dead)for(const a of G.animals){if(a.state==='dead'||Math.hypot(a.x-b.x,a.y-b.y)>a.r+3)continue;const l=Math.hypot(b.vx,b.vy);hitAnimal(a,b.dmg,b.vx/l,b.vy/l);b.dead=true;break;}
-        if(!b.dead)for(const c of G.cars){if(c.driver!=='raider'||Math.hypot(c.x-b.x,c.y-b.y)>c.r+2)continue;b.dead=true;sparks(b.x,b.y,4);c.flash=1;
+        if(!b.dead)for(const c of G.cars){if(c.driver==='convoy'&&!c.wrecked&&carCircles(c).some(([x,y])=>Math.hypot(x-b.x,y-b.y)<c.r+2)){b.dead=true;sparks(b.x,b.y,4);c.flash=1;c.cond-=b.dmg*0.1/c.def.armor;if(c.cond<=0)wreckCar(c);convoyProvoked(c);break;}   // a shot at a convoy truck
+          if(c.driver!=='raider'||Math.hypot(c.x-b.x,c.y-b.y)>c.r+2)continue;b.dead=true;sparks(b.x,b.y,4);c.flash=1;
           c.stab-=b.dmg*0.9;if(Math.random()<0.25){c.stab-=40;popText(c.x,c.y-24,'Tyre shot out','#f2a03d');}break;}}
       else{const cp=compOnFoot()?G.comp:null;if(cp&&Math.hypot(cp.x-b.x,cp.y-b.y)<cp.r+3){hurtComp(b.dmg*0.55);b.dead=true;sparks(b.x,b.y,4);}
         else if(!hc&&Math.hypot(h.x-b.x,h.y-b.y)<h.r+3){hurtHero(b.dmg*0.55,'shot');b.dead=true;sparks(b.x,b.y,4);}
@@ -2578,7 +2639,7 @@ function saveData(){
   return {v:5,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
     removed:[...G.removed].slice(-800),lastCar:G.lastCar,
     kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
-    cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider').map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items)}))};
+    cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items)}))};
 }
 // ---- saving is to files only (see the save-file code in the UI). Anything the old save slots left on a device is left alone, unused. ----
 function placeLabel(){const b=body();let best=null,bd=250000;for(const l of LOCS){const d=Math.hypot(l.x-b.x,l.y-b.y);if(d<bd){bd=d;best=l;}}
@@ -4531,10 +4592,50 @@ function riderPose3(sw,side){const L=1,P={Hips:[0,0.96,0.28],Abdomen:[0,0.7,0.72
     let ua,la;if(sw<0.45){const t=sw/0.45;ua=lerp(ride[0],up[0],t);la=lerp(ride[1],up[1],t);}else if(sw<0.7){const t=(sw-0.45)/0.25;ua=lerp(up[0],cut[0],t);la=lerp(up[1],cut[1],t);}else{const t=(sw-0.7)/0.3;ua=lerp(cut[0],ride[0],t);la=lerp(cut[1],ride[1],t);}
     P.UpperArmR=ua;P.LowerArmR=la;P.FistR=la;P.Torso=[sx*0.15,0.6,0.78];}
   return P;}
+/* ---- trucks: a prime mover with a box trailer, the same with a fuel tank, a flatbed, and a pickup. Old and knocked about like
+   everything else: faded mismatched panels, rust running down from the seams, a cracked windscreen, a dented trailer with a panel
+   missing, bald dual tyres. Built from boxes, cylinders and beams; every face its own shade. ---- */
+function truckPaint3(K,r){return (hex,k)=>{let c=hex?col3(hex):K.body;if(r()<0.18)c=mix3(c,K.rust,0.5);else if(r()<0.1)c=mix3(c,col3('#7a7266'),0.5);const v=(0.84+r()*0.24)*(k||1);return c.map(x=>x*v);};}
+// the cab-over prime mover at the front end (x from x1-len to x1)
+function cabOver3(gb,K,r,x1,len,Wd,paint){const x0=x1-len,cy=8,ch=22,glass=col3('#1a2226');
+  gb.box(x0+len/2,cy,0,len,ch,Wd,0,paint(),paint(null,1.08));   // the cab
+  gb.box(x1+0.3,cy+ch*0.45,0,0.8,ch*0.42,Wd*0.92,0,glass);gb.beam([x1+0.8,cy+ch*0.5,-Wd*0.3],[x1+0.8,cy+ch*0.8,Wd*0.15],0.25,col3('#a8b0aa'));   // windscreen, cracked across
+  for(const sg of [1,-1]){gb.box(x0+len*0.6,cy+ch*0.5,sg*(Wd/2+0.3),len*0.45,ch*0.35,0.6,0,glass);gb.box(x1-len*0.25,cy+2,sg*(Wd/2+1.5),5,4,3,0,K.dark);   // side windows, steps
+    gb.cyl(x0+2,cy,sg*(Wd/2-3),1.4,ch+14,8,mix3(K.chrome,K.rust,0.5),K.dark);gb.box(x0+len*0.45,3.5,sg*(Wd/2+1.8),11,6,4,0,col3('#7a746a'));}   // exhaust stacks, fuel tanks
+  gb.box(x1+0.6,3,0,1.6,3.4,Wd,0,mix3(K.chrome,K.rust,0.4));for(let k=-3;k<=3;k++)gb.box(x1+0.5,cy+2,k*2.8,0.6,ch*0.3,0.8,0,K.dark);   // bumper and grille slats
+  for(const sg of [1,-1])gb.box(x1+0.2,cy+2,sg*(Wd/2-3),0.6,2.5,4,0,r()<0.3?K.dark:K.lamp);}
+function truckWheels3(gb,K,xs,wr,Wd,dual){for(const x of xs)for(const sg of [1,-1]){tyre3(gb,K,x,wr,sg*(Wd/2-2.4),dual?5:3.2,sg);}}
+function semi3(c,tank){const L=c.def.len,Wd=c.def.wid,gb=new GB(),K=carCols3(c),r=rng(hashStr3(c.id||'t')+11),paint=truckPaint3(K,r),cab=26,x1=L/2,wr=5.4;
+  cabOver3(gb,K,r,x1,cab,Wd,paint);gb.box(0,3.5,0,L*0.96,2.2,Wd*0.45,0,K.dark);   // chassis rails the length of it
+  const tx0=-L/2+1,tx1=x1-cab-3,tl=tx1-tx0;
+  if(!tank){const tc=paint(['#8a8478','#7a6a5a','#6a6a5a','#8a6a4a'][Math.floor(r()*4)]),ty=9,th=28;   // the box trailer, ribbed, a panel gone here and there
+    gb.box(tx0+tl/2,ty,0,tl,th,Wd,0,tc,tc.map(v=>v*1.06));for(let x=tx0+5;x<tx1-2;x+=9)for(const sg of [1,-1]){gb.box(x,ty,sg*(Wd/2+0.25),1.1,th,0.5,0,tc.map(v=>v*0.85));if(r()<0.08)gb.box(x+4.5,ty+th*0.2,sg*(Wd/2+0.3),7,th*0.5,0.4,0,K.dark);if(r()<0.25)gb.box(x+4.5,ty+th*0.55,sg*(Wd/2+0.3),7.5,th*0.4,0.3,0,mix3(tc,K.rust,0.6));}
+    gb.box(tx0-0.3,ty,0,0.6,th,Wd*0.96,0,tc.map(v=>v*0.9));gb.beam([tx0-0.7,ty+1,0],[tx0-0.7,ty+th-1,0],0.6,K.dark);}   // the rear doors
+  else{const tc=col3(r()<0.5?'#b8b2a6':'#8a8478'),R=11;gb.wheel(tx0+tl/2,9+R,0,R,tl,Math.PI/2,14,tc.map(v=>v*(0.9+r()*0.15)),tc.map(v=>v*0.8));   // the fuel tank, end on: a long dull cylinder
+    for(let x=tx0+8;x<tx1;x+=tl/4)gb.wheel(x,9+R,0,R+0.6,1.4,Math.PI/2,14,mix3(tc,K.rust,0.5),mix3(tc,K.rust,0.5));   // bands, rusted
+    gb.box(tx0+tl/2,9+2*R,0,tl*0.8,1,4,0,K.dark);for(let k=0;k<3;k++)gb.cyl(tx0+tl*(0.25+k*0.25),9+2*R,0,2.2,1.6,8,col3('#5a5650'));   // walkway and hatches
+    for(let k=0;k<5;k++){const x=tx0+r()*tl;gb.beam([x,9+R*1.7,R*0.75],[x+r()*2,9+R*0.4,R],0.6,K.rust);}   // rust streaks down the sides
+    gb.beam([tx0+3,9,-R*0.3],[tx0+3,9+2*R,-R*0.3],0.5,K.dark);}
+  truckWheels3(gb,K,[x1-cab+5,x1-cab-11,x1-cab-19],wr,Wd,true);truckWheels3(gb,K,[tx0+8,tx0+17,tx0+26],wr,Wd,true);
+  return gb;}
+function flatbed3(c){const L=c.def.len,Wd=c.def.wid,gb=new GB(),K=carCols3(c),r=rng(hashStr3(c.id||'f')+13),paint=truckPaint3(K,r),x1=L/2,glass=col3('#1a2226');
+  gb.box(x1-8,4,0,16,11,Wd*0.86,0,paint(),paint(null,1.08));gb.box(x1-24,4,0,16,24,Wd,0,paint(),paint(null,1.1));gb.box(x1-16.1,16,0,0.6,10,Wd*0.88,0,glass);   // bonnet, cab, windscreen
+  for(const sg of [1,-1])gb.box(x1-24,18,sg*(Wd/2+0.3),11,7,0.5,0,glass);gb.box(x1+0.5,3,0,1.4,3,Wd,0,mix3(K.chrome,K.rust,0.4));
+  const bx0=-L/2+1,bx1=x1-33,tray=col3('#5c4a38');gb.box((bx0+bx1)/2,8,0,bx1-bx0,2,Wd,0,tray);   // the flat tray, stake posts along its edges
+  for(let x=bx0+3;x<bx1;x+=8)for(const sg of [1,-1])if(r()<0.8)gb.box(x,10,sg*(Wd/2-0.8),1.2,7+r()*3,1.2,0,col3('#4a3a2c'));
+  // whatever it's carrying: crates, drums, tyres, a lashed tarp
+  for(let k=0;k<4+Math.floor(r()*3);k++){const x=bx0+5+r()*(bx1-bx0-10),z=(r()-0.5)*(Wd-8),q=r();
+    if(q<0.4)gb.box(x,10,z,7+r()*4,6+r()*5,6+r()*4,r()*0.4,col3('#7a5a3c').map(v=>v*(0.85+r()*0.25)));else if(q<0.7)gb.cyl(x,10,z,4,11,10,col3(['#3f5a6a','#6a3a2a','#5a5a4a'][Math.floor(r()*3)]));else gb.cyl(x,10,z,5.5,3,10,col3('#1e1a17'),col3('#2a2622'));}
+  if(r()<0.5)gb.lump((bx0+bx1)/2,12,0,(bx1-bx0)*0.3,6,0,col3('#5a6a4a'));
+  truckWheels3(gb,K,[x1-10,bx0+12,bx0+21],5,Wd,false);gb.box(0,4,0,L*0.95,2,Wd*0.4,0,K.dark);return gb;}
+function pickup3(c){const o=loft3(c,{lift:3,wr:4.6,tyreW:3.4,belt:[[-0.5,9.6],[0.1,10],[0.5,9.4]],stripeW:0.5,stripe:false,taper:0.42,round:0.4,flare:0.4,axF:0.32,axR:0.3,
+    deck:t=>t<-0.02?'#4e4034':null,cab:{from:-0.03,to:0.24,roof:[[-0.03,17.5],[0.15,17.5],[0.24,11]],glass:[[0.14,0.24]],pillars:[[-0.03,0.0]],backCol:'body',inset:0.85},mirror:0.2,doors:[0.05]});
+  dress3(o,{tailY:4.5});const {gb,L,Wd,K,lift}=o;for(const sg of [1,-1])gb.box(-L*0.26,9.6+lift,sg*(Wd/2-0.8),L*0.48,3.2,1.2,0,K.body);   // tray sides
+  gb.box(-L*0.15,10+lift,0,L*0.2,2.5,Wd*0.6,0,col3('#2a2622'));return gb;}
 function carModel3(c){const st=c.def.style;
   if(st==='buggy'&&BUGGY2.status==='ready'&&(hashStr3(c.id||'')%2===1))return buggy2Model3(c);   // half the buggies are the new design
   if(c.def===CARS.radiant)return radiant3(c);
-  const build={sedan:sedan3,wagon:wagon3,ute:ute3,van:van3,cruiser:cruiser3,bike:bike3,buggy:buggy3,brute:brute3}[st];
+  const build={sedan:sedan3,wagon:wagon3,ute:ute3,van:van3,cruiser:cruiser3,bike:bike3,buggy:buggy3,brute:brute3,semi:c=>semi3(c,false),tanker:c=>semi3(c,true),flatbed:flatbed3,pickup:pickup3}[st];
   if(build)return build(c);
   return carModelBlock3(c);}
 function carModelBlock3(c){const d=c.def,L=d.len,Wd=d.wid,st=d.style,gb=new GB(),body=col3(c.wrecked?'#2a211b':d.col),trim=col3(c.wrecked?'#2a211b':d.trim),glass=col3('#1c2226'),tyre=col3('#1a1512'),hub=col3('#6d665d');
@@ -4597,7 +4698,7 @@ function syncDynamic3(){const sc=V3.scene,seen=new Set(),b=body();
     e.m.position.set(c.x,Math.max(gy,(hf+hbk)/2),c.y);e.m.rotation.set(-Math.atan2(hr-hl,W2*0.9),-c.a,Math.atan2(hf-hbk,L*0.8),'YZX');
     if(c.roll){e.m.rotation.x+=c.roll;e.m.position.y+=Math.abs(Math.abs(c.roll)-Math.PI)<0.1?W2*0.72:W2*0.5;}}   // a wreck on its side (lifted by half its width) or on its roof (by its height)
   // riders on the raiders' motorbikes: a raider in the saddle, crouched low over the tank like a racer, a machete in the right hand
-  for(const c of G.cars){const e=V3.cars.get(c);if(!e)continue;const want=c.type==='bike'&&c.driver==='raider'&&!c.wrecked&&c.wipe<=0;
+  for(const c of G.cars){const e=V3.cars.get(c);if(!e)continue;const want=c.type==='bike'&&(c.driver==='raider'||c.driver==='convoy')&&!c.wrecked&&c.wipe<=0;
     if(want&&!e.rider&&HB3.ok&&CHAR3.tpl){e.rider=makeHeroBody3(charSpec3(hashStr3(c.id||'b'),'foe',c.fac));e.rider.mixer.stopAllAction();setCharWeapon3(e.rider,'machete');e.riderPose=-1;}
     if(e.rider){e.rider.wrap.visible=want;if(!want)continue;const sw=c.atkT>0?Math.min(1,c.atkT):0,key=sw>0?Math.round(sw*12)+'/'+(c.atkSide||1):'ride';
       if(e.riderPose!==key){e.rider.pose(riderPose3(sw,c.atkSide||1));e.riderPose=key;}
@@ -5013,7 +5114,8 @@ function update(dt){
   G.time+=dt;const h=G.hero;let car=heroCar();const inp=readInput(car);let eng={thr:0,boost:false};
   survival(dt,car);
   if(car)eng=driveHero(car,inp,dt);else updateHeroOnFoot(dt,inp);
-  for(const c of G.cars){if(c===car||c.dead)continue;if(c.driver==='raider')updateRaider(c,dt);else idleCar(c,dt);c.flash=Math.max(0,c.flash-dt*5);}
+  for(const c of G.cars){if(c===car||c.dead)continue;if(c.driver==='raider')updateRaider(c,dt);else if(c.driver==='convoy'&&!c.wrecked)updateConvoyCar(c,dt);else idleCar(c,dt);c.flash=Math.max(0,c.flash-dt*5);}
+  convoyTick(dt);
   if(car)car.flash=Math.max(0,car.flash-dt*5);
   for(const c of G.cars)if(!c.dead&&(c.speed>1||c===car))collideWorld(c);
   const b0=body(),near=G.cars.filter(c=>!c.dead&&Math.abs(c.x-b0.x)<1500&&Math.abs(c.y-b0.y)<1500);
@@ -5097,7 +5199,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
