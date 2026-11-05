@@ -238,7 +238,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='4.8';
+const VERSION='4.9';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1571,16 +1571,24 @@ function updateRaider(e,dt){
   } else if(P.r>=0&&P.d<500&&d<1600){
     const Tx=P.tx*p.dir,Ty=P.ty*p.dir;
     const along=(e.x-p.x)*Tx+(e.y-p.y)*Ty;
-    const slotAlong=e.type==='brute'?-70:e.type==='bike'?-6:0,slotLat=e.type==='brute'?0:e.type==='bike'?e.side*30:e.side*50;
+    // a pack spreads out: each raider keeps its own place, ahead, behind or out to one side; no more than two at a time close in
+    // to attack (a ram, a swipe, a machete cut), then drop back to their place and let another have a go
+    if(e.homeA===undefined){const idx=G.cars.filter(c=>c!==e&&c.driver==='raider'&&c.homeA!==undefined&&c.wipe<=0).length;   // its own place in the line: no two raiders share one, so they don't run into each other
+      e.homeA=idx%4===3?150+Math.floor(idx/4)*90:-150-(idx-Math.floor(idx/4))*75;e.side=idx%2?1:-1;e.homeL=0.35+(idx%3)*0.18;e.pressT=1.5+idx*1.3;}   /* most hang back in a staggered line, the odd one rides ahead; all on the road (off it at speed they'd lose control) */
+    e.pressT-=dt;
+    if(e.press){if(e.pressT<=0){e.press=false;e.pressT=rand(3.5,7.5);if(Math.random()<0.4)e.side*=-1;}}
+    else if(e.pressT<=0){const pressing=G.cars.filter(c=>c.driver==='raider'&&c.press&&c.wipe<=0).length;if(pressing<2){e.press=true;e.pressT=rand(4,7);}else e.pressT=rand(0.8,2);}
+    const close={a:e.type==='brute'?-70:e.type==='bike'?-6:0,l:e.type==='brute'?0:e.type==='bike'?30:50};
+    const halfW=roads[P.r].w/2,slotAlong=e.press?close.a:e.homeA,slotLat=e.side*(e.press?close.l:Math.max(14,(halfW-10)*e.homeL));
     if(e.type==='bike'&&e.mode==='swipe')e.mode='chase';   // a bike doesn't ram: it rides alongside and cuts
     if(e.mode==='swipe'){tx=p.x+Tx*25;ty=p.y+Ty*25;want=p.speed+60;e.modeT-=dt;
-      if(e.modeT<=0){e.mode='chase';e.modeT=rand(2.2,4.2);if(Math.random()<0.3)e.side*=-1;}}
+      if(e.modeT<=0){e.mode='chase';e.modeT=rand(2.2,4.2);e.press=false;e.pressT=rand(3,6);if(Math.random()<0.3)e.side*=-1;}}   // swiped: back to its place
     else{
       const look=140+p.speed*0.25,R=roads[P.r],j=clamp(P.i+p.dir*Math.round((slotAlong+look)/40),0,R.n-2);
       const sx=R.xs[j+1]-R.xs[j],sy=R.ys[j+1]-R.ys[j],sl=Math.hypot(sx,sy)||1,nnx=-sy/sl*p.dir,nny=sx/sl*p.dir;
       tx=R.xs[j]+nnx*slotLat;ty=R.ys[j]+nny*slotLat;
       want=p.speed+clamp((slotAlong-along)*1.6,-160,260);
-      if(e.type!=='bike'&&Math.abs(along-slotAlong)<70&&d<120){e.modeT-=dt;if(e.modeT<=0){e.mode='swipe';e.modeT=e.type==='brute'?0.9:0.55;}}
+      if(e.press&&e.type!=='bike'&&Math.abs(along-slotAlong)<70&&d<120){e.modeT-=dt;if(e.modeT<=0){e.mode='swipe';e.modeT=e.type==='brute'?0.9:0.55;}}
     }
     if(!e.onRoad){const R=roads[e.ri.r];if(e.ri.r>=0&&e.ri.d<500){const j=clamp(e.ri.i+p.dir*6,0,R.n-1);tx=(tx+R.xs[j])/2;ty=(ty+R.ys[j])/2;}}
   } else {tx=p.x+p.vx*0.6;ty=p.y+p.vy*0.6;want=e.maxSpeed;}
@@ -1595,7 +1603,7 @@ function updateRaider(e,dt){
   let thr=clamp((want-e.vf)/60,-1,1)*(Math.abs(diff)<1.6?1:0.4);
   if(ahead<e.speed*0.5)thr=Math.min(thr,-0.6);           // too close to swerve cleanly: brake as well
   driveCar(e,thr,clamp(diff*2.6,-1,1),dt,d>380&&want>e.vf,false);
-  if(e.speed>110&&Math.random()<dt*(e.onRoad?12:18)){const bx=e.x-Math.cos(e.a)*22,by=e.y-Math.sin(e.a)*22;part({kind:'smoke',x:bx+rand(-8,8),y:by+rand(-8,8),vx:-Math.cos(e.a)*20+rand(-10,10),vy:-Math.sin(e.a)*20+rand(-10,10),life:rand(3,4.2),max:4.2,size:rand(20,30),grow:34,drag:0.6,col:e.onRoad?'#a8865a':'#b08a5c',lift:22});}   // a plume of dust behind them
+  if(e.speed>110&&Math.random()<dt*(e.onRoad?12:18)){const bx=e.x-Math.cos(e.a)*22,by=e.y-Math.sin(e.a)*22;part({kind:'smoke',x:bx+rand(-8,8),y:by+rand(-8,8),vx:-Math.cos(e.a)*20+rand(-10,10),vy:-Math.sin(e.a)*20+rand(-10,10),life:rand(3,4.2),max:4.2,size:rand(20,30),grow:30,drag:0.6,col:e.onRoad?'#a8865a':'#b08a5c',lift:22,plume:true});}   // a plume of dust behind them
   // some raider cars carry a shooter who leans out at close range
   // a raider on a bike, alongside: a swing of the machete at the car (and, through the window, at you), or at you on foot
   if(e.type==='bike'&&e.wipe<=0){if(e.atkT>0){e.atkT+=dt/0.6;if(!e.atkHit&&e.atkT>=0.55){e.atkHit=true;const dd=Math.hypot(p.x-e.x,p.y-e.y);
@@ -4871,8 +4879,8 @@ function particles3(b){const ox=Math.round(b.x),oz=Math.round(b.y),N=[0,0],tgt=[
   const pr=Math.max(V3_FOG_FAR,V3.fogFar||0);for(const q of G.parts){if(Math.abs(q.x-b.x)>pr||Math.abs(q.y-b.y)>pr)continue;if(q.gy===undefined)q.gy=Math.max(Math.abs(q.x-b.x),Math.abs(q.y-b.y))<V3_FOG_FAR?groundY3(q.x,q.y):heightRaw(q.x,q.y);
     const age=q.max-q.life,f=Math.max(0,q.life/q.max),add=q.kind==='fire'||q.kind==='spark',which=add?1:0,i=N[which];if(i>=FX3_MAXP)continue;N[which]++;
     let y,a,sz=q.size*2.2,col=fxCol3(q.col);
-    if(q.kind==='dust'){y=q.gy+3+sz*0.25+age*7;a=f*0.45;sz*=1.25;}   // dust rolls out low and spreads
-    else if(q.kind==='smoke'){y=q.gy+(q.lift||8)+age*32;a=f*0.6;}   // smoke climbs
+    if(q.kind==='dust'){y=q.gy+3+sz*0.25+age*7;a=f*0.3*Math.min(1,age/0.45);sz*=1.25;}   // dust rolls out low and spreads: thin where it's kicked up, thicker behind
+    else if(q.kind==='smoke'){y=q.gy+(q.lift||8)+age*32;a=f*0.6*(q.plume?0.5*Math.min(1,age/1.1):1);}   // smoke climbs; a raider's dust plume is see-through near the vehicle
     else if(q.kind==='fire'){y=q.gy+(q.lift||5)+age*22;a=f;if(f<0.5)col=fxCol3('#c2381f');}
     else{y=q.gy+10+age*30-age*age*90;a=f;sz=Math.max(2.5,sz*1.4);}   // sparks arc and fall
     if(!add&&dk>0.3)col=col.map(v=>v*(1-dk*0.6));   // dust and smoke darken with the night; flames don't
