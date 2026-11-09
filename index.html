@@ -238,7 +238,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='5.1';
+const VERSION='5.2';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1390,7 +1390,7 @@ function carById(id){if(!id)return null;for(const c of G.cars)if(c.id===id)retur
 function heroCar(){return carById(G.hero.inCar);}
 function body(){return heroCar()||G.hero;}
 function nearestCar(extra){const h=G.hero;let best=null,bd=1e9;
-  for(const c of G.cars){if(c.wrecked||c.driver==='raider'||c.dead)continue;const d=Math.hypot(c.x-h.x,c.y-h.y)-c.r;if(d<extra&&d<bd){bd=d;best=c;}}
+  for(const c of G.cars){if(c.wrecked||c.driver==='raider'||c.driver==='convoy'||c.dead)continue;const d=Math.hypot(c.x-h.x,c.y-h.y)-c.r;if(d<extra&&d<bd){bd=d;best=c;}}
   return best;}
 // getting in or out is ignored for half a second after the last switch, so one tap can never put you in and straight back out
 function swapLocked(){return G.time-(G.swapT??-9)<0.5;}
@@ -1609,14 +1609,14 @@ function updateRaider(e,dt){
   } else {tx=p.x+p.vx*0.6;ty=p.y+p.vy*0.6;want=e.maxSpeed;}
   let diff=angDiff(Math.atan2(ty-e.y,tx-e.x),e.a);
   // steer round rocks and wrecks: cast a fan of five rays, take the clearest gap that still heads roughly where we want to go
-  const obs=nearObstacles(e),look=100+e.speed*0.75,want0=e.a+diff;let ahead=look,bestA=0,bestS=-1e9;
-  for(const ro of [-0.75,-0.38,0,0.38,0.75]){const ang=e.a+ro,cx=Math.cos(ang),cy=Math.sin(ang);let clear=look;
-    for(const ob of obs){const px=ob.x-e.x,py=ob.y-e.y,along=px*cx+py*cy;if(along<0||along>clear)continue;const side=Math.abs(px*cy-py*cx);if(side<ob.r+e.r+16)clear=Math.max(0,along-ob.r);}
+  const obs=nearObstacles(e),look=150+e.speed*1.1,want0=e.a+diff;let ahead=look,bestA=0,bestS=-1e9;
+  for(const ro of [-1.1,-0.75,-0.5,-0.25,0,0.25,0.5,0.75,1.1]){const ang=e.a+ro,cx=Math.cos(ang),cy=Math.sin(ang);let clear=look;
+    for(const ob of obs){const px=ob.x-e.x,py=ob.y-e.y,along=px*cx+py*cy;if(along<0||along>clear)continue;const side=Math.abs(px*cy-py*cx);if(side<ob.r+e.r+32)clear=Math.max(0,along-ob.r);}
     for(let s2=24;s2<clear;s2+=24)if(blockedAt(e.x+cx*s2,e.y+cy*s2)||insideMesa(e.x+cx*s2,e.y+cy*s2,e.r+10)||inShellWall(e.x+cx*s2,e.y+cy*s2,e.r+8)||blockedAt(e.x+cx*s2-cy*e.r,e.y+cy*s2+cx*e.r)||blockedAt(e.x+cx*s2+cy*e.r,e.y+cy*s2-cx*e.r)){clear=Math.max(0,s2-24);break;}   // cliffs, canyons, rivers
     if(ro===0)ahead=clear;const score=clear-Math.abs(angDiff(ang,want0))*look*0.3;if(score>bestS){bestS=score;bestA=ro;}}
   if(ahead<look)diff=bestA*1.8+angDiff(want0,e.a)*0.2;   // something in the way: swing for the gap
   let thr=clamp((want-e.vf)/60,-1,1)*(Math.abs(diff)<1.6?1:0.4);
-  if(ahead<e.speed*0.5)thr=Math.min(thr,-0.6);           // too close to swerve cleanly: brake as well
+  if(ahead<e.speed*0.75)thr=Math.min(thr,-0.7);           // too close to swerve cleanly: brake as well
   driveCar(e,thr,clamp(diff*2.6,-1,1),dt,d>380&&want>e.vf,false);
   if(e.speed>110&&Math.random()<dt*(e.onRoad?12:18)){const bx=e.x-Math.cos(e.a)*22,by=e.y-Math.sin(e.a)*22;part({kind:'smoke',x:bx+rand(-8,8),y:by+rand(-8,8),vx:-Math.cos(e.a)*20+rand(-10,10),vy:-Math.sin(e.a)*20+rand(-10,10),life:rand(3,4.2),max:4.2,size:rand(20,30),grow:30,drag:0.6,col:e.onRoad?'#a8865a':'#b08a5c',lift:22,plume:true});}   // a plume of dust behind them
   // some raider cars carry a shooter who leans out at close range
@@ -1653,7 +1653,7 @@ function spawnConvoy(ri,i,dir,fac){const R=roads[ri],look=CONVOY_LOOK[fac],C={id
   let s=R.cum[i];const at=sv=>{let j=i;while(j>0&&j<R.n-1&&(dir>0?R.cum[j]>sv:R.cum[j]<sv))j-=dir;return j;};
   kinds.forEach((t,k)=>{const len=CARS[t].len,j=clamp(at(s),1,R.n-2),a=Math.atan2(R.ys[j+dir]-R.ys[j],R.xs[j+dir]-R.xs[j]),nx=-Math.sin(a),ny=Math.cos(a),lane=-R.w*0.22;   // keep left
     const c=makeCar(t,R.xs[j]+nx*lane,R.ys[j]+ny*lane,a,{id:C.id+'_'+k,driver:'convoy',convoy:C,fac,order:k,truck:['semi','tanker','flatbed'].includes(t),items:CARGO[t]?Object.assign({},CARGO[t]):{},vx:Math.cos(a)*C.speed,vy:Math.sin(a)*C.speed});
-    c.stab=c.maxStab=CARS[t].stab||120;C.cars.push(c);G.cars.push(c);s-=dir*(len/2+(C.cars[k+1]?0:0)+len/2+60);});
+    c.stab=c.maxStab=CARS[t].stab||120;c.soft=CARS[t].soft||1;C.cars.push(c);G.cars.push(c);s-=dir*(len/2+(C.cars[k+1]?0:0)+len/2+60);});
   (G.convoys||(G.convoys=[])).push(C);return C;}
 // once in a while, out on a main road, a convoy comes along it (ahead of you coming the other way, or behind you catching up... slowly)
 function convoyTick(dt){G.convoys=G.convoys||[];const an=f=>(/^[AEIOU]/.test(FACTIONS[f].name)?'An ':'A ')+FACTIONS[f].name;G.convoyT=(G.convoyT??rand(40,90))-dt;const b=body();
@@ -1666,7 +1666,7 @@ function convoyTick(dt){G.convoys=G.convoys||[];const an=f=>(/^[AEIOU]/.test(FAC
   if(nearLoc(b.x,b.y,2500))return;const dir=Math.random()<0.5?1:-1,start=clamp(ri.i+(Math.random()<0.6?dir*-1:dir)*Math.round(rand(2000,3200)/40),8,R.n-9);   // usually ahead of you, coming toward you
   const fromLoc=Math.random();const fac=CONVOY_FACS[Math.floor(fromLoc*CONVOY_FACS.length)];spawnConvoy(ri.r,start,(start>ri.i?-1:1)*(Math.random()<0.7?1:-1)||1,fac);}
 // the escorts come for you (hostile faction, or you've attacked them): they drive like raiders; the trucks keep going
-function convoyTurn(C,provoked){if(C.turned)return;C.turned=true;C.hostile=true;for(const c of C.cars){if(c.wrecked||c.truck)continue;c.driver='raider';c.mode='chase';c.modeT=rand(1,2.5);c.side=Math.random()<0.5?-1:1;c.wipe=0;c.spin=0;c.fuel=100;}
+function convoyTurn(C,provoked){if(C.turned)return;C.turned=true;C.hostile=true;for(const c of C.cars){if(c.wrecked||c.truck)continue;c.driver='raider';c.soft=c.soft||CARS[c.type].soft||1;c.maxStab=c.maxStab||CARS[c.type].stab||120;c.stab=Math.min(c.stab||c.maxStab,c.maxStab);c.mode='chase';c.modeT=rand(1,2.5);c.side=Math.random()<0.5?-1:1;c.wipe=0;c.spin=0;c.fuel=100;}
   G.encActive=true;if(provoked){changeRep(C.fac,-10);showMsg('You’ve attacked a '+FACTIONS[C.fac].name+' convoy. The escorts turn on you',3);}}
 function convoyProvoked(c){if(c&&c.convoy&&!c.convoy.turned)convoyTurn(c.convoy,true);}
 // driving: follow the road on the left side, keep the gap to the one in front
@@ -2954,6 +2954,13 @@ function setHud(id,prop,val){if(hudCache[id+prop]===val)return;hudCache[id+prop]
   if(prop==='text')el.textContent=val;else if(prop==='w')el.style.width=val;else if(prop==='low')el.classList.toggle('low',val);
   else if(prop==='hide')el.classList.toggle('hidden',val);else if(prop==='nocar')el.classList.toggle('nocar',val);}
 function focusCar(){return heroCar()||nearestCar(140);}
+// the four tyres at a glance, beside the car's gauges: a little car from above, each tyre coloured by its wear (green, amber, red; black when flat)
+function tyreHud(c){let el=document.getElementById('tyreBox');if(!el){const at=document.getElementById('carWarn');if(!at)return;el=document.createElement('div');el.id='tyreBox';
+    el.style.cssText='display:inline-grid;grid-template-columns:7px 12px 7px;grid-template-rows:9px 10px 9px;gap:1px;margin:3px 0 0 2px;vertical-align:middle';
+    el.innerHTML='<i></i><i style="grid-row:1/4;grid-column:2;background:rgba(239,226,196,.35);border-radius:3px"></i><i></i><i></i><i></i><i></i><i></i>';at.parentNode.insertBefore(el,at);}
+  if(!c||!c.tw){el.style.visibility='hidden';return;}el.style.visibility='visible';const cells=el.children,slots=[0,2,5,6];   // front left, front right, back left, back right
+  [[1,1],[1,3],[3,1],[3,3]].forEach(([r,col],i)=>{const t=c.tw[i],e=cells[slots[i]];e.style.gridRow=r;e.style.gridColumn=col;e.style.borderRadius='2px';e.style.background=t<=0?'#141110':t<35?'#d8503a':t<65?'#e8a83a':'#8ab060';e.title=TYRE_NAMES[i]+' '+Math.round(t)+'%';});
+  for(let k of [3,4])if(cells[k])cells[k].style.display='none';}
 function updateHud(){const h=G.hero,car=heroCar(),fc=focusCar();
   setHud('hpBar','w',Math.max(0,h.hp).toFixed(0)+'%');setHud('hpBar','low',h.hp<30);
   for(const k of ['water','food','rest']){setHud(k+'Bar','w',Math.max(0,h[k]).toFixed(0)+'%');setHud(k+'Bar','low',h[k]<25);}
@@ -2962,7 +2969,7 @@ function updateHud(){const h=G.hero,car=heroCar(),fc=focusCar();
   if(fc){setHud('fuelBar','w',Math.max(0,fc.fuel).toFixed(0)+'%');setHud('fuelBar','low',fc.fuel<20);
     setHud('condBar','w',Math.max(0,fc.cond).toFixed(0)+'%');setHud('condBar','low',fc.cond<30);
     setHud('carName','text',(car?'Driving the ':'Nearby: ')+fc.def.name);
-    setHud('carWarn','text',carProblems(fc).join(', '));}
+    setHud('carWarn','text',carProblems(fc).join(', '));tyreHud(fc);}else tyreHud(null);
   setHud('inv','text','Carrying '+invWeight(h.inv)+' of '+HERO_CAP+' kg'+(h.inv.jerrycan?', jerry cans '+Math.round(canFill(h.inv))+'% of '+h.inv.jerrycan*CAN_CAP+'%':''));
   // fighting on foot: make the Attack button big and easy to hit
   const fighting=!car&&(G.fightT>0||G.foes.some(f=>!f.dead&&f.state==='alert'&&Math.hypot(f.x-h.x,f.y-h.y)<450));
@@ -3048,7 +3055,7 @@ function doBedRest(hours,bed){const h=G.hero,rate=bedRate(bed),risk=bedRisk(bed)
 // ---- gear (inventory) screen ----
 let invOther=null;
 function openInv(other){if(state!=='play')return;
-  const car=heroCar();invOther=other||(car?{kind:'car',car}:null);
+  const car=heroCar()||nearestCar(50);invOther=other||(car?{kind:'car',car}:null);   // in the car, or standing beside it: its boot, and fitting parts to it
   if(invOther&&invOther.kind==='box'){const bx=invOther.box;boxItems(bx);
     // Mick has an eye for things other people miss
     if(G.comp&&compAbility(G.comp)==='scrounger'&&!G.comp.inCar&&!bx.scrounged){bx.scrounged=true;const extra=genLoot(bx.table||'ruin',(Math.random()*1e9)|0,1,bx.biome);
@@ -3213,7 +3220,8 @@ function markerSave(){if(!mdMode)return;const text=($('mdText').value||'').trim(
   markerClose();updateMapInfo();}
 function markerAction(a){const m=G.markers.find(q=>q.id===mapMarker);
   if(a==='drop')return markerDialog('new','');
-  if(!m)return;if(a==='guide')G.waypoint=m.id;else if(a==='unguide')G.waypoint=null;else if(a==='rename')return markerDialog('rename',m.text);
+  if(!m)return;if(a==='guide'){G.waypoint=m.id;const node=LOCS.filter(l=>l.links.length&&!l.camp).sort((p,q)=>Math.hypot(p.x-m.x,p.y-m.y)-Math.hypot(q.x-m.x,q.y-m.y))[0];   // the road there: to the nearest place on the network
+    if(node&&Math.hypot(node.x-body().x,node.y-body().y)>2500&&Math.hypot(m.x-body().x,m.y-body().y)>3500)setDest(node.id);}else if(a==='unguide')G.waypoint=null;else if(a==='rename')return markerDialog('rename',m.text);
   else if(a==='remove'){G.markers=G.markers.filter(q=>q.id!==m.id);if(G.waypoint===m.id)G.waypoint=null;mapMarker=null;}
   updateMapInfo();}
 // ---- siphoning and stripping ----
@@ -3288,7 +3296,7 @@ let mapImg=null;
 function mapPixel3(x,y,RES){const lv=landValue(x,y);let col=lv<0?[31,44,48]:MAP_BIOME[zoneAt(x,y).biome];if(lv>=0&&lv<0.015)col=[214,190,140];
   if(lv>=0){const f=terrainFactors(x,y),wr=Math.min(0.9978,1-3.75e-6*RES*1.4),wc=Math.min(0.9972,1-3.75e-6*RES*1.4);
     const rv=ridge(nRiv,x,y,70000,3),wr2=rv>0.9936?Math.min(rivT(x,y),1):1,cv=f.can>0.3&&fbm(nCanM,x/90000,y/90000,2)>0.56?ridge(nCan,x,y,45000,3):0;
-    if(rv>Math.min(wr,wr2))col=fbm(nRivF,x/90000,y/90000,2)>f.flow?[79,138,168]:[201,180,138];else if(cv>wc)col=[42,29,22];
+    if(rv>Math.min(wr,wr2))col=fbm(nRivF,x/90000,y/90000,2)>f.flow?[128,98,62]:[201,180,138];else if(cv>wc)col=[42,29,22];
     else if(RES<=500&&cv>wc-0.006)col=[col[0]*0.72,col[1]*0.62,col[2]*0.55];}   // the rim of a canyon, darkened, when you're zoomed in close
   return col;}
 // detail tiles: 256 px squares of the map at finer resolutions, built a few at a time while the map is open, drawn over the overview
@@ -3308,7 +3316,7 @@ function stepMapTile(budgetEnd){const J=mapTjob,{RES,S,G8,x0,y0,grid,img}=J,wr=M
       else if(lvv<0.015){R=214;Gc=190;Bc=140;}
       else{R=a.col[0]*w0+b.col[0]*w1+c.col[0]*w2+d.col[0]*w3;Gc=a.col[1]*w0+b.col[1]*w1+c.col[1]*w2+d.col[1]*w3;Bc=a.col[2]*w0+b.col[2]*w1+c.col[2]*w2+d.col[2]*w3;
         const can=a.can*w0+b.can*w1+c.can*w2+d.can*w3;
-        const rv0=ridge(nRiv,wx,wy,70000,3);if(rv0>Math.min(wr,0.9936)&&rv0>Math.min(wr,rivT(wx,wy))){const fl=a.flow*w0+b.flow*w1+c.flow*w2+d.flow*w3;if(fbm(nRivF,wx/90000,wy/90000,2)>fl){R=79;Gc=138;Bc=168;}else{R=201;Gc=180;Bc=138;}}
+        const rv0=ridge(nRiv,wx,wy,70000,3);if(rv0>Math.min(wr,0.9936)&&rv0>Math.min(wr,rivT(wx,wy))){const fl=a.flow*w0+b.flow*w1+c.flow*w2+d.flow*w3;if(fbm(nRivF,wx/90000,wy/90000,2)>fl){R=128;Gc=98;Bc=62;}else{R=201;Gc=180;Bc=138;}}
         else if(can>0.3&&fbm(nCanM,wx/90000,wy/90000,2)>0.56){const cv=ridge(nCan,wx,wy,45000,3);if(cv>wc){R=42;Gc=29;Bc=22;}else if(RES<=400&&cv>wc-0.006){R*=0.72;Gc*=0.62;Bc*=0.55;}}}
       if(dat){const k=(y*S+x)*4;dat[k]=R;dat[k+1]=Gc;dat[k+2]=Bc;dat[k+3]=255;}}
     J.row++;}
@@ -3327,7 +3335,7 @@ function buildMapImage(){const RES=Math.max(25,Math.round(WX*2/400)),w=Math.ceil
     let col=lv<0?[31,44,48]:MAP_BIOME[zoneAt(x,y).biome];if(lv>=0&&lv<0.015)col=[214,190,140];
     if(lv>=0){const f=terrainFactors(x,y),tt=terrainRaw(x,y,f);   // features too narrow for a map pixel are widened so you can see them
       const rv=ridge(nRiv,x,y,70000,3),wr2=rv>0.9936?Math.min(rivT(x,y),1):1,cv=f.can>0.3&&fbm(nCanM,x/90000,y/90000,2)>0.56?ridge(nCan,x,y,45000,3):0;
-      if(rv>0.985)col=fbm(nRivF,x/90000,y/90000,2)>f.flow?[79,138,168]:[201,180,138];else if(cv>0.985)col=[42,29,22];}
+      if(rv>0.985)col=fbm(nRivF,x/90000,y/90000,2)>f.flow?[128,98,62]:[201,180,138];else if(cv>0.985)col=[42,29,22];}
     if(img.data){img.data[k]=col[0];img.data[k+1]=col[1];img.data[k+2]=col[2];img.data[k+3]=255;}}
   // every mesa and butte, listed once, so the map can draw each one crisply at any zoom
   allMesas=[];for(let j=Math.floor(-WY/MESA_CELL);j<=Math.ceil(WY/MESA_CELL);j++)for(let i=Math.floor(-WX/MESA_CELL);i<=Math.ceil(WX/MESA_CELL);i++){
@@ -3462,7 +3470,7 @@ function init3D(){
   V3.head=new THREE.SpotLight(0xfff2cc,0,1100,0.5,0.55,1);V3.headT=new THREE.Object3D();V3.head.target=V3.headT;scene.add(V3.head,V3.headT);
   V3.mats={vc:new THREE.MeshLambertMaterial({vertexColors:true}),
     road:new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}),
-    water:new THREE.MeshLambertMaterial({color:0x4a8aa0,transparent:true,opacity:0.86}),
+    water:riverMat3(),
     shadow:new THREE.MeshBasicMaterial({color:0x2a1408,transparent:true,opacity:0.3,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8})};
   // mountains and big mesas: no near fog; a haze of their own that thickens slowly with distance, toward the sky's colour
   const far=new THREE.MeshLambertMaterial({vertexColors:true,fog:false});far.userData.u={hzCol:{value:new THREE.Color(0xe8c79a)}};
@@ -4749,13 +4757,22 @@ const FIELD_COL={stubble:col3('#c8b07a'),bare:col3('#b0926a'),ploughed:col3('#8c
 function fieldCol3(x,y,base){const f=fieldAt(x,y);if(!f)return null;const dx=x-f.x,dy=y-f.y,u=dx*f.ux+dy*f.uy,v=-dx*f.uy+dy*f.ux,edge=Math.min(f.hw-Math.abs(u),f.hh-Math.abs(v)),k=clamp(edge/60,0,1)*0.75;
   const rows=f.crop==='ploughed'?0.82+0.18*(Math.floor(v/24)%2===0?1:0):f.crop==='stubble'?0.92+0.08*Math.sin(v/9):0.95+0.05*Math.sin(u/40+v/55);   // rows of stubble or furrows running along the field
   const c=FIELD_COL[f.crop];return mix3(base,[c[0]*rows,c[1]*rows,c[2]*rows],k);}
+// river water: a muddy light brown, with slicks of oil drifting slowly across it (dark swirls with a faint rainbow sheen at their edges)
+function riverMat3(){const m=new THREE.MeshLambertMaterial({color:0x9c7f5a,transparent:true,opacity:0.9});m.userData.u={wt:{value:0}};
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.u);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWp;').replace('#include <project_vertex>','#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.0)).xz;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWp;uniform float wt;').replace('#include <dithering_fragment>',`#include <dithering_fragment>
+      vec2 q=vWp*0.012+vec2(wt*0.03,wt*0.02);float n=sin(q.x*3.1+sin(q.y*2.3+wt*0.2)*1.7)*cos(q.y*2.7-sin(q.x*1.9)*1.3);
+      float n2=sin(q.x*7.3+n*2.0)*sin(q.y*6.1-n*1.5);float slick=smoothstep(0.35,0.75,n*0.6+n2*0.4);
+      vec3 sheen=0.5+0.5*cos(6.2832*(n2*0.5+vec3(0.0,0.33,0.67)));gl_FragColor.rgb=mix(gl_FragColor.rgb,gl_FragColor.rgb*0.55,slick*0.7)+sheen*0.07*slick*(1.0-slick)*4.0;`);};
+  return m;}
 function farMat3(){const m=new THREE.MeshLambertMaterial({vertexColors:true});m.userData.u={holeC:{value:new THREE.Vector2(0,0)},holeH:{value:0}};
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.u);
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWxz;').replace('#include <project_vertex>','#include <project_vertex>\nvWxz=(modelMatrix*vec4(transformed,1.0)).xz;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWxz;uniform vec2 holeC;uniform float holeH;').replace('void main() {','void main() {\nif(abs(vWxz.x-holeC.x)<holeH&&abs(vWxz.y-holeC.y)<holeH)discard;');};
   return m;}
 function farColour3(x,y,h,lv,t){if(lv<0)return col3('#5f7268');const z=zoneAt(x,y);let c=col3(BIOMES[z.biome].ground);{const fc=fieldCol3(x,y,c);if(fc)c=fc;}
-if(t===T.RIVER)c=col3('#4f8aa0');else if(t===T.DRY)c=mix3(c,col3('#cdb68a'),0.6);else if(t===T.CANYON)c=col3('#5c2814');
+if(t===T.RIVER)c=col3('#8c7252');else if(t===T.DRY)c=mix3(c,col3('#cdb68a'),0.6);else if(t===T.CANYON)c=col3('#5c2814');
   const v=0.9+0.18*fbm(n3Patch,x/700,y/700,2);return [c[0]*v,c[1]*v,c[2]*v];}
 function farHeight3(x,y,lv,t){if(lv<0)return -60;return heightRaw(x,y)-(t===T.CANYON?120:t===T.RIVER?30:0);}
 function startFarTile3(L,i,j){const F=FARL[L],n=F.size/F.step+1,E=n+2;FAR3.job={L,i,j,F,n,E,row:-1,hs:new Float32Array(E*E),cols:new Float32Array(n*n*3),tt:new Uint8Array(n*n)};}
@@ -4896,6 +4913,7 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   if(V3.lastB&&Math.hypot(b.x-V3.lastB.x,b.y-V3.lastB.y)>3000){reset3D();V3.yaw=car?car.a:G.hero.a;}V3.lastB={x:b.x,y:b.y};   // a long jump (a new game, a load): rebuild round the new spot
   const dpr=Math.min(window.devicePixelRatio||1,1.5);if(V3.w!==W||V3.h!==H||V3.dpr!==dpr){V3.w=W;V3.h=H;V3.dpr=dpr;R.setPixelRatio(dpr);R.setSize(W,H,false);V3.canvas.style.width=W+'px';V3.canvas.style.height=H+'px';cam.aspect=W/H;cam.updateProjectionMatrix();}
   for(const [,e] of V3.locs)if(e.m&&e.m.userData&&e.m.userData.barr)e.m.userData.barr.visible=townClosed(e.o);   // gates open once you've earned it
+  if(V3.mats.water.userData.u)V3.mats.water.userData.u.wt.value=G.time||0;   // the slicks drift
   if(V3.viewKey!==SETTINGS.viewDist){V3.viewKey=SETTINGS.viewDist;applyView3();}
   stream3(b.x,b.y);farGround3(b.x,b.y);syncDynamic3();syncLoot3(b);syncFX3(b);
   for(const [,e] of V3.locs)if(e.m&&e.m.userData.roofs)e.m.userData.roofs.visible=!V3.noRoofs&&!e.o.bld.some(bd=>!bd.tank&&bd.roofA!==undefined&&bd.roofA<0.5);   // step indoors and the roof lifts off, as in 2D
@@ -4910,7 +4928,8 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   let indoor=false;if(!car)for(const [,e] of V3.locs){const o=e.o;if(Math.abs(o.x-h.x)>o.rad||Math.abs(o.y-h.y)>o.rad)continue;if(o.bld.some(bd=>!bd.tank&&bInside(bd,h.x,h.y,0))){indoor=true;break;}}
   V3.indoor=(V3.indoor||0)+((indoor?1:0)-(V3.indoor||0))*Math.min(1,dt*3);const ik=V3.indoor;
   const zm=clamp(SETTINGS.zoom,ZMIN,ZMAX),spd=car?Math.min(1,car.speed/500):0,gy=groundY3(b.x,b.y);
-  let dist=(car?150+60*spd:78-30*ik)/zm;const hgt=(car?50+12*spd:34+116*ik)/Math.sqrt(zm);
+  if(car){const fx=Math.cos(car.a),fy=Math.sin(car.a),sl=(groundY3(car.x+fx*60,car.y+fy*60)-groundY3(car.x-fx*60,car.y-fy*60))/120*(car.vf>=0?1:-1);V3.down=(V3.down||0)+((sl<0?Math.min(1,-sl*6):0)-(V3.down||0))*Math.min(1,dt*2);}else V3.down=(V3.down||0)*0.9;   // how steeply you're going downhill
+  let dist=(car?150+60*spd:78-30*ik)/zm;const hgt=(car?50+12*spd+38*(V3.down||0):34+116*ik)/Math.sqrt(zm);
   updateLook(dt);const vy=V3.yaw+LOOK.yaw;V3.viewYaw=vy;const hgt2=hgt*(1+LOOK.pitch);   // free look turns the camera round the car or the hero, and tilts it
   let camX=b.x,camZ=b.y;for(let k=0;k<8;k++){camX=b.x-Math.cos(vy)*dist;camZ=b.y-Math.sin(vy)*dist;if(!insideMesa(camX,camZ,12))break;dist*=0.75;}   // never back the camera into a cliff
   const camY=Math.max(gy+hgt2,landY3(camX,camZ)+16),sh=G.shake*0.6;
@@ -4939,6 +4958,10 @@ function compass3D(){const vy0=V3.viewYaw??V3.yaw,hd=Math.atan2(Math.cos(vy0),-M
   for(let b=0;b<360;b+=15){let d=((b-hd)%360+540)%360-180;if(Math.abs(d)>span/2+10)continue;const x=cx+d/span*w,big=b%45===0;
     if(names[b]!==undefined){ctx.font=(b%90===0?'700 17px':'600 13px')+' "Barlow Condensed", Arial, sans-serif';ctx.fillStyle=b===0?'#e0533a':'#efe2c4';ctx.fillText(names[b],x,y+h-9);}
     ctx.strokeStyle='rgba(239,226,196,.7)';ctx.lineWidth=big?2:1;ctx.beginPath();ctx.moveTo(x,y+3);ctx.lineTo(x,y+(big?9:7));ctx.stroke();}
+  // where you're going: a guided marker if there is one, else the destination town
+  {const bb=body(),wp=G.waypoint!=null?G.markers.find(m=>m.id===G.waypoint):null,dl=G.dest!==null&&G.dest!==undefined?LOCS[G.dest]:null,tg=wp?{x:wp.x,y:wp.y,c:'#f2a03d'}:dl?{x:dl.x,y:dl.y,c:'#e8c070'}:null;
+    if(tg){const brg=(Math.atan2(tg.x-bb.x,-(tg.y-bb.y))*180/Math.PI+360)%360,d=((brg-hd)%360+540)%360-180,inBand=Math.abs(d)<=span/2,px=cx+clamp(d/span,-0.5,0.5)*(w-16);
+      ctx.fillStyle=tg.c;ctx.beginPath();if(inBand){ctx.moveTo(px,y+4);ctx.lineTo(px-5,y+11);ctx.lineTo(px,y+18);ctx.lineTo(px+5,y+11);}else{const s=d>0?1:-1;ctx.moveTo(px+s*6,y+h/2);ctx.lineTo(px-s*2,y+h/2-6);ctx.lineTo(px-s*2,y+h/2+6);}ctx.closePath();ctx.fill();}}
   ctx.restore();ctx.fillStyle='#f2a03d';ctx.beginPath();ctx.moveTo(cx,y+h+1);ctx.lineTo(cx-6,y+h+9);ctx.lineTo(cx+6,y+h+9);ctx.closePath();ctx.fill();   // the mark for straight ahead
   ctx.font='600 12px "Barlow Condensed", Arial, sans-serif';ctx.textAlign='center';const dg=String(Math.round((hd+360)%360)%360).padStart(3,'0')+'°';ctx.lineWidth=3;ctx.strokeStyle='rgba(28,22,18,.75)';ctx.strokeText(dg,cx,y+h+21);ctx.fillStyle='#efe2c4';ctx.fillText(dg,cx,y+h+21);}
 // route guidance, as in 2D: an arrow at the screen's edge toward your marker, the road you've left, or your parked car
@@ -4952,7 +4975,7 @@ function arrow3D(wx,wy,label,col){if(!V3P.v)V3P.v=new THREE.Vector3();const v=V3
   ctx.beginPath();ctx.moveTo(18,0);ctx.lineTo(-10,-12);ctx.lineTo(-4,0);ctx.lineTo(-10,12);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
   ctx.globalAlpha=1;ctx.font='700 15px "Barlow Condensed", Arial, sans-serif';ctx.textAlign='center';ctx.fillStyle='#efe2c4';ctx.fillText(label,ex-Math.cos(a)*36,ey-Math.sin(a)*36+5);}
 function guide3D(){const b=body(),h=G.hero;
-  const wp=G.waypoint!=null?G.markers.find(m=>m.id===G.waypoint):null;if(wp)arrow3D(wp.x,wp.y,wp.text+', '+km(Math.hypot(wp.x-b.x,wp.y-b.y)).toFixed(1)+' km','#f2a03d');
+  const wp=G.waypoint!=null?G.markers.find(m=>m.id===G.waypoint):null;if(wp&&(!G.leg||Math.hypot(wp.x-b.x,wp.y-b.y)<3500))arrow3D(   /* while there's road to follow, follow the road; the marker's arrow shows once you're near it */wp.x,wp.y,wp.text+', '+km(Math.hypot(wp.x-b.x,wp.y-b.y)).toFixed(1)+' km','#f2a03d');
   if(G.leg&&!G.onLeg&&G.legNear)arrow3D(G.legNear.x,G.legNear.y,'road','#f2a03d');
   if(!h.inCar){const lc=carById(G.lastCar);if(lc&&!lc.wrecked)arrow3D(lc.x,lc.y,'your car','#efe2c4');}}
 
@@ -5210,7 +5233,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
