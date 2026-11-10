@@ -238,7 +238,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='6.2';
+const VERSION='6.4';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -997,7 +997,7 @@ function idleCar(c,dt){
 }
 function crash(c,imp,x,y,nose){
   if(c.kind!=='car'||imp<120)return;sparks(x,y,Math.min(14,(imp/40)|0));if(imp>200)debris(x,y,c.vx*0.3,c.vy*0.3,Math.min(8,Math.round(imp/70)),c);c.sleep=0;
-  if(c.driver==='raider'){if(window.__stats)window.__stats.raiderCrash=(window.__stats.raiderCrash||0)+1;c.stab-=(imp-100)*0.9*c.soft;c.flash=1;if(c.stab<=0)startWipe(c);return;}
+  if(c.driver==='raider'){if(window.__stats)window.__stats.raiderCrash=(window.__stats.raiderCrash||0)+1;c.stab-=Math.max(0,imp-150)*0.9*c.soft;   /* a glancing knock on a rock doesn't spin them out; a real smash does */c.flash=1;if(c.stab<=0)startWipe(c);return;}
   const um=upMods(c),front=!!nose,hit=(imp-120)*0.06/c.def.armor/um.armor*(front?um.frontCrash:1);
   c.cond-=hit;c.susp=Math.max(0,c.susp-hit*0.25);if(front)c.engine=Math.max(0,c.engine-hit*0.35);c.flash=1;
   if(c.driver==='hero'){SFX.hit(0.4);G.shake=Math.max(G.shake,Math.min(14,imp/30));if(imp>220)hurtHero((imp-220)*0.04,'crash');}
@@ -1062,7 +1062,7 @@ function carPair(a,b){
   a.x-=nx*pen*ia/s;a.y-=ny*pen*ia/s;b.x+=nx*pen*ib/s;b.y+=ny*pen*ib/s;a.sleep=b.sleep=0;
   const rv=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;if(rv>=0)return;
   const j=-1.3*rv/s;a.vx-=j*ia*nx;a.vy-=j*ia*ny;b.vx+=j*ib*nx;b.vy+=j*ib*ny;
-  const imp=-rv;if(imp<35)return;sparks(a.x+nx*a.r,a.y+ny*a.r,Math.min(12,(imp/30)|0));if(imp>160)debris(a.x+nx*a.r,a.y+ny*a.r,(a.vx+b.vx)/2,(a.vy+b.vy)/2,Math.min(10,Math.round(imp/60)),Math.random()<0.5?a:b);   /* a hard hit: bits fly off */
+  const imp=-rv;if(imp<35)return;{const hc0=heroCar();if(a.driver==='raider'&&b===hc0)a.knockT=2.5;if(b.driver==='raider'&&a===hc0)b.knockT=2.5;}   // hit by you: off the road now, they'll lose it   // just been hit: off the road now, they'll lose itsparks(a.x+nx*a.r,a.y+ny*a.r,Math.min(12,(imp/30)|0));if(imp>160)debris(a.x+nx*a.r,a.y+ny*a.r,(a.vx+b.vx)/2,(a.vy+b.vy)/2,Math.min(10,Math.round(imp/60)),Math.random()<0.5?a:b);   /* a hard hit: bits fly off */
   const hc=heroCar(),ra=a.driver==='raider',rb=b.driver==='raider';
   if((a===hc&&rb)||(b===hc&&ra)){
     const p=hc,e=a===hc?b:a,sg=a===hc?1:-1,px=nx*sg,py=ny*sg;
@@ -1078,7 +1078,7 @@ function carPair(a,b){
     SFX.hit(imp/400);
   } else {
     if(imp>110&&((a===hc&&b.convoy)||(b===hc&&a.convoy))){const o=a===hc?b:a,sg=a===hc?1:-1,vp=hc.vx*nx*sg+hc.vy*ny*sg,vo=-(o.vx*nx*sg+o.vy*ny*sg);if(hc.speed>80&&vp>=vo)convoyProvoked(o);}   // you rammed a convoy (not it running into you)
-    if(ra)a.stab-=imp*0.1*a.soft;if(rb)b.stab-=imp*0.1*b.soft;
+    const both=ra&&rb?0.3:1;if(ra)a.stab-=imp*0.1*a.soft*both;if(rb)b.stab-=imp*0.1*b.soft*both;   // two raiders jostling: they mostly shrug it off
     const dmg=Math.max(0,imp-80)*0.03;if(!ra)a.cond-=dmg/a.def.armor;if(!rb)b.cond-=dmg/b.def.armor;
     if(a===hc||b===hc){SFX.hit(imp/400);G.shake=Math.max(G.shake,Math.min(10,imp/30));}
   }
@@ -1594,12 +1594,24 @@ function explode(x,y,big){
 function debris(x,y,vx,vy,n,c){const cols=['#3a332c','#6a5a48','#7a4a2e','#9aa6a8','#2a2622',c&&c.def?c.def.col:'#5a5650'];for(let k=0;k<n;k++){const a=Math.random()*TAU,s=rand(60,200);
   part({kind:'debris',x:x+rand(-8,8),y:y+rand(-8,8),vx:vx*0.4+Math.cos(a)*s,vy:vy*0.4+Math.sin(a)*s,life:rand(0.7,1.3),max:1.3,size:rand(1.2,2.4),grow:0,drag:1.2,col:cols[Math.floor(Math.random()*cols.length)],up:rand(50,130)});}}
 // a breeze that wanders slowly in strength and direction
-function windStep(dt){if(!G.wind)G.wind={x:0,y:0,a:Math.random()*TAU,s:20,t:0};const W=G.wind;W.t+=dt;W.a+=Math.sin(W.t*0.05)*0.02*dt;W.s=26+12*Math.sin(W.t*0.11)+6*Math.sin(W.t*0.37);W.x=Math.cos(W.a)*W.s;W.y=Math.sin(W.a)*W.s;}
+function windStep(dt){if(!G.wind)G.wind={x:0,y:0,a:Math.random()*TAU,s:20,t:Math.random()*1000,gust:0,gT:0,heavy:false};const W=G.wind;W.t+=dt;
+  // its strength wanders through calm and windy spells over several minutes; in a blow, gusts come and go every few seconds
+  const lvl=clamp(0.5+0.35*Math.sin(W.t*0.011)+0.2*Math.sin(W.t*0.029+1.3)+0.1*Math.sin(W.t*0.083),0,1),base=8+78*lvl*lvl;
+  W.gT-=dt;if(W.gT<=0){W.gT=lvl>0.45?rand(2,7):rand(8,20);W.gTarget=lvl>0.45&&Math.random()<0.7?rand(0.4,1):0;}W.gust+=((W.gTarget||0)-W.gust)*Math.min(1,dt*(W.gTarget>W.gust?1.6:0.6));
+  W.a+=Math.sin(W.t*0.05)*0.02*dt+(W.gust>0.3?Math.sin(W.t*0.7)*0.04*dt:0);W.lvl=lvl;W.s=base*(1+0.7*W.gust);W.heavy=W.s>55;W.x=Math.cos(W.a)*W.s;W.y=Math.sin(W.a)*W.s;}
+// in a blow: clouds of dust sweeping past, sand streaming along the ground, scraps of rubbish tumbling by (all on the wind)
+function windWeather(dt){const W=G.wind;if(!W||state!=='play')return;const b=body(),ux=W.x/(W.s||1),uy=W.y/(W.s||1);
+  if(W.s>40){W.dustT=(W.dustT||0)-dt;if(W.dustT<=0&&(W.gust>0.35||W.heavy)){W.dustT=rand(4,10)/(W.heavy?1.6:1);   // a dust cloud rolls in from upwind and over you
+      const d=rand(500,900),lat=rand(-500,500),cx=b.x-ux*d-uy*lat,cy=b.y-uy*d+ux*lat,n=W.heavy?22:12;
+      for(let k=0;k<n;k++)part({kind:'dust',gustDust:true,x:cx+rand(-160,160),y:cy+rand(-160,160),vx:W.x*0.3,vy:W.y*0.3,life:rand(6,10),max:10,size:rand(40,70),grow:18,drag:0.1,col:Math.random()<0.5?'#c8a878':'#b89868'});}}
+  if(W.heavy){const k=(W.s-55)/40;for(let i=0;i<Math.round(6*k*dt*60)/6;i++)if(Math.random()<0.9){const a=Math.random()*TAU,d=rand(30,420);   // sand streaming low along the ground
+      part({kind:'sand',x:b.x+Math.cos(a)*d-ux*80,y:b.y+Math.sin(a)*d-uy*80,vx:W.x*rand(2.5,4),vy:W.y*rand(2.5,4),life:rand(0.5,1.1),max:1.1,size:rand(1,2),grow:0,drag:0.3,col:'#d8c08c'});}
+    if(Math.random()<dt*2.5*k){const a=Math.random()*TAU,d=rand(80,350);part({kind:'flyer',x:b.x+Math.cos(a)*d-ux*200,y:b.y+Math.sin(a)*d-uy*200,vx:W.x*rand(1.5,2.4),vy:W.y*rand(1.5,2.4),life:rand(2.5,4.5),max:4.5,size:rand(1.6,2.8),grow:0,drag:0.2,col:['#d8d0c0','#8a6a44','#6a7a4a','#b8a888'][Math.floor(Math.random()*4)],ph:Math.random()*TAU});}}}   // rubbish, leaves, scraps tumbling by
 function popText(x,y,t,col){G.texts.push({x,y,t,col:col||'#efe2c4',life:1.2});}
 function stepEffects(dt){
-  windStep(dt);const W=G.wind;
+  windStep(dt);windWeather(dt);const W=G.wind;
   for(const q of G.parts){q.life-=dt;const k=Math.exp(-q.drag*dt);q.vx*=k;q.vy*=k;q.x+=q.vx*dt;q.y+=q.vy*dt;q.size=Math.max(0.5,q.size+q.grow*dt);
-    if(q.kind==='smoke'||q.kind==='dust'){const age=q.max-q.life,f=(q.kind==='smoke'?Math.min(3.2,0.6+age*1.6):0.8)*(q.wf||1);q.x+=W.x*f*dt;q.y+=W.y*f*dt;   // carried on the wind: smoke picks up speed as it rises and streams away sideways
+    if(q.kind==='smoke'||q.kind==='dust'){const age=q.max-q.life,f=(q.kind==='smoke'?Math.min(3.2,0.6+age*1.6):q.gustDust?1.1:0.8)*(q.wf||1);q.x+=W.x*f*dt;q.y+=W.y*f*dt;   // carried on the wind: smoke picks up speed as it rises and streams away sideways
       const t=(q.tz||0)+age,ed=q.kind==='smoke'?16:9;q.x+=Math.sin(t*1.3+(q.ph||0))*ed*dt+Math.sin(t*3.1)*ed*0.4*dt;q.y+=Math.cos(t*1.1+(q.ph||0)*1.7)*ed*dt;}}   // and its own eddies, so the cloud spreads unevenly
   G.parts=G.parts.filter(q=>q.life>0);
   for(const t of G.tracks)t.age+=dt;
@@ -1624,24 +1636,53 @@ function finishWipe(e){G.wiped++;if(e.convoy)changeRep(e.fac,-5);else raiderDown
     e.driver=null;e.wipe=0;e.cond=rand(15,40);e.engine=rand(30,70);e.tyres=rand(20,70);e.susp=rand(30,70);e.fuel=rand(10,40);e.vx*=0.4;e.vy*=0.4;e.stagger=0;
     e.items=genLoot('raider',(Math.random()*1e9)|0,2);popText(e.x,e.y-26,'Driver fled','#efe2c4');}
 }
+function ambushSpots(R,ri,dir,n){const out=[],ri0=roads.indexOf(R);for(let k=0;k<n;k++){let got=null;
+    for(let t=0;t<14&&!got;t++){const along=600+k*90+t*70+rand(0,60),side=(k+t)%2?1:-1;let s0=R.cum[ri.i]+dir*along*10/10,j=ri.i;   // 60 to 200 m up the road
+      j=clamp(ri.i+dir*Math.round(along/40),2,R.n-3);const a=Math.atan2(R.ys[j+1]-R.ys[j],R.xs[j+1]-R.xs[j]),nx=-Math.sin(a)*side,ny=Math.cos(a)*side,edge=R.w/2,off=edge+28+rand(0,30);
+      const x=R.xs[j]+nx*off,y=R.ys[j]+ny*off;if(insideMesa(x,y,40)||landValue(x,y)<0.05||nearLoc(x,y,300))continue;
+      let clear=true;for(let d=edge-10;d<=off+26&&clear;d+=10)if(obstacleAt(R.xs[j]+nx*d,R.ys[j]+ny*d,18))clear=false;   // nothing between them and the road
+      if(clear&&out.some(o=>Math.hypot(o.x-x,o.y-y)<70))clear=false;
+      if(clear)got={x,y,a:Math.atan2(-ny,-nx)+dir*0.5*side*0,ri:ri0,i:j,side};}   // facing the road
+    if(!got)return null;got.a=Math.atan2(-got.y+R.ys[got.i],-got.x+R.xs[got.i])+(Math.random()-0.5)*0.4;out.push(got);}
+  return out;}
+// a raider lying in wait: still until you come; then a blocker pulls out across the road in front of you, and a follower waits
+// for you to pass and drives out behind you; after that they're ordinary raiders
+function ambushStep(e,dt){const A=e.ambush,p=body(),R=roads[A.ri],ux=R.xs[Math.min(R.n-1,A.i+1)]-R.xs[A.i],uy=R.ys[Math.min(R.n-1,A.i+1)]-R.ys[A.i],ul=Math.hypot(ux,uy)||1,fx=ux/ul*A.dir,fy=uy/ul*A.dir;
+  const rel=(p.x-e.x)*fx+(p.y-e.y)*fy,d=Math.hypot(p.x-e.x,p.y-e.y);   // rel < 0: you're still coming; > 0: you've passed
+  if(!A.go){driveCar(e,e.vf>3?-1:0,0,dt,false,false);
+    if(A.role==='block'?(rel>-420&&d<600):(rel>40&&d<500)){A.go=true;A.t=A.role==='block'?3.2:0;}
+    else if(d>4500)e.gone=true;return true;}
+  if(!A.merged){A.mt=(A.mt||0)+dt;const j=clamp(A.i+A.dir*3,0,R.n-1),ri=roadInfo(e.x,e.y);   // first, straight out onto the road (the way they came: clear of rocks)
+    if(ri.d<ri.w/2-6||A.mt>3){A.merged=true;}else{const diff=angDiff(Math.atan2(R.ys[j]-e.y,R.xs[j]-e.x),e.a);driveCar(e,Math.abs(diff)<1.2?0.8:0.3,clamp(diff*2.6,-1,1),dt,false,false);return true;}}
+  if(A.role==='block'&&A.t>0){A.t-=dt;const pri=p.ri.r===A.ri?p.ri.i:A.i,j=clamp(pri+A.dir*Math.round((110+p.speed*0.3)/40),0,R.n-1),tx=R.xs[j],ty=R.ys[j];   // across the road in front of you (a point on the road ahead of you)
+    const diff=angDiff(Math.atan2(ty-e.y,tx-e.x),e.a);driveCar(e,Math.abs(diff)<1?1:0.4,clamp(diff*2.6,-1,1),dt,false,false);if(A.t<=0)e.ambush=null;return true;}
+  e.ambush=null;e.mode='chase';e.modeT=rand(0.5,1.5);return false;}
 function spawnEncounter(){
   const fac=territory(body().x,body().y);if(raidersTolerate(fac))return;   // that gang leaves you alone now
   const p=body(),ri=p.ri,pack=Math.random()<0.22,nBikes=pack?5+Math.floor(Math.random()*4):(Math.random()<0.45?1+(Math.random()<0.4?1:0):0),nCars=pack?0:1+(Math.random()<0.45?1:0)+(G.legsDone>=2&&Math.random()<0.4?1:0),n=nCars+nBikes,onRoad=ri.r>=0&&ri.d<400,R=onRoad?roads[ri.r]:null;
-  // where they come from: behind you, from one side across country, or toward you down the road ahead
-  const q=Math.random();let mode=q<0.4?'behind':q<0.7?'side':'ahead';
-  if(mode==='ahead'&&!(onRoad&&ri.i+p.dir*90>1&&ri.i+p.dir*90<R.n-2))mode='behind';
-  const sideSg=Math.random()<0.5?-1:1,ma=p.speed>60?Math.atan2(p.vy,p.vx):p.a;
-  for(let k=0;k<n;k++){
-    const type=k>=nCars?'bike':G.legsDone>=1&&Math.random()<0.28?'brute':'buggy';let x,y,a,v=p.speed*0.9;
-    if(mode==='behind'&&onRoad){const idx=clamp(ri.i-p.dir*(22+k*4),1,R.n-2),j=clamp(idx+p.dir,0,R.n-1);
-      a=Math.atan2(R.ys[j]-R.ys[idx],R.xs[j]-R.xs[idx]);const lat=(k%2?1:-1)*rand(5,30);x=R.xs[idx]-Math.sin(a)*lat;y=R.ys[idx]+Math.cos(a)*lat;}
+  // where they come from (v6.3): 40% behind you, in single file down the middle of the road a few hundred metres back (any bikes
+  // at the front, quick enough to catch you soon); 30% from dead ahead, down the road at you; 30% lying in ambush just off the road
+  // ahead, with no warning: some pull out to block you, the rest wait for you to pass and fall in behind.
+  const q=Math.random();let mode=q<0.4?'behind':q<0.7?'ahead':'ambush';
+  const roadAhead=d=>onRoad&&ri.i+p.dir*d>2&&ri.i+p.dir*d<R.n-3;
+  if((mode==='ahead'&&!roadAhead(90))||(mode==='ambush'&&!roadAhead(40)))mode='behind';
+  const ma=p.speed>60?Math.atan2(p.vy,p.vx):p.a,order=[];for(let k=0;k<n;k++)order.push(k>=nCars?'bike':G.legsDone>=1&&Math.random()<0.28?'brute':'buggy');
+  if(mode==='behind')order.sort((a,b)=>(a==='bike'?0:1)-(b==='bike'?0:1));   // bikes at the head of the line
+  let ambushPlan=null;if(mode==='ambush'){ambushPlan=ambushSpots(R,ri,p.dir,n);if(!ambushPlan)mode='behind';}
+  let back=0;
+  for(let k=0;k<n;k++){const type=order[k];let x,y,a,v=p.speed*0.95,rc;
+    if(mode==='behind'){const gap=CARS[type].len+70;back+=k?gap:0;
+      if(onRoad){let s0=R.cum[ri.i]-p.dir*(3000+back),j=ri.i;while(j>1&&j<R.n-2&&(p.dir>0?R.cum[j]>s0:R.cum[j]<s0))j-=p.dir;j=clamp(j,1,R.n-2);const j2=clamp(j+p.dir,0,R.n-1);
+        a=Math.atan2(R.ys[j2]-R.ys[j],R.xs[j2]-R.xs[j]);x=R.xs[j];y=R.ys[j];}   // down the middle of the road
+      else{a=ma;x=p.x-Math.cos(ma)*(3000+back);y=p.y-Math.sin(ma)*(3000+back);}
+      if(type==='bike')v=p.speed+160;}
     else if(mode==='ahead'){const idx=clamp(ri.i+p.dir*(70+k*5),1,R.n-2),j=clamp(idx-p.dir,0,R.n-1);   // well up the road, driving at you
       a=Math.atan2(R.ys[j]-R.ys[idx],R.xs[j]-R.xs[idx]);const lat=(k%2?1:-1)*rand(5,30);x=R.xs[idx]-Math.sin(a)*lat;y=R.ys[idx]+Math.cos(a)*lat;v=CARS[type].maxSpeed*0.7;}
-    else if(mode==='side'){const sa=ma+sideSg*(Math.PI/2+rand(-0.5,0.3)),d=1100+k*120+rand(-80,80);x=p.x+Math.cos(sa)*d+Math.cos(ma)*p.speed*1.2;y=p.y+Math.sin(sa)*d+Math.sin(ma)*p.speed*1.2;
-      a=Math.atan2(p.y-y,p.x-x);v=CARS[type].maxSpeed*0.6;if(insideMesa(x,y,40)||landValue(x,y)<0.03){x=p.x-Math.cos(ma)*(1200+k*150);y=p.y-Math.sin(ma)*(1200+k*150);a=ma;}}   // across country, angling in from the side
-    else{a=ma;x=p.x-Math.cos(ma)*(1200+k*150)+rand(-100,100);y=p.y-Math.sin(ma)*(1200+k*150)+rand(-100,100);}
-    const rc=makeRaider(type,x,y,a,v);rc.gunner=type!=='bike'&&G.legsDone>=1&&Math.random()<0.3;rc.approach=mode;rc.fac=fac;G.cars.push(rc);
-  }
+    else{const sp=ambushPlan[k];x=sp.x;y=sp.y;a=sp.a;v=0;}
+    rc=makeRaider(type,x,y,a,v);rc.gunner=type!=='bike'&&G.legsDone>=1&&Math.random()<0.3;rc.approach=mode;rc.fac=fac;
+    if(mode==='ambush'){const sp=ambushPlan[k];rc.ambush={role:k%3===0||(k===1&&n<=2)?'block':'follow',ri:sp.ri,i:sp.i,dir:p.dir,side:sp.side};rc.vx=rc.vy=0;rc.speed=0;}
+    G.cars.push(rc);}
+  if(mode==='ambush'){G.encActive=true;return;}   // no warning: you find out when they move
   G.encActive=true;if(pack){const m2=pickLine(RAID_WARN_BIKES);if(mode==='ahead')G.encWarn={at:1300,t:12,msg:m2};else showMsg(m2,2.6);return;}const msg=pickLine(mode==='ahead'?(n>1?RAID_WARN_AHEAD_MANY:RAID_WARN_AHEAD_ONE):mode==='side'?(n>1?RAID_WARN_SIDE_MANY:RAID_WARN_SIDE_ONE):(n>1?RAID_WARN_MANY:RAID_WARN_ONE));
   if(mode==='ahead')G.encWarn={at:1300,t:12,msg};else showMsg(msg,2.6);
 }
@@ -1662,14 +1703,15 @@ function bikeThreat(e,p){const car=heroCar();if(!car||e.evadeT>0)return;const dx
   if(closing>90&&d/closing<0.7){if(!e.threatRolled){e.threatRolled=true;if(Math.random()<0.66)bikeEvade(e,car);}}else if(closing<20)e.threatRolled=false;}
 function bikeEvade(e,car){e.evadeT=rand(1.1,1.7);e.side=((e.x-car.x)*-Math.sin(car.a)+(e.y-car.y)*Math.cos(car.a))>=0?1:-1;e.evades=(e.evades||0)+1;e.vx*=0.8;e.vy*=0.8;}   // brake hard and pull away to its own side
 function updateRaider(e,dt){
+  if(e.ambush&&e.wipe<=0&&ambushStep(e,dt))return;
   const h=G.hero,p=body(),onFoot=!heroCar();e.flash=Math.max(0,e.flash-dt*5);e.stagger-=dt;
   if(e.wipe>0){e.wipe-=dt;e.a+=e.spin*dt;driveCar(e,0,0,dt,false,false);
     if(Math.random()<0.6)smoke(e.x,e.y,8);
     if(e.wipe<=0)finishWipe(e);return;}
-  onRoadAt(e);
+  onRoadAt(e);e.knockT=(e.knockT||0)-dt;
   const P=p.ri,fullyOff=e.ri.d>e.ri.w/2+18&&!nearService(e.x,e.y);
   if(!fullyOff)e.stab=Math.min(e.maxStab,e.stab+6*dt);
-  else if(e.speed>150&&!onFoot&&P.r>=0&&P.d<P.w/2+40)e.stab-=38*dt*(e.speed/300)*e.soft;  // only when the fight is on a road: shoved off it, they lose control; chasing you cross-country, they don't
+  else if(e.knockT>0&&e.speed>150&&!onFoot&&P.r>=0&&P.d<P.w/2+40)e.stab-=38*dt*(e.speed/300)*e.soft;   // shoved off the road (hit in the last couple of seconds): they lose control. Running wide on their own, they don't  // only when the fight is on a road: shoved off it, they lose control; chasing you cross-country, they don't
   if(e.stab<=0){startWipe(e);return;}
   const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||1;
   let tx,ty,want;
@@ -1700,6 +1742,7 @@ function updateRaider(e,dt){
       if(e.press&&e.type!=='bike'&&Math.abs(along-slotAlong)<70&&d<120){e.modeT-=dt;if(e.modeT<=0){e.mode='swipe';e.modeT=e.type==='brute'?0.9:0.55;}}
     }
     if(!e.onRoad){const R=roads[e.ri.r];if(e.ri.r>=0&&e.ri.d<500){const j=clamp(e.ri.i+p.dir*6,0,R.n-1);tx=(tx+R.xs[j])/2;ty=(ty+R.ys[j])/2;}}
+  } else if(P.r>=0&&P.d<500&&e.ri.r===P.r&&e.ri.d<e.ri.w/2+120){const R=roads[P.r],tw=P.i>e.ri.i?1:-1,j=clamp(e.ri.i+tw*Math.round(4+e.speed/60),0,R.n-1);tx=R.xs[j];ty=R.ys[j];want=e.maxSpeed;   // up the road after you
   } else {tx=p.x+p.vx*0.6;ty=p.y+p.vy*0.6;want=e.maxSpeed;}
   let diff=angDiff(Math.atan2(ty-e.y,tx-e.x),e.a);
   // steer round rocks and wrecks: cast a fan of five rays, take the clearest gap that still heads roughly where we want to go
@@ -3581,7 +3624,7 @@ function init3D(){
   V3.hemi=new THREE.HemisphereLight(0xfff1dc,0xb88a62,0.55);scene.add(V3.hemi);
   V3.sun=new THREE.DirectionalLight(0xfff0d6,0.55);scene.add(V3.sun);scene.add(V3.sun.target);   // from the north-west, like the 2D shading
   V3.head=new THREE.SpotLight(0xfff2cc,0,1100,0.5,0.55,1);V3.headT=new THREE.Object3D();V3.head.target=V3.headT;scene.add(V3.head,V3.headT);
-  V3.mats={vc:new THREE.MeshLambertMaterial({vertexColors:true}),
+  V3.mats={vc:windMat3(new THREE.MeshLambertMaterial({vertexColors:true})),
     road:new THREE.MeshLambertMaterial({vertexColors:true,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}),
     water:riverMat3(),
     shadow:new THREE.MeshBasicMaterial({color:0x2a1408,transparent:true,opacity:0.3,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8})};
@@ -3615,11 +3658,12 @@ function setupHero3(g){const sc=g.scene;sc.updateMatrixWorld(true);
     parts.push({name:mats[0].name,pos:geo.attributes.position.array,nor:geo.attributes.normal.array,si:geo.attributes.skinIndex.array,sw:geo.attributes.skinWeight.array});});
   const box=new THREE.Box3().setFromObject(sc);
   CHAR3.tpl={scene:sc,clips:g.animations,parts,bindMatrix,bindInv:bindMatrix.clone().invert(),boneNames:skel.bones.map(b=>b.name),boneInverses:skel.boneInverses.map(m=>m.clone()),k:19/(box.max.y-box.min.y)};
-  CHAR3.mat=new THREE.MeshLambertMaterial({vertexColors:true,skinning:true,side:THREE.DoubleSide});CHAR3.mat.userData.u={uT:{value:0},uWind:{value:new THREE.Vector2(1,0)}};
-  CHAR3.mat.onBeforeCompile=sh=>{Object.assign(sh.uniforms,CHAR3.mat.userData.u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aFlow;uniform float uT;uniform vec2 uWind;')
+  CHAR3.mat=new THREE.MeshLambertMaterial({vertexColors:true,skinning:true,side:THREE.DoubleSide});CHAR3.mat.userData.u={uT:{value:0},uWind:{value:new THREE.Vector2(1,0)},uS:{value:0.5}};
+  CHAR3.mat.onBeforeCompile=sh=>{Object.assign(sh.uniforms,CHAR3.mat.userData.u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aFlow;uniform float uT;uniform vec2 uWind;uniform float uS;')
     .replace('#include <skinning_vertex>',`#include <skinning_vertex>
-      if(aFlow>0.0){float ph=modelMatrix[3].x*0.07+modelMatrix[3].z*0.05;float s1=sin(uT*2.3+transformed.y*11.0+ph),s2=sin(uT*3.7+transformed.x*17.0+transformed.z*13.0+ph*1.7);
-        transformed.xz+=aFlow*(0.012*vec2(s1,s2)+uWind*0.02*(0.6+0.4*s1));transformed.y+=aFlow*0.006*s2;}`);};
+      if(aFlow>0.0){float ph=modelMatrix[3].x*0.07+modelMatrix[3].z*0.05,sp=2.0+5.0*uS;float s1=sin(uT*sp+transformed.y*11.0+ph),s2=sin(uT*sp*1.6+transformed.x*17.0+transformed.z*13.0+ph*1.7);
+        vec3 w=vec3(uWind.x,0.0,uWind.y),wl=vec3(dot(modelMatrix[0].xyz,w),dot(modelMatrix[1].xyz,w),dot(modelMatrix[2].xyz,w))/max(1e-6,dot(modelMatrix[0].xyz,modelMatrix[0].xyz));   // the wind, in the body's own frame
+        transformed+=aFlow*(wl*(0.012+0.05*uS)*(0.7+0.3*s1)+vec3(s1,0.0,s2)*(0.006+0.012*uS)+vec3(0.0,(0.003+0.008*uS)*s2,0.0));}`);};
   loadBuggy2();
   loadHeroBody3(()=>{let ch=null;if(HB3.ok){try{ch=makeHeroBody3(HERO_SPEC3);}catch(e){console.warn('hero body:',e);}}if(!ch)ch=makeChar3(HERO_SPEC3);   // the hero's own body if it builds, the shared one otherwise
     HERO3.char=ch;HERO3.outfit=ch.bones;Object.assign(HERO3,{wrap:ch.wrap,mixer:ch.mixer,acts:ch.acts,status:'ready'});ch.wrap.visible=false;});}
@@ -4022,15 +4066,24 @@ function updateHero3(dt){const H=HERO3,h=G.hero,P=H.prev;if(H.status!=='ready')r
 const C3=new Map();
 function col3(hex,k){const key=hex+(k||1);let c=C3.get(key);if(!c){const n=parseInt(hex.slice(1),16),m=k||1;c=[clamp(((n>>16)&255)/255*m,0,1),clamp(((n>>8)&255)/255*m,0,1),clamp((n&255)/255*m,0,1)];C3.set(key,c);}return c;}
 function mix3(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
-function GB(){this.p=[];this.c=[];}
+function GB(){this.p=[];this.c=[];this.f=[];}
+GB.prototype.pushV=function(x,y,z,r,g,b,f){this.p.push(x,y,z);this.c.push(r,g,b);this.f.push(f||0);};
 // h is the direction the face should look (it gets flipped if the winding says otherwise)
 GB.prototype.tri=function(a,b,c,col,hx,hy,hz){
   const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
   if((uy*vz-uz*vy)*hx+(uz*vx-ux*vz)*hy+(ux*vy-uy*vx)*hz<0){const t=b;b=c;c=t;}
-  const p=this.p,cc=this.c;p.push(a[0],a[1],a[2],b[0],b[1],b[2],c[0],c[1],c[2]);for(let i=0;i<3;i++)cc.push(col[0],col[1],col[2]);};
+  const p=this.p,cc=this.c;p.push(a[0],a[1],a[2],b[0],b[1],b[2],c[0],c[1],c[2]);for(let i=0;i<3;i++)cc.push(col[0],col[1],col[2]);this.f.push(a[3]||0,b[3]||0,c[3]||0);};   // a 4th number on a point: how freely it flaps in the wind
 // a flat-ish quad a-b-c-d (in order round it), facing away from the point ref
 GB.prototype.quad=function(a,b,c,d,col,ref){const mx=(a[0]+b[0]+c[0]+d[0])/4-ref[0],my=(a[1]+b[1]+c[1]+d[1])/4-ref[1],mz=(a[2]+b[2]+c[2]+d[2])/4-ref[2];
   this.tri(a,b,c,col,mx,my,mz);this.tri(a,c,d,col,mx,my,mz);};
+/* a hanging sheet of canvas (or a rag, a flag): fixed along the edge A to B, hanging (or streaming) d long in direction dir; rows x cols
+   panels; its free edge torn; each point flaps more the further it is from the fixed edge. */
+GB.prototype.cloth=function(A,B,dir,len,col,r,o){o=o||{};const rows=o.rows||3,cols=o.cols||3,dl=Math.hypot(dir[0],dir[1],dir[2])||1,d=[dir[0]/dl,dir[1]/dl,dir[2]/dl],G2=[];
+  for(let i=0;i<=rows;i++){const row=[];for(let j=0;j<=cols;j++){const t=j/cols,u=i/rows,rag=i===rows?(r()-0.3)*len*0.25:0,L2=len*u+rag,sag=(o.sag||0)*Math.sin(t*Math.PI)*u;
+      row.push([A[0]+(B[0]-A[0])*t+d[0]*L2,A[1]+(B[1]-A[1])*t+d[1]*L2-sag,A[2]+(B[2]-A[2])*t+d[2]*L2,u*(o.free||1)*(0.8+r()*0.4)]);}G2.push(row);}
+  const nx=(B[1]-A[1])*d[2]-(B[2]-A[2])*d[1],ny=(B[2]-A[2])*d[0]-(B[0]-A[0])*d[2],nz=(B[0]-A[0])*d[1]-(B[1]-A[1])*d[0];
+  for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){if(i===rows-1&&r()<0.15)continue;const k=0.82+r()*0.24,cl=col.map(v=>v*k),a=G2[i][j],b=G2[i][j+1],c=G2[i+1][j+1],e=G2[i+1][j];
+    this.tri(a,b,c,cl,nx,ny,nz);this.tri(a,c,e,cl,nx,ny,nz);this.tri(a,c,b,cl.map(v=>v*0.85),-nx,-ny,-nz);this.tri(a,e,c,cl.map(v=>v*0.85),-nx,-ny,-nz);}};   // both faces
 GB.prototype.quadUp=function(a,b,c,d,col){this.tri(a,b,c,col,0,1,0);this.tri(a,c,d,col,0,1,0);};
 // a box: x,z its centre on the ground, y its base, sx along its own x (after turning by rot, as the 2D game turns things), sz across
 GB.prototype.box=function(x,y,z,sx,sy,sz,rot,col,top){const c=Math.cos(rot),s=Math.sin(rot),hx=sx/2,hz=sz/2,P=[];
@@ -4062,6 +4115,7 @@ GB.prototype.drape=function(q,lift,col,n){const P=(u,v)=>{const x=(q[0][0]*(1-u)
 GB.prototype.mesh=function(mat,ox,oz){if(!this.p.length)return null;const g=new THREE.BufferGeometry(),p=new Float32Array(this.p.length);ox=ox||0;oz=oz||0;
   for(let i=0;i<p.length;i+=3){p[i]=this.p[i]-ox;p[i+1]=this.p[i+1];p[i+2]=this.p[i+2]-oz;}   // keep the numbers small: positions relative to the object
   g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(this.c),3));
+  if(this.f.some(v=>v>0)){const fl=new Float32Array(p.length/3);for(let i=0;i<fl.length&&i<this.f.length;i++)fl[i]=this.f[i];g.setAttribute('aFlow',new THREE.BufferAttribute(fl,1));}   // cloth that flaps
   g.computeVertexNormals();g.computeBoundingSphere();const m=new THREE.Mesh(g,mat);m.position.set(ox,0,oz);m.matrixAutoUpdate=false;m.updateMatrix();return m;};
 function drop3(o){if(!o)return;V3.scene.remove(o);o.traverse(k=>{if(k.geometry&&k.geometry!==V3.blob)k.geometry.dispose();});}
 
@@ -4257,8 +4311,11 @@ function crashSite3(gb,w){const r=rng(w.seed||7),cs=Math.cos(w.rot),sn=Math.sin(
   else{const fake={def:D,id:w.id,wrecked:!!w.burnt,type:w.kind},src=carModel3(fake),P=src.p,Cl=src.c,rl=w.roll||0,cr=Math.cos(rl),sr=Math.sin(rl);let lift=1e9;for(let i=0;i<P.length;i+=3)lift=Math.min(lift,P[i+1]*cr-P[i+2]*sr);lift=-lift;   // lying on whatever side it's on, resting on the ground
    
     const rust=!w.burnt;for(let i=0;i<P.length;i+=3){let x=P[i],y=P[i+1],z=P[i+2];const y2=y*cr-z*sr,z2=y*sr+z*cr;y=y2+lift;z=z2;   // over on its side or roof
-      gb.p.push(w.x+x*cs-z*sn,gy+y-1,w.y+x*sn+z*cs);let c0=Cl[i],c1=Cl[i+1],c2=Cl[i+2];if(rust&&((i/9|0)%7===0)){c0=c0*0.6+0.48*0.4;c1=c1*0.6+0.29*0.4;c2=c2*0.6+0.18*0.4;}gb.c.push(c0,c1,c2);}}
+      let c0=Cl[i],c1=Cl[i+1],c2=Cl[i+2];if(rust&&((i/9|0)%7===0)){c0=c0*0.6+0.48*0.4;c1=c1*0.6+0.29*0.4;c2=c2*0.6+0.18*0.4;}gb.pushV(w.x+x*cs-z*sn,gy+y-1,w.y+x*sn+z*cs,c0,c1,c2,0);}}
   const L=(dx,dz)=>[w.x+dx*cs-dz*sn,w.y+dx*sn+dz*cs];
+  // a torn tarp or canvas sheet caught on it, flapping
+  {const cv=[['#7a6a50','#6a5a42','#8a7a5a','#5a6a4a','#8a7a6a'][Math.floor(r()*5)]].map(h=>col3(h))[0],n=truck?2:1;for(let k=0;k<n;k++){const ax=(r()-0.5)*D.len*0.6,top=(truck?24:12)+r()*6,[x1,z1]=L(ax,D.wid*0.5),[x2,z2]=L(ax+8+r()*10,D.wid*0.5),g2=landY3(x1,z1);
+    gb.cloth([x1,g2+top,z1],[x2,g2+top-2,z2],[(x1-w.x)*0.1,-1,(z1-w.y)*0.1],top*0.7,cv,r,{rows:3,cols:2});}}
   // the bits that came off
   const metal=['#3a332c','#6a5a48','#7a4a2e','#5a5650'],n=truck?16:10;
   for(let k=0;k<n;k++){const a=r()*TAU,d=D.len*0.45+r()*(truck?60:40),px=w.x+Math.cos(a)*d,py=w.y+Math.sin(a)*d,q=r(),gy2=landY3(px,py);
@@ -4276,7 +4333,9 @@ function crashSite3(gb,w){const r=rng(w.seed||7),cs=Math.cos(w.rot),sn=Math.sin(
       for(const off of [-D.wid*0.4,D.wid*0.4]){const segs=8;for(let k=0;k<segs;k++){const t0=k/segs,t1=(k+1)/segs,cv=(t)=>Math.sin(t*2)*12*(r()<0.5?1:1);
           const p0x=w.x-ux*len*(1-t0)+(-uy)*(off+cv(t0)),p0y=w.y-uy*len*(1-t0)+ux*(off+cv(t0)),p1x=w.x-ux*len*(1-t1)+(-uy)*(off+cv(t1)),p1y=w.y-uy*len*(1-t1)+ux*(off+cv(t1));
           const g0=landY3(p0x,p0y)+0.25,g1=landY3(p1x,p1y)+0.25,hw=1.1;gb.quad([p0x-uy*hw,g0,p0y+ux*hw],[p0x+uy*hw,g0,p0y-ux*hw],[p1x+uy*hw,g1,p1y-ux*hw],[p1x-uy*hw,g1,p1y+ux*hw],col3('#1a1715').map(v=>v*(0.8+0.4*t1)),[p0x,g0+10,p0y]);}}}}}
-function wreck3(gb,w){const r=rng(hash2(Math.round(w.x),Math.round(w.y))+7),L=w.w,Wd=w.h,hw=Wd/2,burnt=w.burnt,c=Math.cos(w.rot),s=Math.sin(w.rot),gy=landY3(w.x,w.y);
+function wreck3(gb,w){const r0=rng(hash2(Math.round(w.x),Math.round(w.y))+19);if(r0()<0.45){const c=Math.cos(w.rot),s=Math.sin(w.rot),gy0=landY3(w.x,w.y),ax=(r0()-0.5)*w.w*0.4,side=r0()<0.5?1:-1,A=[w.x+ax*c-side*w.h*0.45*s,gy0+11,w.y+ax*s+side*w.h*0.45*c],B=[A[0]+c*10,gy0+10.5,A[2]+s*10];
+    gb.cloth(A,B,[-side*s*0.3,-1,side*c*0.3],8+r0()*4,col3(['#7a6a50','#6a5a42','#8a7a5a','#5a6a4a'][Math.floor(r0()*4)]),r0,{rows:3,cols:2});}   /* a rag of canvas hanging off the hulk */
+  const r=rng(hash2(Math.round(w.x),Math.round(w.y))+7),L=w.w,Wd=w.h,hw=Wd/2,burnt=w.burnt,c=Math.cos(w.rot),s=Math.sin(w.rot),gy=landY3(w.x,w.y);
   const kind=r()<0.6?'sedan':r()<0.5?'ute':'wagon',lost=r()<0.45?Math.floor(r()*4):-1,tx=(r()-0.5)*0.06,tz=(lost>=0?(lost%2?1:-1):r()-0.5)*0.08;   // a wheel gone: that corner sags
   const P=(x,y,z)=>{const sag=(lost===0&&x>0&&z>0)||(lost===1&&x>0&&z<0)||(lost===2&&x<0&&z>0)||(lost===3&&x<0&&z<0)?-2.5:0;return [w.x+x*c-z*s,gy+y+x*tx+z*tz+sag,w.y+x*s+z*c];};
   const base=burnt?['#2e2622','#3a2c24','#24201c','#4a3a30']:['#7a4a2a','#8f5a34','#6a3e24','#5a3a24'],paint=burnt?null:['#6a7a6a','#8a7a5a','#5a6a7a','#7a5a4a','#8a8a7a'][Math.floor(r()*5)];
@@ -4413,6 +4472,8 @@ function wallRun3(gb,b,o,x0,z0,x1,z1,nx,nz,doorSide){const {r,y,WH,t,rui,mix}=o,
 function building3(gb,rb,b){const y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,t=5,g=b.door/2,r=rng(hash2(Math.round(b.x),Math.round(b.y))),rui=b.ruined,WH=WALLH3[b.kind]||34;
   const mix=MIX3[b.kind]||['iron','board','sheet'],o={r,y,WH,t,rui,mix},cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],wood=col3('#4e3a2c');
   gb.lbox(b,0,0,y-4,b.w,6.5,b.h,col3(rui?'#5e4c3c':FLOOR[b.kind]||'#7a6a58'));
+  if(rui&&r()<0.55){const sd=r()<0.5?1:-1,lx=(r()-0.5)*b.w*0.5,lz=sd*(hh+1),top=y+WH*(0.45+r()*0.3),A=L(lx-9,top,lz),B2=L(lx+9,top-2,lz);   // a torn canvas sheet hanging off a broken wall
+    gb.cloth(A,B2,[-sn*sd*0.25,-1,cs*sd*0.25],WH*0.4+r()*8,col3(['#8a7a5a','#7a6a50','#6a6a52','#9a8a6a'][Math.floor(r()*4)]),r,{rows:3,cols:3});}
   wallRun3(gb,b,o,-hw,-hh+t/2,hw,-hh+t/2,0,-1);wallRun3(gb,b,o,-hw+t/2,-hh+t,-hw+t/2,hh-t,-1,0);wallRun3(gb,b,o,hw-t/2,-hh+t,hw-t/2,hh-t,1,0);
   wallRun3(gb,b,o,-hw,hh-t/2,-g-2,hh-t/2,0,1,true);wallRun3(gb,b,o,g+2,hh-t/2,hw,hh-t/2,0,1,true);
   for(const [px,pz] of [[-hw,-hh],[hw,-hh],[-hw,hh],[hw,hh],[-g-1,hh],[g+1,hh]])gb.lbox(b,px*0.995,pz*0.995,y-3,4.5,(rui?WH*(0.4+r()*0.7):WH+2)+3,4.5,wood);   // rough timber posts
@@ -4672,7 +4733,7 @@ function raiderDress3(gb,c,o){const r=rng(hashStr3(c.id||'x')),style=r()<0.34?'s
     for(let k=0;k<n;k++){const sg=k%2?1:-1,z0=sg*(Wd/2-2-r()*3),x0=-L*0.36+r()*4,y0=o.belt(x0),H=26+r()*24,lean=0.18+r()*0.2;
       const top=[x0-H*lean*0.8,y0+H,z0+sg*H*lean*0.5];gb.beam([x0,y0-2,z0],top,0.7,col3(wk?'#2a211b':'#4e3a2c'));
       if(r()<0.7){const ry=y0+H*(0.55+r()*0.3),t=(ry-y0)/H,px=x0+(top[0]-x0)*t,pz=z0+(top[2]-z0)*t,rc2=col3(rag[Math.floor(r()*rag.length)]);   // a rag hanging off it
-        gb.quad([px,ry,pz],[px-5-r()*3,ry-1,pz+sg*1],[px-4-r()*3,ry-6-r()*3,pz+sg*1.5],[px,ry-5,pz],rc2,[px-2,ry-3,pz-sg*10]);gb.quad([px,ry,pz],[px-5,ry-1,pz+sg*1],[px-4,ry-7,pz+sg*1.5],[px,ry-5,pz],rc2.map(v=>v*0.8),[px-2,ry-3,pz+sg*10]);}
+        gb.cloth([px,ry,pz],[px,ry-5,pz],[-1,-0.1,sg*0.2],5+r()*3,rc2,r,{rows:2,cols:2});}   // a rag tied to the pike, flapping
       if(r()<0.5)gb.lump(top[0],top[1],top[2],1.5,2.2,r()*TAU,col3('#d0c6b0'),null,col3('#e0d8c4'));   // a skull
       else{gb.box(top[0],top[1],top[2],1.8,2.4,1.8,0,col3('#3a3430'));gb.box(top[0],top[1]+0.5,top[2],1.4,1.4,1.4,0,col3('#c89a4a'));}   // a lantern
       if(k===1&&r()<0.6){const cy=y0+H*0.7;gb.beam([x0-H*lean*0.56-0.5,cy,z0-6],[x0-H*lean*0.56-0.5,cy,z0+6],0.6,col3('#4e3a2c'));}}}}   // a crossbar
@@ -4827,7 +4888,7 @@ function buggy2Model3(c){const gb=new GB(),S=11.5,wk=c.wrecked,r=rng(hashStr3(c.
     for(let i=0;i<P.length;i+=9){let col;if(cols[k]==='tyre'){   // tyre or rim: by how far the face sits from the wheel's hub
         const fy=(P[i+1]+P[i+4]+P[i+7])/3-cy,fz=(P[i+2]+P[i+5]+P[i+8])/3-cz,d=Math.hypot(fy,fz)/rr;col=col3(wk?'#2a211b':d<0.55?'#7a5a3a':'#1c1814');}
       else col=k===0?frameCol:col3(cols[k]);const v=(0.86+r()*0.24)*(k===0&&r()<0.12?0.75:1);col=col.map(x=>x*v);   // every face its own shade; a few rust-dark patches on the frame
-      for(let j=0;j<3;j++){const mx=P[i+j*3],my=P[i+j*3+1],mz=P[i+j*3+2];gb.p.push(mz*S,(my-BUGGY2.minY)*S,-mx*S);gb.c.push(col[0],col[1],col[2]);}}});   // nose down the car's length, tyres on the ground
+      for(let j=0;j<3;j++){const mx=P[i+j*3],my=P[i+j*3+1],mz=P[i+j*3+2];gb.pushV(mz*S,(my-BUGGY2.minY)*S,-mx*S,col[0],col[1],col[2],k===15?clamp((-1.05-mz)/1.4,0,1):0);}}});   // the flag streams from its pole   // nose down the car's length, tyres on the ground
   return gb;}
 // a racer's crouch: hips back on the seat, the body leant well forward over the tank, head up looking down the road, arms reaching
 // forward to the bars, knees tucked in against the tank, shins back to the pegs. A swing of the machete: the arm raised out to the
@@ -4873,7 +4934,7 @@ function flatbed3(c){const L=c.def.len,Wd=c.def.wid,gb=new GB(),K=carCols3(c),r=
   // whatever it's carrying: crates, drums, tyres, a lashed tarp
   for(let k=0;k<4+Math.floor(r()*3);k++){const x=bx0+5+r()*(bx1-bx0-10),z=(r()-0.5)*(Wd-8),q=r();
     if(q<0.4)gb.box(x,10,z,7+r()*4,6+r()*5,6+r()*4,r()*0.4,col3('#7a5a3c').map(v=>v*(0.85+r()*0.25)));else if(q<0.7)gb.cyl(x,10,z,4,11,10,col3(['#3f5a6a','#6a3a2a','#5a5a4a'][Math.floor(r()*3)]));else gb.cyl(x,10,z,5.5,3,10,col3('#1e1a17'),col3('#2a2622'));}
-  if(r()<0.5)gb.lump((bx0+bx1)/2,12,0,(bx1-bx0)*0.3,6,0,col3('#5a6a4a'));
+  if(r()<0.5){gb.lump((bx0+bx1)/2,12,0,(bx1-bx0)*0.3,6,0,col3('#5a6a4a'));gb.cloth([bx0+4,16,Wd/2-2],[bx0+14,16,Wd/2-2],[0,-0.5,1],7,col3('#5a6a4a'),r,{rows:2,cols:2});}   // the tarp, a corner come loose
   truckWheels3(gb,K,[x1-10,bx0+12,bx0+21],5,Wd,false);gb.box(0,4,0,L*0.95,2,Wd*0.4,0,K.dark);return gb;}
 function pickup3(c){const o=loft3(c,{lift:3,wr:4.6,tyreW:3.4,belt:[[-0.5,9.6],[0.1,10],[0.5,9.4]],stripeW:0.5,stripe:false,taper:0.42,round:0.4,flare:0.4,axF:0.32,axR:0.3,
     deck:t=>t<-0.02?'#4e4034':null,cab:{from:-0.03,to:0.24,roof:[[-0.03,17.5],[0.15,17.5],[0.24,11]],glass:[[0.14,0.24]],pillars:[[-0.03,0.0]],backCol:'body',inset:0.85},mirror:0.2,doors:[0.05]});
@@ -4908,7 +4969,7 @@ function tarona3(c){const T=taronaGeo3(),gb=new GB(),wk=c.wrecked,r=rng(hashStr3
       const low=Math.max(0,(0.95-my)/0.75);if(low>0)cl=mix3(cl,mud,Math.min(0.85,low*0.9));   // mud caked up the sills and round the arches
       for(let w=1;w<=4;w++){const h=T.hub[w],d=Math.hypot(my-h.y,mz-h.z);if(d<h.r*1.35&&Math.abs(mx)>1.0)cl=mix3(cl,mud,0.55);}}
     const v=0.86+r()*0.24;cl=cl.map(x=>x*v);
-    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]]){gb.p.push(z*S,(y-T.minY)*S,-x*S);gb.c.push(cl[0],cl[1],cl[2]);}}
+    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]])gb.pushV(z*S,(y-T.minY)*S,-x*S,cl[0],cl[1],cl[2],0);}
   return gb;}
 /* the body's own motion, for the look of it (the driving itself is unchanged): it leans out in a hard corner (more the harder
    the turn and the softer the car), squats under power and dips under braking, and follows the ground up and down with a little
@@ -5034,6 +5095,15 @@ function fieldCol3(x,y,base){const f=fieldAt(x,y);if(!f)return null;const dx=x-f
   const rows=f.crop==='ploughed'?0.82+0.18*(Math.floor(v/24)%2===0?1:0):f.crop==='stubble'?0.92+0.08*Math.sin(v/9):0.95+0.05*Math.sin(u/40+v/55);   // rows of stubble or furrows running along the field
   const c=FIELD_COL[f.crop];return mix3(base,[c[0]*rows,c[1]*rows,c[2]*rows],k);}
 // river water: a muddy light brown, with slicks of oil drifting slowly across it (dark swirls with a faint rainbow sheen at their edges)
+// any material whose meshes may carry flapping cloth: the wind (in world space, turned into each mesh's own frame) pushes it downwind
+// and makes it ripple; a stronger wind, a faster and wilder flap
+const WIND3={uT:{value:0},uW:{value:null},uS:{value:0.5}};
+function windMat3(m){if(!WIND3.uW.value)WIND3.uW.value=new THREE.Vector3(1,0,0);m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,WIND3);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aFlow;uniform float uT;uniform vec3 uW;uniform float uS;')
+    .replace('#include <begin_vertex>',`#include <begin_vertex>
+      if(aFlow>0.0){vec3 wl=vec3(dot(modelMatrix[0].xyz,uW),dot(modelMatrix[1].xyz,uW),dot(modelMatrix[2].xyz,uW));float ph=position.x*0.23+position.z*0.19+position.y*0.11;
+        float sp=4.0+9.0*uS,fl=sin(uT*sp+ph*3.0),fl2=sin(uT*sp*1.7+ph*5.0+1.3);vec3 side=normalize(cross(wl+vec3(0.0001),vec3(0.0,1.0,0.0))+vec3(0.0001));
+        transformed+=aFlow*(wl*(2.0+5.0*uS)*(0.75+0.25*fl)+side*(0.8+2.2*uS)*fl2+vec3(0.0,(0.6+1.4*uS)*fl,0.0));}`);};
+  m.customProgramCacheKey=()=>'wind1';return m;}
 function riverMat3(){const m=new THREE.MeshLambertMaterial({color:0x9c7f5a,transparent:true,opacity:0.9});m.userData.u={wt:{value:0}};
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.u);
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWp;').replace('#include <project_vertex>','#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.0)).xz;');
@@ -5189,7 +5259,8 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   if(V3.lastB&&Math.hypot(b.x-V3.lastB.x,b.y-V3.lastB.y)>3000){reset3D();V3.yaw=car?car.a:G.hero.a;}V3.lastB={x:b.x,y:b.y};   // a long jump (a new game, a load): rebuild round the new spot
   const dpr=Math.min(window.devicePixelRatio||1,1.5);if(V3.w!==W||V3.h!==H||V3.dpr!==dpr){V3.w=W;V3.h=H;V3.dpr=dpr;R.setPixelRatio(dpr);R.setSize(W,H,false);V3.canvas.style.width=W+'px';V3.canvas.style.height=H+'px';cam.aspect=W/H;cam.updateProjectionMatrix();}
   for(const [,e] of V3.locs)if(e.m&&e.m.userData&&e.m.userData.barr)e.m.userData.barr.visible=townClosed(e.o);   // gates open once you've earned it
-  if(V3.mats.water.userData.u)V3.mats.water.userData.u.wt.value=G.time||0;if(CHAR3.mat&&CHAR3.mat.userData.u){const u=CHAR3.mat.userData.u,W=G.wind||{s:20};u.uT.value=G.time||0;u.uWind.value.set(0.25+W.s/60,0.15);}   // the slicks drift
+  if(V3.mats.water.userData.u)V3.mats.water.userData.u.wt.value=G.time||0;{const W=G.wind||{x:20,y:0,s:20},s=clamp(W.s/60,0.1,1.6);WIND3.uT.value=G.time||0;if(WIND3.uW.value)WIND3.uW.value.set(W.x/(W.s||1),0,W.y/(W.s||1));WIND3.uS.value=s;   // the wind, for flapping cloth
+    if(CHAR3.mat&&CHAR3.mat.userData.u){const u=CHAR3.mat.userData.u;u.uT.value=G.time||0;u.uWind.value.set(W.x/(W.s||1),W.y/(W.s||1));u.uS.value=s;}}   // the slicks drift
   if(V3.viewKey!==SETTINGS.viewDist){V3.viewKey=SETTINGS.viewDist;applyView3();}
   stream3(b.x,b.y);farGround3(b.x,b.y);syncDynamic3();syncLoot3(b);syncFX3(b);
   for(const [,e] of V3.locs)if(e.m&&e.m.userData.roofs)e.m.userData.roofs.visible=!V3.noRoofs&&!e.o.bld.some(bd=>!bd.tank&&bd.roofA!==undefined&&bd.roofA<0.5);   // step indoors and the roof lifts off, as in 2D
@@ -5290,7 +5361,9 @@ function particles3(b){const ox=Math.round(b.x),oz=Math.round(b.y),N=[0,0],tgt=[
   const pr=Math.max(V3_FOG_FAR,V3.fogFar||0);for(const q of G.parts){if(Math.abs(q.x-b.x)>pr||Math.abs(q.y-b.y)>pr)continue;if(q.gy===undefined)q.gy=Math.max(Math.abs(q.x-b.x),Math.abs(q.y-b.y))<V3_FOG_FAR?groundY3(q.x,q.y):heightRaw(q.x,q.y);
     const age=q.max-q.life,f=Math.max(0,q.life/q.max),add=q.kind==='fire'||q.kind==='spark',which=add?1:0,i=N[which];if(i>=FX3_MAXP)continue;N[which]++;
     let y,a,sz=q.size*2.2,col=fxCol3(q.col);
-    if(q.kind==='debris'){y=q.gy+4+q.up*age-140*age*age;if(y<q.gy+1){y=q.gy+1;}a=Math.min(1,f*2);sz=Math.max(1.6,sz*1.2);}   // bits arc up and fall back to the ground
+    if(q.kind==='sand'){y=q.gy+1+Math.abs(Math.sin(age*9+(q.x*0.1)))*2;a=f*0.55;sz=sz*1.4;}   // sand streaming low along the ground
+    else if(q.kind==='flyer'){y=q.gy+2+Math.abs(Math.sin(age*3.1+(q.ph||0)))*14*f;a=Math.min(1,f*2);}   // a scrap tumbling and skipping along
+    else if(q.kind==='debris'){y=q.gy+4+q.up*age-140*age*age;if(y<q.gy+1){y=q.gy+1;}a=Math.min(1,f*2);sz=Math.max(1.6,sz*1.2);}   // bits arc up and fall back to the ground
     else if(q.kind==='dust'){y=q.gy+3+sz*0.25+age*12+Math.sin((q.ph||0)+age*2)*2;a=f*f*(3-2*f)*0.34*Math.min(1,age/0.45);sz*=1.25;}   // fading away gently at the end, not all at once   // dust rolls out low and spreads: thin where it's kicked up, thicker behind
     else if(q.kind==='smoke'){y=q.gy+(q.lift||8)+(q.heavy?age*22-age*age*1.6:age*24)*(0.8+(q.wf||1)*0.3);a=Math.pow(f,0.7)*f*(3-2*f)*(q.heavy?0.9:0.62)*(q.plume?0.5*Math.min(1,age/1.1):1)*Math.min(1,age/0.25);}   // fades gently as it thins out   // smoke climbs; a raider's dust plume is see-through near the vehicle
     else if(q.kind==='fire'){y=q.gy+(q.lift||5)+age*22;a=f;if(f<0.5)col=fxCol3('#c2381f');}
@@ -5511,7 +5584,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
