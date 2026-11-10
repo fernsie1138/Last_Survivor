@@ -238,7 +238,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='6.0';
+const VERSION='6.2';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -640,6 +640,20 @@ if(TEST_MODE){const town=LOCS[0],ruins=LOCS[1],camp=LOCS[2];camp.carSpawns=[];
 })();
 // ---- terrain chunks ----
 const CH=640,WCELL=32,WN=CH/WCELL,chunks=new Map();
+// crash sites along the roads: a car, ute or pickup off the road or slewed across it, or a truck (a prime mover and trailer, a tanker,
+// a flatbed) jack-knifed into the verge or over on its side, burnt out or just rusting; bits of it strewn about. Laid out once.
+const ROADCRASH=[],ROADCRASH_GRID=new Map();let roadCrashDone=false;
+function roadCrashes(){if(roadCrashDone)return;roadCrashDone=true;const r=rng(60601);
+  const kinds=[['radiant',3],['ute',3],['wagon',2],['pickup',3],['van',1],['semi',2],['tanker',1.5],['flatbed',2]],tot=kinds.reduce((s,k)=>s+k[1],0),pickK=()=>{let q=r()*tot;for(const [k,w] of kinds){q-=w;if(q<=0)return k;}return 'ute';};
+  roads.forEach((R,ri)=>{const step=R.cls==='dirt'?7000:4200;for(let s=1500+r()*step;s<R.len-1500;s+=step*(0.6+r()*0.8)){if(r()>(R.cls==='highway'?0.3:0.2))continue;
+      let i=0;while(i<R.n-2&&R.cum[i+1]<s)i++;const x0=R.xs[i],y0=R.ys[i];if(LOCS.some(o=>Math.hypot(o.x-x0,o.y-y0)<o.rad+700))continue;if(terrainRaw(x0,y0)===T.RIVER)continue;
+      const kind=pickK(),D=CARS[kind],truck=D.len>70,a=Math.atan2(R.ys[i+1]-R.ys[i],R.xs[i+1]-R.xs[i]),nx=-Math.sin(a),ny=Math.cos(a),side=r()<0.5?-1:1;
+      // where it ended up: across the road, half off it, or down in the verge
+      const q=truck?0.65+r()*0.35:r(),lat=q<0.2?side*R.w*0.32:q<0.65?side*(R.w/2+D.wid*0.25):side*(R.w/2+D.wid*0.6+r()*40),rot=a+(q<0.2?(r()-0.5)*0.7:(r()-0.5)*1.1)+(r()<0.5?Math.PI:0);   // one lane always clear
+      const roll=r()<(truck?0.4:0.3)?(r()<0.75?side*Math.PI/2:Math.PI):0,burnt=r()<0.35;
+      const w={x:x0+nx*lat,y:y0+ny*lat,rot,w:D.len,h:D.wid,burnt,kind,roll,road:true,id:'rc'+ROADCRASH.length,seed:Math.floor(r()*1e9),skid:q<0.65};
+      if(roll&&Math.abs(roll)<3){w.h=D.len>70?36:30;}   // on its side it lies wider than it stood
+      ROADCRASH.push(w);const k=Math.floor(w.x/CH)+','+Math.floor(w.y/CH);if(!ROADCRASH_GRID.has(k))ROADCRASH_GRID.set(k,[]);ROADCRASH_GRID.get(k).push(w);}});}
 function getChunk(cx,cy){
   const k=cx+','+cy;let c=chunks.get(k);if(c)return c;
   const r=rng(hash2(cx,cy));const ox=cx*CH,oy=cy*CH;
@@ -664,6 +678,7 @@ function getChunk(cx,cy){
     if(use&&land(x,y)&&edge>rad+28&&edge<rad+230&&!nearL(x,y,420)&&!inField(x,y))c.rocks.push(rk);}
   {const x=ox+60+r()*(CH-120),y=oy+60+r()*(CH-120),use=r()<0.15,rot=r()*TAU,burnt=r()<0.5;
     if(use&&land(x,y)&&roadInfo(x,y).d>150&&!nearL(x,y,420))c.wrecks.push({x,y,rot,w:70,h:34,burnt});}
+  roadCrashes();for(const w of (ROADCRASH_GRID.get(cx+','+cy)||[]))c.wrecks.push(w);   // crash sites on the roads
   for(let i=0;i<8;i++){const x=ox+r()*CH,y=oy+r()*CH,rx=18+r()*50,ry=7+r()*14,rot=r()*0.6-0.3,ri=roadInfo(x,y);
     if(ri.d<ri.w/2+10&&roads[ri.r].cls==='highway')c.drifts.push({x,y,rx,ry,rot:Math.atan2(ri.ty,ri.tx)+rot});}
   for(let i=0;i<7;i++){const x=ox+r()*CH,y=oy+r()*CH,kind=B.decor[Math.floor(r()*B.decor.length)],rot=r()*TAU,s=0.7+r()*0.7;
@@ -692,7 +707,7 @@ function pruneChunks(x,y){const cx=Math.floor(x/CH),cy=Math.floor(y/CH);
   for(const [k,c] of chunks)if(Math.abs(c.cx-cx)>6||Math.abs(c.cy-cy)>6)chunks.delete(k);}
 function obstacleAt(x,y,r,only){let hit=null;
   const test=c=>{if(hit)return;for(const k of c.rocks)if(Math.hypot(x-k.x,y-k.y)<k.r*0.85+r){hit=k;return;}
-    for(const w of c.wrecks)if(Math.hypot(x-w.x,y-w.y)<34+r){hit=w;return;}};
+    for(const w of c.wrecks){const cs=Math.cos(w.rot),sn=Math.sin(w.rot),dx=x-w.x,dy=y-w.y,lx=dx*cs+dy*sn,ly=-dx*sn+dy*cs;if(Math.abs(lx)<w.w/2+r&&Math.abs(ly)<w.h/2+r){hit=w;return;}}};   // a wreck's own outline (a truck's is long)
   if(only)test(only);else chunksAround(x,y,test);return hit;}
 function surfaceAt(x,y){const ri=roadInfo(x,y);if(nearService(x,y))return {cls:ROADCLS.highway,ri,on:true};
   if(ri.r>=0&&ri.d<ri.w/2+4)return {cls:ROADCLS[roads[ri.r].cls],ri,on:true};return {cls:null,ri,on:false};}
@@ -1278,6 +1293,7 @@ function traderStock(n){const day=Math.floor(G.clock/DAY),id=n.def.id;G.stock=G.
   return G.stock[id].inv;}
 // services, sold like goods: their value depends on how much work is needed
 function servicesFor(n,car){const role=n.def.role,out=[];
+  if(role==='convoy'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill your tank from their drums ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8*3)});if(canSpace(G.hero.inv)>0.5)out.push({k:'svc_cans',name:'Fill your jerry cans',val:Math.ceil(canSpace(G.hero.inv)*0.8*3)});return out;}   // three times what a mechanic charges
   if(role==='mechanic'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill the tank ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8)});   // a full tank is worth eight bottles' worth of goods: fuel is dear
     if(car.cond<99)out.push({k:'svc_body',name:'Panel-beat the body ('+Math.round(car.cond)+'% → 100%)',val:Math.ceil((100-car.cond)*0.5)});
     {const cur=carMotor(car),city=n.loc&&n.loc.type==='city';for(const k in MOTORS){const M=MOTORS[k];if(M.city&&!city)continue;if(car.ups&&car.ups[k])continue;out.push({k:'svc_motor_'+k,name:'Fit a '+M.name+' (+'+(M.spd*100)+'% speed, +'+(M.fuel*100)+'% fuel; you have the '+cur.name+')',val:M.price});}}
@@ -1365,11 +1381,11 @@ function trimFill(inv){if(canFill(inv)>(inv.jerrycan||0)*CAN_CAP)setFill(inv,(in
 function wreckState(w){G.wreckState=G.wreckState||{};const id=w.id;if(!G.wreckState[id]){const r=rng(hash2(Math.round(w.x),Math.round(w.y)));
     G.wreckState[id]={fuel:w.burnt?0:Math.floor(r()*13),engine:w.burnt?Math.floor(r()*20):Math.floor(r()*55),susp:Math.floor(r()*60),scrap:2+Math.floor(r()*4),tw:[0,0,0,0]};}
   return G.wreckState[id];}
-function nearestWreck(r){const h=G.hero;let best=null,bd=r;chunksAround(h.x,h.y,ch=>{ch.wrecks.forEach((w,i)=>{w.id=w.id||('k'+ch.cx+'_'+ch.cy+'_'+i);const d=Math.hypot(w.x-h.x,w.y-h.y)-30;if(d<bd){bd=d;best=w;}});});return best;}
+function nearestWreck(r0){const h=G.hero,rf=typeof r0==='function'?r0:()=>r0;let best=null,bd=1e9;chunksAround(h.x,h.y,ch=>{ch.wrecks.forEach((w,i)=>{w.id=w.id||('k'+ch.cx+'_'+ch.cy+'_'+i);const d=Math.hypot(w.x-h.x,w.y-h.y);if(d<rf(w)+30&&d<bd){bd=d;best=w;}});});return best;}
 // the thing you'd salvage from where you're standing: {kind,name,src} where src has fuel, engine, susp, tw and scrap
 function salvageTarget(){const h=G.hero;if(h.inCar)return null;
   const c=nearestCar(40);if(c&&c.speed<5&&!nearService(c.x,c.y))return {kind:'car',name:c.def.name,src:c};
-  const w=nearestWreck(30);if(w)return {kind:'wreck',name:w.burnt?'burnt-out wreck':'rusted wreck',src:wreckState(w)};return null;}
+  const w=nearestWreck(w0=>w0.road?Math.max(30,w0.w*0.45):30);if(w)return {kind:'wreck',name:w.road&&CARS[w.kind]?(w.burnt?'burnt-out ':'crashed ')+CARS[w.kind].name.toLowerCase():(w.burnt?'burnt-out wreck':'rusted wreck'),src:wreckState(w)};return null;}
 function partQuality(v,good,worn){return v>=70?good:v>=25?worn:'scrap';}
 // what you'd get from each part, and how long it takes (hours)
 function strippable(src){const out=[],tw=src.tw||[0,0,0,0];
@@ -1528,7 +1544,7 @@ function nearestBed(r){const h=G.hero,o=nearLoc(h.x,h.y,0);if(!o)return null;let
 // what the action buttons should offer right now
 function getActions(){
   const car=heroCar(),h=G.hero,acts=[];
-  if(car){acts.push({k:'E',label:'Get out',fn:()=>exitCar()});
+  if(car){acts.push({k:'E',label:'Get out',fn:()=>exitCar()});{const C=convoyNear(260);if(C&&!C.stopped&&car.speed<60)acts.push({k:'G',label:'Flag down the convoy',alt:true,fn:()=>flagConvoy(C)});}
     if(car.speed<15&&h.rest<80)acts.push({k:'Z',label:'Sleep',alt:true,fn:()=>sleepPanel(car)});}
   else{const c=nearestCar(40),b=nearestBox(48);
     if(c){acts.push({k:'E',label:'Get in',fn:()=>enterCar(c)});acts.push({k:'F',label:'Open boot',alt:true,fn:()=>openInv({kind:'car',car:c})});
@@ -1537,6 +1553,7 @@ function getActions(){
     else if(b)acts.push({k:'F',label:boxItems(b)&&invCount(b.items)?'Search':'Search (empty)',fn:()=>openInv({kind:'box',box:b})});
     const cc=carcassNear(36);if(cc)acts.push({k:'U',label:'Butcher the '+cc.S.name,fn:()=>butcher(cc)});
     // a billy: fill it at a river, then boil it over a little fire (an hour) for a bottle's worth of safe water
+    {const C=convoyNear(260);if(C&&!C.stopped&&(!heroCar()||heroCar().speed<60))acts.push({k:'G',label:'Flag down the convoy',fn:()=>flagConvoy(C)});}
     if(h.inv.billy&&atRiver(h.x,h.y))acts.push({k:'B',label:'Fill the billy',fn:fillBilly});
     if(h.inv.billy_full)acts.push({k:'N',label:'Boil the billy (1 hour)',alt:true,fn:boilBilly});
     const bed=!c&&h.rest<95?nearestBed(22):null;if(bed)acts.push({k:'Z',label:'Rest on the bed',fn:()=>bedPanel(bed)});
@@ -1733,7 +1750,7 @@ function spawnConvoy(ri,i,dir,fac){const R=roads[ri],look=CONVOY_LOOK[fac],C={id
     c.stab=c.maxStab=CARS[t].stab||120;c.soft=CARS[t].soft||1;C.cars.push(c);G.cars.push(c);s-=dir*(len/2+(C.cars[k+1]?0:0)+len/2+60);});
   (G.convoys||(G.convoys=[])).push(C);return C;}
 // once in a while, out on a main road, a convoy comes along it (ahead of you coming the other way, or behind you catching up... slowly)
-function convoyTick(dt){G.convoys=G.convoys||[];const an=f=>(/^[AEIOU]/.test(FACTIONS[f].name)?'An ':'A ')+FACTIONS[f].name;G.convoyT=(G.convoyT??rand(40,90))-dt;const b=body();
+function convoyTick(dt){G.convoys=G.convoys||[];if(G.convoyTalk){G.convoyTalk.t-=dt;if(G.convoyTalk.t<=0){const n=G.convoyTalk.n;G.convoyTalk=null;if(state==='play')startTalk(n);}}const an=f=>(/^[AEIOU]/.test(FACTIONS[f].name)?'An ':'A ')+FACTIONS[f].name;G.convoyT=(G.convoyT??rand(40,90))-dt;const b=body();
   for(const C of G.convoys){C.cars=C.cars.filter(c=>G.cars.includes(c));const live=C.cars.filter(c=>!c.wrecked&&c.driver==='convoy');
     const far=C.cars.every(c=>Math.hypot(c.x-b.x,c.y-b.y)>7000);if(!C.cars.length||far||C.done){for(const c of C.cars)if(!c.wrecked&&(c.driver==='convoy'||c.driver==='raider'))c.gone=true;C.dead=true;continue;}
     // first sight of them
@@ -1752,14 +1769,22 @@ function updateConvoyCar(e,dt){const C=e.convoy,R=roads[C.road];if(!R){e.gone=tr
   const look=Math.round((40+e.speed*0.35)/40)+2,j=clamp(i+C.dir*look,0,R.n-2),a=Math.atan2(R.ys[j+1]-R.ys[j],R.xs[j+1]-R.xs[j])+(C.dir<0?Math.PI:0),lane=-R.w*0.22;
   const tx=R.xs[j]-Math.sin(a)*lane,ty=R.ys[j]+Math.cos(a)*lane;
   // the gap to the vehicle ahead in the column
+  if(C.stopped){C.stopT-=dt/Math.max(1,C.cars.length);if(C.stopT<=0||Math.hypot(body().x-e.x,body().y-e.y)>1200)C.stopped=false;driveCar(e,e.vf>5?-1:0,0,dt,false,false);return;}   // pulled up for you
   let want=C.speed;const ahead=C.cars.filter(c=>c!==e&&!c.wrecked&&c.order<e.order&&c.driver==='convoy').sort((p,q)=>q.order-p.order)[0];
   if(ahead){const gap=Math.hypot(ahead.x-e.x,ahead.y-e.y)-(ahead.def.len+e.def.len)/2,goal=60;want=clamp(ahead.speed+(gap-goal)*1.4,0,C.speed*1.3);}
   // something in the way (a car stopped in the lane, you on foot): ease off and pull out round it
   let txx=tx,tyy=ty;const fx=Math.cos(e.a),fy=Math.sin(e.a),obs=G.cars.filter(c=>c!==e&&!(c.convoy===C&&c.driver==='convoy')).concat(G.hero.inCar?[]:[G.hero]);
+  {const ah=obstacleAt(e.x+fx*(e.def.len/2+60),e.y+fy*(e.def.len/2+60),e.def.wid*0.6);if(ah&&ah.w){const lat=-(ah.x-e.x)*fy+(ah.y-e.y)*fx,side=lat>0?-1:1;txx+=-fy*side*R.w*0.5;tyy+=fx*side*R.w*0.5;want=Math.min(want,C.speed*0.5);}}   // a wreck in the lane: slow and go round
   for(const o of obs){const dx=o.x-e.x,dy=o.y-e.y,al=dx*fx+dy*fy,lat=-dx*fy+dy*fx;if(al>0&&al<e.def.len/2+150&&Math.abs(lat)<(e.def.wid+(o.def?o.def.wid:10))*0.75){want=Math.min(want,Math.max(25,(al-e.def.len/2-40)*1.6));
       const side=lat>0?-1:1;txx+=-fy*side*R.w*0.45;tyy+=fx*side*R.w*0.45;}}
   const diff=angDiff(Math.atan2(tyy-e.y,txx-e.x),e.a),thr=e.vf<want?1:e.vf>want+30?-0.6:0;driveCar(e,thr,clamp(diff*2.2,-1,1),dt,false,false);}
 function nearestIdx(R,x,y){let bd=1e18,bi=0;for(let k=0;k<R.n;k+=3){const d=(R.xs[k]-x)**2+(R.ys[k]-y)**2;if(d<bd){bd=d;bi=k;}}return bi;}
+// ---- flagging down a convoy that isn't hostile: they pull up, and their boss either sends you packing or sells you fuel, dear ----
+function convoyNear(r){const b=body();for(const C of G.convoys||[]){if(C.hostile||C.turned)continue;for(const c of C.cars)if(!c.wrecked&&c.driver==='convoy'&&Math.hypot(c.x-b.x,c.y-b.y)<r)return C;}return null;}
+function flagConvoy(C){C.stopped=true;C.stopT=45;if(C.refuse===undefined)C.refuse=Math.random()<0.4;const lead=C.cars.find(c=>!c.wrecked&&c.driver==='convoy')||C.cars[0],b=body();
+  const n={kind:'npc',x:b.x,y:b.y,vx:0,vy:0,a:0,r:8,look:{},talking:false,loc:{type:'convoy',faction:C.fac,name:FACTIONS[C.fac].name+' convoy'},convoy:C,
+    def:{id:'cvboss_'+C.id,name:FACTIONS[C.fac].name+' convoy boss',role:'convoy',seed:hash2(C.id.length,7),fac:C.fac}};
+  showMsg('You wave them down. The convoy pulls up',2);G.convoyTalk={n,t:0.9};}   // a moment for them to stop, then their boss comes over
 
 /* ===== wildlife: snakes, rabbits, dingoes and kangaroos =====
    Sparse. They appear in the open country around you (ahead of you when you're driving) and fade out behind.
@@ -2655,6 +2680,10 @@ Object.assign(DLG,{passenger_start:{text:c=>{const J=c.n.job;return J&&J.pax==='
       {t:'Not yet',go:'__start'}]}});
 for(const k of Object.keys(DLG)){if(!k.endsWith('_start')||['gatekeeper_start','companion_start','wanderer_start'].includes(k))continue;const N=DLG[k];if(!N.opts)continue;
   N.opts.unshift({t:'About that job…',if:c=>jobs().some(j=>j.giver===c.n.def.id),go:'job_turnin'},{t:'Got any work?',if:c=>!jobs().some(j=>j.giver===c.n.def.id)&&!!jobOffer(c.n),go:'job_offer'});}
+
+// a convoy's boss, when you've flagged them down (from 51-convoys)
+Object.assign(DLG,{convoy_start:{text:c=>c.n.convoy.refuse?'“Keep walking. We don’t stop for strangers, and we don’t share.”':'“Fuel? Out here it’s worth more than you are. We’ll sell you some, if you can pay what it’s worth.”',
+  opts:[{t:'Show me what you’ve got',if:c=>!c.n.convoy.refuse,do:c=>{const n=c.n;endTalk();n.x=body().x;n.y=body().y;openTrade(n);return null;}},{t:'Fair enough',go:null}]}});
 
 /* ===== game state, saving and loading =====
    Everything that matters lives in G. The world itself is rebuilt from fixed seeds,
@@ -3586,7 +3615,11 @@ function setupHero3(g){const sc=g.scene;sc.updateMatrixWorld(true);
     parts.push({name:mats[0].name,pos:geo.attributes.position.array,nor:geo.attributes.normal.array,si:geo.attributes.skinIndex.array,sw:geo.attributes.skinWeight.array});});
   const box=new THREE.Box3().setFromObject(sc);
   CHAR3.tpl={scene:sc,clips:g.animations,parts,bindMatrix,bindInv:bindMatrix.clone().invert(),boneNames:skel.bones.map(b=>b.name),boneInverses:skel.boneInverses.map(m=>m.clone()),k:19/(box.max.y-box.min.y)};
-  CHAR3.mat=new THREE.MeshLambertMaterial({vertexColors:true,skinning:true,side:THREE.DoubleSide});
+  CHAR3.mat=new THREE.MeshLambertMaterial({vertexColors:true,skinning:true,side:THREE.DoubleSide});CHAR3.mat.userData.u={uT:{value:0},uWind:{value:new THREE.Vector2(1,0)}};
+  CHAR3.mat.onBeforeCompile=sh=>{Object.assign(sh.uniforms,CHAR3.mat.userData.u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aFlow;uniform float uT;uniform vec2 uWind;')
+    .replace('#include <skinning_vertex>',`#include <skinning_vertex>
+      if(aFlow>0.0){float ph=modelMatrix[3].x*0.07+modelMatrix[3].z*0.05;float s1=sin(uT*2.3+transformed.y*11.0+ph),s2=sin(uT*3.7+transformed.x*17.0+transformed.z*13.0+ph*1.7);
+        transformed.xz+=aFlow*(0.012*vec2(s1,s2)+uWind*0.02*(0.6+0.4*s1));transformed.y+=aFlow*0.006*s2;}`);};
   loadBuggy2();
   loadHeroBody3(()=>{let ch=null;if(HB3.ok){try{ch=makeHeroBody3(HERO_SPEC3);}catch(e){console.warn('hero body:',e);}}if(!ch)ch=makeChar3(HERO_SPEC3);   // the hero's own body if it builds, the shared one otherwise
     HERO3.char=ch;HERO3.outfit=ch.bones;Object.assign(HERO3,{wrap:ch.wrap,mixer:ch.mixer,acts:ch.acts,status:'ready'});ch.wrap.visible=false;});}
@@ -3630,8 +3663,8 @@ function outfit3(S,on){const C=h=>col3(h),c1=C(S.c1),c1d=col3(S.c1,0.86),c2=C(S.
   if(S.mask==='gas'){H.ellip(0,2.5,0.28,0.42,0.42,0.26,10,6,mk,(x,y,z)=>z>-0.1,true);goggles(2.7,0.5);
     H.wheel(0,2.34,0.55,0.15,0.22,0,10,mk,dark);H.wheel(0,2.34,0.67,0.1,0.04,0,8,dark,dark);for(const sx of [-0.23,0.23])H.wheel(sx,2.3,0.5,0.11,0.17,-sx*2.6,8,dark,mk);}
   else if(S.mask==='scarf'){H.ellip(0,2.3,0.05,0.53,0.32,0.5,12,5,c2,(x,y,z)=>z>-0.35,true);H.ellip(0,2.18,0.0,0.5,0.14,0.48,10,3,col3(S.c2,0.85));goggles(2.7,0.48);}   // a cloth wrapped over nose and mouth, goggles above
-  else if(S.mask==='visor'){H.box(0,2.12,0.44,0.86,0.82,0.12,0,mk,mk);H.box(0,2.62,0.5,0.66,0.1,0.04,0,dark);for(let k=-2;k<=2;k++)H.box(k*0.1,2.28,0.5,0.04,0.12,0.04,0,dark);   // a plate over the face with an eye slit and breathing holes
-    for(const sx of [-0.43,0.43])H.box(sx,2.15,0.3,0.06,0.7,0.34,0,mk);}
+  else if(S.mask==='visor'){H.ellip(0,2.36,0.04,0.56,0.56,0.54,12,7,mk,(x,y,z)=>z>0.02&&y<0.52,true);H.ellip(0,2.66,0.05,0.565,0.045,0.545,12,2,dark,(x,y,z)=>z>0.2,true);   // a curved plate over the face with an eye slit and breathing holes
+    for(let k=-2;k<=2;k++)H.wheel(k*0.1,2.24,0.575-Math.abs(k)*0.012,0.028,0.02,0,6,dark,dark);}
   else if(S.mask==='resp'){H.ellip(0,2.36,0.3,0.36,0.26,0.24,10,5,mk,(x,y,z)=>z>-0.1,true);H.wheel(0,2.32,0.52,0.12,0.12,0,8,dark,dark);   // a half-mask respirator and round dark glasses
     for(const sx of [-0.17,0.17])H.wheel(sx,2.7,0.5,0.12,0.05,0,10,glass,dark);H.box(0,2.72,0.5,0.12,0.03,0.04,0,dark);}
   // poncho, cloak or robe
@@ -3652,7 +3685,7 @@ function outfit3(S,on){const C=h=>col3(h),c1=C(S.c1),c1d=col3(S.c1,0.86),c2=C(S.
   if(S.roll){const rc=col3('#7a6a50');T.wheel(0,2.1,-0.72,0.18,0.9,-Math.PI/2,12,rc,col3('#6a5a42'));for(const sx of [-0.25,0.25])T.wheel(sx,2.1,-0.72,0.19,0.05,-Math.PI/2,12,strap,strap);}
   if(S.pouch)on('Hips').box(0.38,0.9,0.12,0.16,0.24,0.2,0,col3('#8a6a48'));
   for(const [sd,x] of [['L',0.27],['R',-0.27]]){const LL=on('LowerLeg'+sd),sx=sd==='L'?1:-1;
-    if(S.pads)LL.box(x,0.4,0.13,0.26,0.2,0.1,0,grey);LL.box(x,-0.01,-0.03,0.24,0.3,0.36,0,bootC,col3('#55493e'));LL.box(x,0.22,-0.03,0.25,0.06,0.34,0,strap);LL.box(x,0.12,-0.03,0.25,0.05,0.35,0,strap);
+    if(S.pads)LL.box(x,0.4,0.13,0.26,0.2,0.1,0,grey);if(!S.noBoots){LL.box(x,-0.01,-0.03,0.24,0.3,0.36,0,bootC,col3('#55493e'));LL.box(x,0.22,-0.03,0.25,0.06,0.34,0,strap);LL.box(x,0.12,-0.03,0.25,0.05,0.35,0,strap);}
     if(S.wraps&&S.body!=='robe')on('LowerArm'+sd).box(sx*1.07,1.78,-0.01,0.26,0.24,0.25,0,c2);
     if(S.body==='poncho')on('UpperArm'+sd).box(sx*0.72,1.73,0,0.2,0.33,0.33,0,col3(S.cols.Shirt,0.92));
     if(S.spikes){const U=on('UpperArm'+sd);U.box(sx*0.42,1.96,0,0.34,0.12,0.42,0,col3('#5a544c'));for(let k=-1;k<=1;k++)U.beam([sx*0.42,2.06,k*0.13],[sx*0.48,2.32,k*0.15],0.05,col3('#9a948a'));}}}   // a raider's spiked shoulder plate
@@ -3753,28 +3786,28 @@ function makeHeroBody3(S){const T=CHAR3.tpl,g=HB3.g;let sm=null;g.scene.traverse
   const regionCol=n=>/spine00[56]/.test(n)?(S.cols.Head||S.cols.Skin):/hand/.test(n)?S.cols.Skin:/foot|toe|heel/.test(n)?'#4b4239':/thigh|shin|pelvis|spine_01/.test(n)?S.cols.Pants:S.cols.Shirt;
   for(let i=0;i<gp.length/3;i++){let bj=0,bw=-1;for(let k=0;k<4;k++)if(gw[i*4+k]>bw){bw=gw[i*4+k];bj=gj[i*4+k];}const cl=col3(regionCol(names[bj]));
     P.push(gp[i*3],gp[i*3+1],gp[i*3+2]);N.push(gn[i*3],gn[i*3+1],gn[i*3+2]);Cc.push(cl[0],cl[1],cl[2]);for(let k=0;k<4;k++){SI.push(gj[i*4+k]);SW.push(gw[i*4+k]);}}
-  const bodyCount=P.length/3,gbs={},used=[];outfit3(Object.assign({},S,{head:S.head==='hood'?'none':S.head,body:S.body==='poncho'?'none':S.body}),b=>gbs[b]||(gbs[b]=new GB()));   // hood and poncho are made for this body below
+  const bodyCount=P.length/3,gbs={},used=[];outfit3(Object.assign({},S,{head:S.head==='hood'?'none':S.head,body:'none',pack:false,roll:false,strap:false,pouch:false,pads:false,wraps:false,spikes:false,noBoots:true}),b=>gbs[b]||(gbs[b]=new GB()));   // hood and poncho are made for this body below
   const addPiece=(gb,M,tb)=>{const bi=ti(tb),nm=new THREE.Matrix3().getNormalMatrix(M),g2=new THREE.BufferGeometry();g2.setAttribute('position',new THREE.BufferAttribute(new Float32Array(gb.p),3));g2.computeVertexNormals();const nn=g2.attributes.normal.array,v=new THREE.Vector3();
     for(let i=0;i<gb.p.length/3;i++){v.set(gb.p[i*3],gb.p[i*3+1],gb.p[i*3+2]).applyMatrix4(M);P.push(v.x,v.y,v.z);v.set(nn[i*3],nn[i*3+1],nn[i*3+2]).applyMatrix3(nm).normalize();N.push(v.x,v.y,v.z);Cc.push(gb.c[i*3],gb.c[i*3+1],gb.c[i*3+2]);SI.push(bi,0,0,0);SW.push(1,0,0,0);}g2.dispose();};
   for(const bn in gbs){const pc=PIECE[bn];if(!pc||!gbs[bn].p.length)continue;used.push(bn);addPiece(gbs[bn],pc[0],pc[1]);}
-  const N_=N;
+  const N_=N,FL=[];
   // ---- his own poncho and hood, shaped for this body. Each point is tied to several bones (chest, hips, upper arms, head, neck),
   // so the cloth hangs from the shoulders, the hem sways with the hips, the sides lift with the arms, and the hood follows the head
   // while its lower edge settles onto the shoulders. Folds run down the cloth; the hem is uneven and dips to points front and back. ----
-  {const CP=[],CC=[],CW=[],tone=(hx,k)=>{const c=col3(hx);return c.map(v=>v*k);};
+  {const CP=[],CC=[],CW=[],CF=[],tone=(hx,k)=>{const c=typeof hx==='string'?col3(hx):hx;return c.map(v=>v*k);},tone2=(hx,k)=>col3(hx).map(v=>v*k);
     const Wt=pairs=>{const ix=[0,0,0,0],wv=[0,0,0,0];let s=0;pairs.filter(q=>q[1]>1e-3).slice(0,4).forEach(([n,w],k)=>{ix[k]=ti(n);wv[k]=w;s+=w;});return [ix,wv.map(v=>v/(s||1))];};
     const tri=(A,B,C2,col,h)=>{const u=[B.x-A.x,B.y-A.y,B.z-A.z],v=[C2.x-A.x,C2.y-A.y,C2.z-A.z],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];
-      if(n[0]*h[0]+n[1]*h[1]+n[2]*h[2]<0){const t=B;B=C2;C2=t;}for(const q of [A,B,C2]){CP.push(q.x,q.y,q.z);CC.push(col[0],col[1],col[2]);CW.push(q.w);}};
+      if(n[0]*h[0]+n[1]*h[1]+n[2]*h[2]<0){const t=B;B=C2;C2=t;}for(const q of [A,B,C2]){CP.push(q.x,q.y,q.z);CC.push(col[0],col[1],col[2]);CW.push(q.w);CF.push(q.f||0);}};
     const quad=(a,b,c,d,col,h)=>{tri(a,b,c,col,h);tri(a,c,d,col,h);};
     const N=36,ang=i=>i/N*TAU,chest='spine003_04',hip='spine_01',rnd=rng(4407);
     // the poncho: rows from the neck down: [height at the sides, at the front, at the back, half-width, depth to the front, to the back, shift forward]
-    const rows=[[1.19,1.19,1.19,0.072,0.082,0.062,0.02],[1.165,1.158,1.165,0.132,0.122,0.104,0.015],[1.118,1.098,1.108,0.215,0.152,0.134,0.01],
+    const rows=[[1.205,1.205,1.205,0.08,0.09,0.07,0.02],[1.19,1.176,1.182,0.162,0.13,0.112,0.015],[1.145,1.112,1.122,0.236,0.16,0.146,0.01],
       [0.99,0.995,0.995,0.27,0.182,0.162,0.008],[0.862,0.86,0.86,0.298,0.2,0.182,0.004],[0.758,0.64,0.655,0.312,0.212,0.192,0]];
     const pRow=rows.map((R,k)=>{const out=[];for(let i=0;i<=N;i++){const a=ang(i%N),ca=Math.cos(a),sa=Math.sin(a),side=ca*ca,front=sa>0;
         let y=side*R[0]+(1-side)*(front?R[1]:R[2]);if(k===5){y-=0.055*Math.pow(Math.max(0,sa),6)+0.05*Math.pow(Math.max(0,-sa),6)+(rnd()-0.5)*0.03;}   // the hem: points front and back, a little ragged
         const fold=k>=2?(k-1)*0.0045*(Math.sin(a*7+0.9)+0.6*Math.sin(a*11+2.1)):0,sf=Math.max(0,(Math.abs(ca)-0.55)/0.45),arm=ca>0?'upper_armL_09':'upper_armR_013';
         const wts=k<=1?[[chest,1]]:k===2?[[chest,1-0.3*sf],[arm,0.3*sf]]:k===3?[[chest,0.85-0.45*sf],[hip,0.15],[arm,0.45*sf]]:k===4?[[chest,0.55-0.4*sf],[hip,0.45],[arm,0.4*sf]]:[[chest,0.35-0.3*sf],[hip,0.65],[arm,0.3*sf]];
-        out.push({x:ca*(R[3]+fold),y,z:R[6]+sa*((front?R[4]:R[5])+fold),w:Wt(wts)});}return out;});
+        out.push({x:ca*(R[3]+fold),y,z:R[6]+sa*((front?R[4]:R[5])+fold),w:Wt(wts),f:k>=3?(k-2)/3:0});}return out;});
     const tan=S.c1;
     if(S.body==='poncho')for(let k=1;k<pRow.length;k++)for(let i=0;i<N;i++){const a=ang(i+0.5),A=pRow[k-1][i],B=pRow[k-1][i+1],C2=pRow[k][i+1],D=pRow[k][i],shade=0.84+rnd()*0.18+0.06*Math.sin(a*7+0.9);
       quad(A,B,C2,D,tone(tan,shade),[Math.cos(a),0.5,Math.sin(a)]);}
@@ -3792,12 +3825,96 @@ function makeHeroBody3(S){const T=CHAR3.tpl,g=HB3.g;let sm=null;g.scene.traverse
     if(S.head==='bare'||S.head==='hat'){const hcap=[];for(let k=0;k<=4;k++){const ph=k/4*0.55*Math.PI,row=[];for(let i=0;i<=N;i++){const a=ang(i%N),ca=Math.cos(a),sa=Math.sin(a),fr=sa>0.2?0.55:1;   // hair: a cap over the crown and down the back
         row.push({x:hc[0]+Math.sin(ph)*ca*hr[0]*0.86,y:hc[1]+0.006+Math.cos(ph*(sa>0.2?0.8:1))*hr[1]*0.86,z:hc[2]-0.005+Math.sin(ph)*sa*hr[2]*0.86*fr,w:Wt([['spine006_07',1]])});}hcap.push(row);}
       for(let k=1;k<hcap.length;k++)for(let i=0;i<N;i++)quad(hcap[k-1][i],hcap[k-1][i+1],hcap[k][i+1],hcap[k][i],tone(S.cols.Hair,0.9+rnd()*0.15),[hcap[k][i].x-hc[0],hcap[k][i].y-hc[1],hcap[k][i].z-hc[2]]);}
+    /* ---- clothes with shape to them (v6.1): everything below is a soft, tapered shell fitted round the body and tied to its bones,
+       so it bends at the joints and hangs: a tunic that flares to a skirt below the belt, loose sleeves with rolled cuffs, baggy
+       trousers bloused into shaped boots, curved knee pads, a rounded pack with a bedroll and shoulder straps, a belt and pouch,
+       forearm wraps, a robe or a cloak that reaches the knees. Each ring is a little uneven (creases), each face its own shade. ---- */
+    {const V=(x,y,z)=>new THREE.Vector3(x,y,z),J=n=>TB[ti(n)].p.clone(),lerpV=(a,b,t)=>a.clone().lerp(b,t),crease=rng(hashStr3(S.c1+S.cols.Shirt+S.cols.Pants)+5);
+      // a ring of n points round centre c, square to the axis d: rs out to the sides, rf to the front, rb to the back
+      const ring=(c,d,n,rs,rf,rb,w,o)=>{o=o||{};const dn=d.clone().normalize(),f0=V(0,0,1),f=f0.addScaledVector(dn,-f0.dot(dn)).normalize(),s=new THREE.Vector3().crossVectors(f,dn).normalize(),out=[];
+        const jit=[];for(let i=0;i<n;i++)jit.push(1+(o.cr===undefined?0.05:o.cr)*(crease()-0.5)*2);
+        for(let i=0;i<=n;i++){const k=i%n,a=k/n*TAU+(o.ph||0),ca=Math.cos(a),sa=Math.sin(a),sh=o.shape?o.shape(a,ca,sa):1,rr=jit[k]*sh,rz=sa>0?rf:(rb===undefined?rf:rb),dy=o.dy?o.dy(a,ca,sa,k):0;
+          out.push({x:c.x+s.x*ca*rs*rr+f.x*sa*rz*rr+dn.x*dy,y:c.y+s.y*ca*rs*rr+f.y*sa*rz*rr+dn.y*dy,z:c.z+s.z*ca*rs*rr+f.z*sa*rz*rr+dn.z*dy,w:Wt(typeof w==='function'?w(a,ca,sa):w),f:typeof o.f==='function'?o.f(a,ca,sa):(o.f||0)});}
+        out.c=c;return out;};
+      const loft=(rings,hex,o)=>{o=o||{};for(let k=1;k<rings.length;k++){const A=rings[k-1],B=rings[k],n=A.length-1,cm=lerpV(A.c,B.c,0.5),hx=typeof hex==='function'?hex(k):hex;
+          for(let i=0;i<n;i++){if(o.skip&&o.skip(i,n,k))continue;const col=tone(hx,(o.k||1)*(0.86+crease()*0.2));quad(A[i],A[i+1],B[i+1],B[i],col,[(A[i].x+B[i+1].x)/2-cm.x,(A[i].y+B[i+1].y)/2-cm.y,(A[i].z+B[i+1].z)/2-cm.z]);}}};
+      const cap=(R,hex,dir)=>{const n=R.length-1,m={x:R.c.x,y:R.c.y,z:R.c.z,w:R[0].w,f:R[0].f};for(let i=0;i<n;i++)tri(R[i],R[i+1],m,tone(hex,0.84+crease()*0.16),dir);};
+      const round4=(a,ca,sa)=>1/Math.pow(Math.pow(Math.abs(ca),4)+Math.pow(Math.abs(sa),4),0.25);   // a rounded rectangle instead of an oval
+      const robe=S.body==='robe',shirt=robe?S.c1:S.cols.Shirt,pants=S.cols.Pants,belt=S.cols.Belt||'#5a4430',boot='#4b4239',sole='#2e2a26',glove=S.cols.Skin,leather='#5a4430';
+      const down=V(0,-1,0);
+      for(const sd of ['L','R']){const sg=sd==='L'?1:-1,th=sd==='L'?'thighL_022':'thighR_027',sh=sd==='L'?'shinL_023':'shinR_028',ft=sd==='L'?'footL_024':'footR_00',toe=sd==='L'?'toeL_025':'toeR_029';
+        const H=J(th),K=J(sh),A=J(ft),dT=K.clone().sub(H),dS=A.clone().sub(K);
+        // trousers: full in the thigh, creased at the knee, bloused over the boot top
+        if(!robe)loft([ring(lerpV(H,K,0.08),dT,8,0.084,0.084,0.088,[[th,0.7],['spine_01',0.3]]),ring(lerpV(H,K,0.45),dT,8,0.079,0.08,0.08,[[th,1]]),ring(lerpV(H,K,0.84),dT,8,0.067,0.07,0.066,[[th,0.8],[sh,0.2]],{cr:0.09}),
+          ring(lerpV(K,A,0.07),dS,8,0.064,0.068,0.064,[[th,0.35],[sh,0.65]],{cr:0.09}),ring(lerpV(K,A,0.36),dS,8,0.061,0.06,0.066,[[sh,1]]),ring(lerpV(K,A,0.58),dS,8,0.067,0.066,0.07,[[sh,1]],{cr:0.1}),ring(lerpV(K,A,0.66),dS,8,0.054,0.054,0.056,[[sh,1]])],pants);
+        // boots: a shaft with a turned-down cuff and two straps, an ankle, then a shaped foot with a heel, an instep, a toe and a dark sole
+        const cuff=ring(lerpV(K,A,0.6),dS,8,0.067,0.066,0.069,[[sh,1]],{cr:0.04}),cuff2=ring(lerpV(K,A,0.67),dS,8,0.064,0.063,0.066,[[sh,1]],{cr:0.03});
+        loft([cuff,cuff2],leather);loft([cuff2,ring(lerpV(K,A,0.8),dS,8,0.058,0.058,0.06,[[sh,1]],{cr:0.03}),ring(lerpV(K,A,0.97),dS,8,0.054,0.058,0.056,[[sh,0.5],[ft,0.5]],{cr:0.03})],boot);
+        for(const t of [0.74,0.86])loft([ring(lerpV(K,A,t-0.018),dS,8,0.0625,0.0625,0.0645,[[sh,1]],{cr:0}),ring(lerpV(K,A,t+0.018),dS,8,0.0615,0.0615,0.0635,[[sh,1]],{cr:0})],leather,{k:0.85});
+        {const sec=[[-0.062,0.034,0.07,ft,0],[-0.01,0.043,0.088,ft,0],[0.055,0.047,0.064,ft,0.3],[0.108,0.05,0.046,toe,1],[0.158,0.04,0.03,toe,1]],rows=sec.map(([dz,hw,top,bn,tw])=>{const w=Wt(tw>=1?[[toe,1]]:tw>0?[[ft,1-tw],[toe,tw]]:[[ft,1]]),x=A.x,z=A.z+dz,pts=[[-hw,0.012],[hw,0.012],[hw,top*0.62],[hw*0.55,top],[-hw*0.55,top],[-hw,top*0.62]];
+            const r=pts.map(([px,py])=>({x:x+px,y:py-0.012,z,w,f:0}));r.push(r[0]);r.c=V(x,top*0.4,z);return r;});
+          for(let k=1;k<rows.length;k++){const A2=rows[k-1],B2=rows[k],cm=lerpV(A2.c,B2.c,0.5);for(let i=0;i<6;i++){const bottom=i===0;quad(A2[i],A2[i+1],B2[i+1],B2[i],tone(bottom?sole:boot,0.86+crease()*0.2),bottom?[0,-1,0]:[(A2[i].x+B2[i+1].x)/2-cm.x,(A2[i].y+B2[i+1].y)/2-cm.y+0.02,0]);}}
+          cap(rows[0],boot,[0,0,-1]);cap(rows[rows.length-1],boot,[0,0,1]);
+          const so=[[-0.066,0.036],[0.0,0.046],[0.108,0.053],[0.164,0.042]].map(([dz,hw])=>[{x:A.x-hw,y:-0.014,z:A.z+dz,w:Wt([[dz>0.08?toe:ft,1]]),f:0},{x:A.x+hw,y:-0.014,z:A.z+dz,w:Wt([[dz>0.08?toe:ft,1]]),f:0}]);   // the sole, a touch wider than the boot
+          for(let k=1;k<so.length;k++)quad(so[k-1][0],so[k-1][1],so[k][1],so[k][0],tone(sole,0.9),[0,-1,0]);}
+        // a knee pad: a curved plate strapped over the front of the knee
+        if(S.pads&&!robe){const kp=[ring(lerpV(H,K,0.93),dT,10,0.078,0.086,0.07,[[th,0.6],[sh,0.4]],{cr:0}),ring(lerpV(K,A,0.02),dS,10,0.084,0.097,0.07,[[sh,0.7],[th,0.3]],{cr:0}),ring(lerpV(K,A,0.17),dS,10,0.074,0.082,0.07,[[sh,1]],{cr:0})];
+          loft(kp,S.c3||'#3d3f41',{skip:(i,n)=>!(i>=1&&i<=3)});loft([ring(lerpV(K,A,0.05),dS,8,0.069,0.07,0.07,[[sh,0.8],[th,0.2]],{cr:0}),ring(lerpV(K,A,0.09),dS,8,0.068,0.069,0.07,[[sh,1]],{cr:0})],leather,{k:0.8});}
+        // sleeves: set into the shoulder, loose down the arm, creased at the elbow, a rolled cuff; then the glove's gauntlet
+        const ua=sd==='L'?'upper_armL_09':'upper_armR_013',fa=sd==='L'?'forearmL_010':'forearmR_014',hd=sd==='L'?'handL_011':'handR_015',shd=sd==='L'?'shoulderL_08':'shoulderR_012';
+        const Sp=J(ua),E=J(fa),Wr=J(hd),dU=E.clone().sub(Sp),dF=Wr.clone().sub(E),wide=robe?1.3:1,bell=robe?1.9:1;
+        loft([ring(lerpV(Sp,E,0.06),dU,8,0.052,0.058,0.056,[[shd,0.3],[ua,0.7]],{cr:0.02}),ring(lerpV(Sp,E,0.16),dU,8,0.067*wide,0.068*wide,0.066*wide,[[ua,1]]),ring(lerpV(Sp,E,0.58),dU,8,0.063*wide,0.064*wide,0.063*wide,[[ua,1]]),
+          ring(lerpV(Sp,E,0.92),dU,8,0.059*wide,0.058*wide,0.062*wide,[[ua,0.65],[fa,0.35]],{cr:0.09}),ring(lerpV(E,Wr,0.1),dF,8,0.058*wide,0.058*wide,0.06*wide,[[ua,0.3],[fa,0.7]],{cr:0.09}),
+          ring(lerpV(E,Wr,0.5),dF,8,0.054*(wide+bell)/2,0.054*(wide+bell)/2,0.054*(wide+bell)/2,[[fa,1]],{f:robe?0.5:0}),ring(lerpV(E,Wr,0.8),dF,8,0.051*bell,0.051*bell,0.051*bell,[[fa,1]],{f:robe?0.9:0}),
+          ring(lerpV(E,Wr,0.84),dF,8,0.057*bell,0.057*bell,0.057*bell,[[fa,1]],{cr:0.03,f:robe?1:0}),ring(lerpV(E,Wr,0.93),dF,8,0.055*bell,0.055*bell,0.055*bell,[[fa,1]],{cr:0.03,f:robe?1:0})],k=>k>=8?tone2(shirt,0.86):shirt);
+        loft([ring(lerpV(E,Wr,0.86),dF,8,0.05,0.05,0.05,[[fa,1]],{cr:0.02}),ring(lerpV(E,Wr,1.02),dF,8,0.046,0.044,0.044,[[fa,0.4],[hd,0.6]],{cr:0.02})],glove);
+        if(S.wraps&&!robe)for(const t of [0.3,0.44,0.58])loft([ring(lerpV(E,Wr,t-0.07),dF,8,0.058,0.058,0.058,[[fa,1]],{cr:0.06}),ring(lerpV(E,Wr,t+0.07),dF,8,0.057,0.057,0.057,[[fa,1]],{cr:0.06})],S.c2);   // strips of cloth bound round the forearm
+        // a raider's shoulder plate: a curved pauldron with three spikes
+        if(S.spikes){const pl=[ring(lerpV(Sp,E,-0.16),dU,10,0.066,0.07,0.07,[[shd,0.6],[ua,0.4]],{cr:0}),ring(lerpV(Sp,E,0.02),dU,10,0.086,0.086,0.086,[[ua,0.7],[shd,0.3]],{cr:0}),ring(lerpV(Sp,E,0.3),dU,10,0.08,0.08,0.08,[[ua,1]],{cr:0})];
+          loft(pl,'#5a544c',{skip:(i,n)=>sg>0?!(i<=2||i>=n-2):!(i>=3&&i<=7)});
+          for(const zz of [-0.045,0,0.045]){const b0=V(Sp.x+sg*0.035,Sp.y+0.045,Sp.z+zz),w=Wt([[ua,0.7],[shd,0.3]]),tip={x:b0.x+sg*0.035,y:b0.y+0.07,z:b0.z,w,f:0},q=[[0.014,0],[-0.007,0.012],[-0.007,-0.012]].map(([a,b])=>({x:b0.x+a,y:b0.y,z:b0.z+b,w,f:0}));
+            for(let i=0;i<3;i++)tri(q[i],q[(i+1)%3],tip,tone('#9a948a',0.85+crease()*0.2),[q[i].x-b0.x,0.3,q[i].z-b0.z]);}}}
+      // the tunic: a stand collar, set over the shoulders, taken in at the belt, flaring to a short skirt that moves with the legs.
+      // A robe is the same garment cut long, to the shins.
+      const sideW=(base,ex)=>(a,ca,sa)=>{const s=Math.max(0,(Math.abs(ca)-0.6)/0.4);return base.map(([n,w])=>[n,w*(1-ex[2]*s)]).concat([[ca>0?ex[0]:ex[1],ex[2]*s]]);};
+      const NT=14,tr=(y,rs,rf,rb,zc,w,o)=>ring(V(0,y,zc),down,NT,rs,rf,rb,w,o),hemJ=[];for(let i=0;i<NT;i++)hemJ.push((crease()-0.5)*0.03);
+      const body=[tr(1.19,0.052,0.058,0.046,0.014,[['spine005_06',0.6],['spine004_05',0.4]],{cr:0.02}),tr(1.162,0.09,0.072,0.062,0.01,[['spine004_05',1]],{cr:0.02}),tr(1.158,0.135,0.078,0.07,0.006,sideW([['spine004_05',0.5],['spine003_04',0.5]],['shoulderL_08','shoulderR_012',0.3]),{cr:0.02}),
+        tr(1.128,0.182,0.086,0.08,0,sideW([['spine003_04',1]],['shoulderL_08','shoulderR_012',0.35]),{cr:0.02,dy:(a,ca,sa)=>Math.pow(Math.abs(ca),2)*0.012}),tr(1.06,0.178,0.1,0.09,0,sideW([['spine003_04',1]],['upper_armL_09','upper_armR_013',0.25]),{cr:0.03}),tr(1.0,0.152,0.108,0.094,0.002,sideW([['spine003_04',1]],['upper_armL_09','upper_armR_013',0.12])),
+        tr(0.925,0.137,0.103,0.088,0.004,[['spine002_03',1]]),tr(0.862,0.127,0.098,0.086,0.004,[['spine001_02',1]],{cr:0.03})];
+      loft(body,shirt);const bodyW=body[7];
+      const legW=(hipW,legBone)=>(a,ca,sa)=>{const s=Math.max(0,(Math.abs(ca)-0.15)/0.85)*(sa>-0.3?1:0.6);return [['spine_01',hipW+(1-hipW)*(1-s)],[ca>0?legBone[0]:legBone[1],(1-hipW)*s]];};
+      if(!robe)loft([bodyW,tr(0.755,0.152,0.113,0.108,0,legW(0.75,['thighL_022','thighR_027']),{f:0.2}),tr(0.6,0.172,0.126,0.126,0,legW(0.45,['thighL_022','thighR_027']),{f:0.7,cr:0.08,dy:(a,ca,sa,k)=>hemJ[k]})],shirt,{k:0.96});
+      else loft([bodyW,tr(0.755,0.158,0.118,0.112,0,legW(0.7,['thighL_022','thighR_027']),{f:0.2}),tr(0.5,0.19,0.15,0.15,0.005,legW(0.35,['thighL_022','thighR_027']),{f:0.6,cr:0.08}),
+        tr(0.3,0.205,0.17,0.175,0.01,legW(0.3,['shinL_023','shinR_028']),{f:0.85,cr:0.09}),tr(0.14,0.215,0.185,0.19,0.012,legW(0.3,['shinL_023','shinR_028']),{f:1,cr:0.1,dy:(a,ca,sa,k)=>hemJ[k]*1.5})],shirt,{k:0.95});
+      // the belt, its buckle, and a soft pouch on the hip
+      loft([tr(0.885,0.133,0.104,0.092,0.004,[['spine001_02',1]],{cr:0}),tr(0.848,0.133,0.104,0.092,0.004,[['spine001_02',0.6],['spine_01',0.4]],{cr:0})],robe?S.c2:belt,{k:0.95});
+      {const w=Wt([['spine001_02',1]]),bz=0.112,bq=[[-0.02,0.892],[0.02,0.892],[0.02,0.842],[-0.02,0.842]].map(([x,y])=>({x,y,z:bz,w,f:0}));quad(bq[0],bq[1],bq[2],bq[3],tone('#8a8478',0.95),[0,0,1]);}
+      if(S.pouch){const pc=(y,hw,d,o)=>ring(V(0.118,y,0.078),down,8,hw,d,d,[['spine_01',0.7],['thighL_022',0.3]],Object.assign({cr:0.03,shape:round4,f:0.15},o||{})),pr=[pc(0.852,0.03,0.018),pc(0.82,0.038,0.03),pc(0.77,0.04,0.032),pc(0.745,0.03,0.022)];
+        loft(pr,k=>k===1?tone2('#8a6a48',0.8):'#8a6a48');cap(pr[3],'#7a5a3c',[0,-1,0]);cap(pr[0],'#6a4e34',[0,1,0]);}
+      // a pack on the back: rounded, fuller in the middle, a flap over the top; a bedroll strapped across it; straps over the shoulders
+      if(S.pack){const pk=S.packCol||S.c2,pw=[['spine003_04',0.65],['spine002_03',0.35]],pz=S.body==='poncho'?-0.112:-0.088,pr=(y,hw,d)=>ring(V(0,y,pz-d),down,10,hw,d,d,pw,{cr:0.04,shape:round4}),R=[pr(0.84,0.082,0.045),pr(0.885,0.108,0.078),pr(0.97,0.116,0.09),pr(1.06,0.112,0.086),pr(1.115,0.098,0.07),pr(1.14,0.07,0.045)];
+        loft(R,k=>k>=4?tone2(pk,0.82):pk);cap(R[0],pk,[0,-1,0]);cap(R[5],tone2(pk,0.8),[0,1,0]);
+        for(const sx of [-0.05,0.05]){const st=[[1.1,pz-0.164],[1.0,pz-0.184],[0.9,pz-0.174]].map(([y,z])=>[{x:sx-0.011,y,z,w:Wt(pw),f:0},{x:sx+0.011,y,z,w:Wt(pw),f:0}]);for(let k=1;k<st.length;k++)quad(st[k-1][0],st[k-1][1],st[k][1],st[k][0],tone(leather,0.9),[0,0,-1]);}   // the flap's two straps
+        if(S.body!=='poncho')for(const sx of [-1,1]){const path=[[0.06,1.125,-0.1],[0.078,1.172,-0.01],[0.074,1.09,0.094],[0.07,0.98,0.112],[0.105,0.885,0.085]],w=Wt([['spine003_04',1]]),st=path.map(([x,y,z],k)=>[{x:sx*(x-0.013),y,z,w:k>=4?Wt([['spine001_02',1]]):w,f:0},{x:sx*(x+0.013),y,z,w:k>=4?Wt([['spine001_02',1]]):w,f:0}]);
+          for(let k=1;k<st.length;k++)quad(st[k-1][0],st[k-1][1],st[k][1],st[k][0],tone(leather,0.85+crease()*0.15),[0,st[k][0].y>1.1?1:0.2,st[k][0].z>0?1:-1]);}}
+      if(S.roll){const rw=[['spine003_04',0.6],['spine004_05',0.4]],ax=V(1,0,0),c0=V(0,S.pack?1.185:1.1,(S.pack?-0.14:-0.135)+(S.body==='poncho'?-0.025:0)),rr=(x,r)=>ring(V(x,c0.y,c0.z),ax,8,r,r,r,rw,{cr:0.03}),R=[rr(-0.135,0.03),rr(-0.13,0.046),rr(0.13,0.046),rr(0.135,0.03)];
+        loft(R,'#7a6a50');cap(R[0],'#5a4e3a',[-1,0,0]);cap(R[3],'#5a4e3a',[1,0,0]);for(const x of [-0.07,0.07])loft([rr(x-0.012,0.049),rr(x+0.012,0.049)],leather,{k:0.9});}
+      // a strap slung across the chest, shoulder to hip, front and back
+      if(S.strap&&!S.pack){const path=[[0.105,0.875,0.082],[0.06,1.0,0.112],[-0.03,1.1,0.092],[-0.085,1.168,0.0],[-0.04,1.1,-0.086],[0.05,0.98,-0.1],[0.11,0.875,-0.07]],st=path.map(([x,y,z],k)=>{const w=Wt([[y<0.9?'spine001_02':'spine003_04',1]]),off=0.014;return [{x:x-off,y:y+off*0.6,z,w,f:0},{x:x+off,y:y-off*0.6,z,w,f:0}];});
+        for(let k=1;k<st.length;k++)quad(st[k-1][0],st[k-1][1],st[k][1],st[k][0],tone(leather,0.85+crease()*0.15),[0,0.2,st[k][0].z+st[k-1][0].z>0?1:-1]);}
+      // a cloak: clasped at the collar, down the back to the knees, full at the hem, swaying with the hips and legs
+      if(S.body==='cloak'){const back=(i,n)=>{const a=(i+0.5)/n*TAU;return Math.sin(a)>0.35;},cw=(a,ca,sa)=>[['spine003_04',1]];
+        const R=[tr(1.165,0.1,0.07,0.075,0.004,[['spine004_05',1]],{cr:0.02}),tr(1.11,0.178,0.09,0.1,0,sideW([['spine003_04',1]],['shoulderL_08','shoulderR_012',0.4]),{cr:0.04}),tr(0.95,0.2,0.1,0.14,-0.005,[['spine003_04',0.6],['spine001_02',0.4]],{f:0.3,cr:0.07}),
+          tr(0.72,0.225,0.1,0.172,-0.01,legW(0.6,['thighL_022','thighR_027']),{f:0.65,cr:0.09}),tr(0.44,0.25,0.1,0.2,-0.014,legW(0.4,['thighL_022','thighR_027']),{f:1,cr:0.1,dy:(a,ca,sa,k)=>hemJ[k]*1.6})];
+        loft(R,S.c1,{skip:(i,n,k)=>k>=2&&back(i,n)});for(const sx of [-0.07,0.07]){const w=Wt([['spine004_05',1]]),q=[[-0.016,1.15],[0.016,1.15],[0.016,1.118],[-0.016,1.118]].map(([x,y])=>({x:sx+x,y,z:0.088,w,f:0}));quad(q[0],q[1],q[2],q[3],tone('#8a7a5a',1),[0,0,1]);}}
+    }
     const g4=new THREE.BufferGeometry();g4.setAttribute('position',new THREE.BufferAttribute(new Float32Array(CP),3));g4.computeVertexNormals();const nn=g4.attributes.normal.array;
-    for(let i=0;i<CP.length/3;i++){P.push(CP[i*3],CP[i*3+1],CP[i*3+2]);N_.push(nn[i*3],nn[i*3+1],nn[i*3+2]);Cc.push(CC[i*3],CC[i*3+1],CC[i*3+2]);const w=CW[i];for(let k=0;k<4;k++){SI.push(w[0][k]);SW.push(w[1][k]);}}g4.dispose();
+    for(let i=0;i<CP.length/3;i++){P.push(CP[i*3],CP[i*3+1],CP[i*3+2]);N_.push(nn[i*3],nn[i*3+1],nn[i*3+2]);Cc.push(CC[i*3],CC[i*3+1],CC[i*3+2]);const w=CW[i];for(let k=0;k<4;k++){SI.push(w[0][k]);SW.push(w[1][k]);}FL[P.length/3-1]=CF[i];}g4.dispose();
     used.push('cloth');}
 
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(P),3));geo.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(N),3));
   geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(Cc),3));geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(SI,4));geo.setAttribute('skinWeight',new THREE.BufferAttribute(new Float32Array(SW),4));
+  {const fl=new Float32Array(P.length/3);for(const k in FL)fl[k]=FL[k]||0;geo.setAttribute('aFlow',new THREE.BufferAttribute(fl,1));}   // how freely each point of cloth stirs
   const ident=new THREE.Matrix4(),mesh=new THREE.SkinnedMesh(geo,CHAR3.mat);mesh.frustumCulled=false;tRoot.add(mesh);mesh.bind(skel,ident);
   tRoot.scale.setScalar(19/bodyH);tRoot.rotation.y=Math.PI/2;dRoot.rotation.y=Math.PI/2;
   const wrap=new THREE.Group();wrap.add(tRoot);wrap.add(dRoot);V3.scene.add(wrap);
@@ -4132,6 +4249,33 @@ function fieldDress3(gb,f,ox,oy){const inC=(x,y)=>x>=ox&&y>=oy&&x<ox+CH&&y<oy+CH
    A sagging hulk sitting on its rims (or its belly where a wheel's gone), doors hanging or missing, glass gone, the roof
    caved in or burnt through, the bonnet up or off over a gutted engine bay, rust eaten through the panels, sand drifted
    against one side. Rust or burnt-out colours, every panel its own shade. Same size and collision as before (70 by 34). */
+/* a crash site on the road: the vehicle itself (the derelict-car model for cars, the truck models for trucks, rusted or burnt out),
+   lying as it ended up (slewed, on its side, on its roof), and around it what came off: panels, glass, a wheel, an oil stain,
+   cargo spilt from a truck, and black skid marks on the road leading to it. */
+function crashSite3(gb,w){const r=rng(w.seed||7),cs=Math.cos(w.rot),sn=Math.sin(w.rot),gy=landY3(w.x,w.y),D=CARS[w.kind]||CARS.ute,truck=D.len>70;
+  if(!truck&&!w.roll){wreck3(gb,Object.assign({},w,{w:D.len*1.05,h:D.wid*1.05}));}
+  else{const fake={def:D,id:w.id,wrecked:!!w.burnt,type:w.kind},src=carModel3(fake),P=src.p,Cl=src.c,rl=w.roll||0,cr=Math.cos(rl),sr=Math.sin(rl);let lift=1e9;for(let i=0;i<P.length;i+=3)lift=Math.min(lift,P[i+1]*cr-P[i+2]*sr);lift=-lift;   // lying on whatever side it's on, resting on the ground
+   
+    const rust=!w.burnt;for(let i=0;i<P.length;i+=3){let x=P[i],y=P[i+1],z=P[i+2];const y2=y*cr-z*sr,z2=y*sr+z*cr;y=y2+lift;z=z2;   // over on its side or roof
+      gb.p.push(w.x+x*cs-z*sn,gy+y-1,w.y+x*sn+z*cs);let c0=Cl[i],c1=Cl[i+1],c2=Cl[i+2];if(rust&&((i/9|0)%7===0)){c0=c0*0.6+0.48*0.4;c1=c1*0.6+0.29*0.4;c2=c2*0.6+0.18*0.4;}gb.c.push(c0,c1,c2);}}
+  const L=(dx,dz)=>[w.x+dx*cs-dz*sn,w.y+dx*sn+dz*cs];
+  // the bits that came off
+  const metal=['#3a332c','#6a5a48','#7a4a2e','#5a5650'],n=truck?16:10;
+  for(let k=0;k<n;k++){const a=r()*TAU,d=D.len*0.45+r()*(truck?60:40),px=w.x+Math.cos(a)*d,py=w.y+Math.sin(a)*d,q=r(),gy2=landY3(px,py);
+    if(q<0.45)gb.box(px,gy2,py,2+r()*6,0.4,1.5+r()*4,r()*TAU,col3(metal[Math.floor(r()*4)]).map(v=>v*(0.8+r()*0.3)));   // a piece of panel
+    else if(q<0.7)gb.box(px,gy2,py,0.8+r()*1.6,0.2,0.8+r()*1.4,r()*TAU,col3('#8a9a9c').map(v=>v*(0.8+r()*0.3)));   // glass
+    else if(q<0.82)gb.wheel(px,gy2+0.6,py,3.6+r()*1.2,1.5,r()*TAU,10,col3('#1e1a17'),col3('#3a332c'));   // a wheel come off, lying flat
+    else gb.lump(px,gy2-0.2,py,1.5+r()*2,0.8+r()*0.8,r()*TAU,col3('#5a5650'));}
+  // an oil stain under it, and spilt cargo beside a truck
+  {const [ox,oz]=L((r()-0.5)*D.len*0.4,(r()-0.5)*8),o=landY3(ox,oz)+0.15,R0=6+r()*6,N=8,pts=[];for(let k=0;k<N;k++){const a=k/N*TAU;pts.push([ox+Math.cos(a)*R0*(0.7+r()*0.5),o,oz+Math.sin(a)*R0*(0.7+r()*0.5)]);}for(let k=0;k<N;k++)gb.tri([ox,o,oz],pts[k],pts[(k+1)%N],col3('#1e1a17'),0,1,0);}
+  if(truck&&w.kind!=='tanker')for(let k=0;k<6+Math.floor(r()*6);k++){const [px,py]=L((r()-0.5)*D.len*0.8,(r()<0.5?-1:1)*(D.wid*0.6+r()*30)),gy2=landY3(px,py);
+    if(r()<0.6)gb.box(px,gy2,py,6+r()*5,5+r()*4,6+r()*4,r()*TAU,col3('#7a5a3c').map(v=>v*(0.8+r()*0.3)));else gb.cyl(px,gy2,py,4,10,10,col3(['#3f5a6a','#6a3a2a','#5a5a4a'][Math.floor(r()*3)]));}
+  // skid marks on the road behind where it came off
+  if(w.skid){const ri=roadInfo(w.x,w.y);if(ri.r>=0){const R=roads[ri.r];const a=Math.atan2(R.ys[Math.min(R.n-1,ri.i+1)]-R.ys[ri.i],R.xs[Math.min(R.n-1,ri.i+1)]-R.xs[ri.i])*(1);
+      const dir=((Math.cos(w.rot)*Math.cos(a)+Math.sin(w.rot)*Math.sin(a))>=0?1:-1),ux=Math.cos(a)*dir,uy=Math.sin(a)*dir,len=80+r()*120;
+      for(const off of [-D.wid*0.4,D.wid*0.4]){const segs=8;for(let k=0;k<segs;k++){const t0=k/segs,t1=(k+1)/segs,cv=(t)=>Math.sin(t*2)*12*(r()<0.5?1:1);
+          const p0x=w.x-ux*len*(1-t0)+(-uy)*(off+cv(t0)),p0y=w.y-uy*len*(1-t0)+ux*(off+cv(t0)),p1x=w.x-ux*len*(1-t1)+(-uy)*(off+cv(t1)),p1y=w.y-uy*len*(1-t1)+ux*(off+cv(t1));
+          const g0=landY3(p0x,p0y)+0.25,g1=landY3(p1x,p1y)+0.25,hw=1.1;gb.quad([p0x-uy*hw,g0,p0y+ux*hw],[p0x+uy*hw,g0,p0y-ux*hw],[p1x+uy*hw,g1,p1y-ux*hw],[p1x-uy*hw,g1,p1y+ux*hw],col3('#1a1715').map(v=>v*(0.8+0.4*t1)),[p0x,g0+10,p0y]);}}}}}
 function wreck3(gb,w){const r=rng(hash2(Math.round(w.x),Math.round(w.y))+7),L=w.w,Wd=w.h,hw=Wd/2,burnt=w.burnt,c=Math.cos(w.rot),s=Math.sin(w.rot),gy=landY3(w.x,w.y);
   const kind=r()<0.6?'sedan':r()<0.5?'ute':'wagon',lost=r()<0.45?Math.floor(r()*4):-1,tx=(r()-0.5)*0.06,tz=(lost>=0?(lost%2?1:-1):r()-0.5)*0.08;   // a wheel gone: that corner sags
   const P=(x,y,z)=>{const sag=(lost===0&&x>0&&z>0)||(lost===1&&x>0&&z<0)||(lost===2&&x<0&&z>0)||(lost===3&&x<0&&z<0)?-2.5:0;return [w.x+x*c-z*s,gy+y+x*tx+z*tz+sag,w.y+x*s+z*c];};
@@ -4191,7 +4335,7 @@ function objectsMesh3(c,gb0){const ox=c.cx*CH,oy=c.cy*CH,gb=gb0||new GB(),pal=RO
     else if(form<0.88){for(const sg of [-1,1]){const a=k.rot+Math.PI/2,dx=Math.cos(a)*R*0.22*sg,dz=Math.sin(a)*R*0.22*sg;gb.rock(k.x+dx,y-R*0.12,k.y+dz,R*0.62,R*0.8,k.rot+sg,col,null,r()*1e6);}}   // a boulder split in two
     else gb.rock(k.x,y-R*0.12,k.y,R,R*0.75,k.rot,col,k.pts,r()*1e6);
     for(let j=0;j<2+Math.floor(r()*3);j++){const a=r()*TAU,d=R*(1.05+r()*0.6),s0=R*(0.12+r()*0.16);gb.rock(k.x+Math.cos(a)*d,y-s0*0.2,k.y+Math.sin(a)*d,s0,s0*0.7,r()*TAU,col3(pal[Math.floor(r()*pal.length)]),null,r()*1e6);}}   // stones scattered round it
-  for(const w of c.wrecks)wreck3(gb,w);   // derelict cars
+  for(const w of c.wrecks)if(w.road)crashSite3(gb,w);else wreck3(gb,w);   // derelict cars
   for(const d of c.decor){const y=landY3(d.x,d.y),s=d.s,r=rng(hash2(Math.round(d.x*3),Math.round(d.y*5))),pick=a=>col3(a[Math.floor(r()*a.length)],0.9+r()*0.18);
     if(d.kind==='spinifex'){const n=9+Math.floor(r()*5),base=pick(['#b4a04e','#a89646','#bfae5c','#9c9250']),tip=col3('#d2c27a');   // a spiky hummock: a low dome bristling with blades
       gb.lump(d.x,y-1,d.y,10*s,5*s,d.rot,base.map(v=>v*0.85),null,base);
@@ -5045,7 +5189,7 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   if(V3.lastB&&Math.hypot(b.x-V3.lastB.x,b.y-V3.lastB.y)>3000){reset3D();V3.yaw=car?car.a:G.hero.a;}V3.lastB={x:b.x,y:b.y};   // a long jump (a new game, a load): rebuild round the new spot
   const dpr=Math.min(window.devicePixelRatio||1,1.5);if(V3.w!==W||V3.h!==H||V3.dpr!==dpr){V3.w=W;V3.h=H;V3.dpr=dpr;R.setPixelRatio(dpr);R.setSize(W,H,false);V3.canvas.style.width=W+'px';V3.canvas.style.height=H+'px';cam.aspect=W/H;cam.updateProjectionMatrix();}
   for(const [,e] of V3.locs)if(e.m&&e.m.userData&&e.m.userData.barr)e.m.userData.barr.visible=townClosed(e.o);   // gates open once you've earned it
-  if(V3.mats.water.userData.u)V3.mats.water.userData.u.wt.value=G.time||0;   // the slicks drift
+  if(V3.mats.water.userData.u)V3.mats.water.userData.u.wt.value=G.time||0;if(CHAR3.mat&&CHAR3.mat.userData.u){const u=CHAR3.mat.userData.u,W=G.wind||{s:20};u.uT.value=G.time||0;u.uWind.value.set(0.25+W.s/60,0.15);}   // the slicks drift
   if(V3.viewKey!==SETTINGS.viewDist){V3.viewKey=SETTINGS.viewDist;applyView3();}
   stream3(b.x,b.y);farGround3(b.x,b.y);syncDynamic3();syncLoot3(b);syncFX3(b);
   for(const [,e] of V3.locs)if(e.m&&e.m.userData.roofs)e.m.userData.roofs.visible=!V3.noRoofs&&!e.o.bld.some(bd=>!bd.tank&&bd.roofA!==undefined&&bd.roofA<0.5);   // step indoors and the roof lifts off, as in 2D
@@ -5256,7 +5400,7 @@ function driveHero(car,inp,dt){
     if(thr>0||car.vf<=5)thr=Math.min(0,thr)*(car.vf>5?1:0);boost=false;car.cruise=null;}   // you can still brake and coast, but there's no drive
   G.deadMsgT=(G.deadMsgT||0)-dt;if(inp.brake){thr=0;boost=false;}
   if(boost&&car.fuel>3)thr=1;else boost=false;
-  if(car.fuel<=0&&thr>0){thr=0;if(!G.warnedDry){G.warnedDry=true;showMsg('Out of fuel. Get out and find some.',2.6);}}
+  if(car.fuel<=0){if(thr>0||(thr<0&&car.vf<=5)){if(!G.warnedDry){G.warnedDry=true;showMsg('Out of fuel. The engine’s died. Get out and find some.',2.8);}}if(thr>0||car.vf<=5)thr=Math.min(0,thr)*(car.vf>5?1:0);boost=false;car.cruise=null;car.vf*=Math.exp(-0.35*dt);car.vx*=Math.exp(-0.35*dt);car.vy*=Math.exp(-0.35*dt);}   // dead: you can still steer and brake as it rolls to a stop
   if(car.fuel>1)G.warnedDry=false;
   const um=upMods(car);if(!dead)car.fuel=Math.max(0,car.fuel-(0.02+Math.max(0,thr)*0.15+(boost?0.6:0))*car.def.burn*um.burn*dt);
   car.stagger-=dt;G.hero.atkCd-=dt;onRoadAt(car);
@@ -5367,7 +5511,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
