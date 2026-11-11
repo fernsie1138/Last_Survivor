@@ -178,7 +178,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 
 <div id="hud" class="hidden">
   <div class="gauges" id="gauges">
-    <span>Health</span><div class="bar"><i id="hpBar"></i></div>
+    <span>Health</span><div class="bar" style="position:relative"><i id="hpBar"></i><b id="hpCap" style="position:absolute;right:0;top:0;bottom:0;width:0;background:#a8261a;border-radius:0 3px 3px 0"></b></div>
     <span class="sm">Water</span><div class="bar sm"><i id="waterBar"></i></div>
     <span class="sm">Food</span><div class="bar sm"><i id="foodBar"></i></div>
     <span class="sm">Rest</span><div class="bar sm"><i id="restBar"></i></div>
@@ -242,7 +242,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='6.8';
+const VERSION='6.9';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1268,7 +1268,7 @@ function canCraft(r){const st=myStores();for(const k in r.needs)if(countIn(st,k)
 function craft(r){if(!canCraft(r))return false;const st=myStores();for(const k in r.needs)takeFrom(st,k,r.needs[k]);giveItem(r.make,r.qty);SFX.clank();return true;}
 // put items in your pockets, then the car boot, then on the ground at your feet
 function giveItem(k,n){const h=G.hero,c=heroCar()||carById(G.lastCar);
-  for(let i=0;i<n;i++){if(invWeight(h.inv)+ITEMS[k].kg<=HERO_CAP+1e-6)invAdd(h.inv,k,1);
+  for(let i=0;i<n;i++){if(invWeight(h.inv)+ITEMS[k].kg<=heroCap()+1e-6)invAdd(h.inv,k,1);
     else if(c&&!c.wrecked&&Math.hypot(c.x-h.x,c.y-h.y)<700&&invWeight(c.items)+ITEMS[k].kg<=carCap(c)){invAdd(c.items,k,1);c.touched=true;}
     else addPickup(k,h.x+rand(-25,25),h.y+rand(-25,25));}}
 // ---- prices: what a trader charges and pays depends on how their town sees you ----
@@ -1306,14 +1306,15 @@ function servicesFor(n,car){const role=n.def.role,out=[];
     const worn=car.tw.filter(t=>t<60).length;if(worn)out.push({k:'svc_tyres',name:'Fit '+worn+(worn>1?' new tyres':' new tyre'),val:worn*30});}
   if(role==='mechanic'&&canSpace(G.hero.inv)>1)out.push({k:'svc_cans',name:'Fill your jerry cans (+'+Math.round(canSpace(G.hero.inv))+'%)',val:Math.ceil(canSpace(G.hero.inv)*0.8)});
   if(role==='publican'){if(G.hero.water<95||G.hero.food<95)out.push({k:'svc_meal',name:'A hot meal and a jug of water',val:8});out.push({k:'svc_bunk',name:'A bunk for the night',val:12});}
-  if(role==='doctor'&&G.hero.hp<99)out.push({k:'svc_heal',name:'Patch you up ('+Math.round(G.hero.hp)+'% → 100%)',val:Math.max(5,Math.ceil((100-G.hero.hp)*0.25))});
+  if(role==='doctor'&&G.hero.hp<heroHpCap()-1)out.push({k:'svc_heal',name:'Patch you up ('+Math.round(G.hero.hp)+'% → '+heroHpCap()+'%)',val:Math.max(5,Math.ceil((heroHpCap()-G.hero.hp)*0.25))});
+  if(role==='doctor'&&n.loc&&n.loc.type==='city'&&(heroInj().length||heroCapLoss()>0))out.push({k:'svc_injury',name:'Treat your injuries ('+(heroInj().map(i=>INJURIES[i.type].name.toLowerCase()).join(', ')||'mending')+'), then rest here to mend: a day per injury',val:30+heroCapLoss()*4});   // a city doctor's care
   return out;}
 function applyService(k,car){const h=G.hero;
   if(k.startsWith('svc_motor_')){fitUpgrade(car,k.slice(10));car.engine=100;SFX.clank();showMsg('The mechanic drops in the '+MOTORS[k.slice(10)].name,2.6);}
   if(k==='svc_fuel')car.fuel=100;else if(k==='svc_body')car.cond=100;else if(k==='svc_engine')car.engine=100;else if(k==='svc_susp')car.susp=100;
   else if(k==='svc_tyres'){for(let i=0;i<4;i++)if(car.tw[i]<60)car.tw[i]=100;}
   else if(k==='svc_cans')setFill(G.hero.inv,(G.hero.inv.jerrycan||0)*CAN_CAP);
-  else if(k==='svc_meal'){h.water=100;h.food=100;}else if(k==='svc_heal')h.hp=100;
+  else if(k==='svc_meal'){h.water=100;h.food=100;}else if(k==='svc_heal')h.hp=heroHpCap();else if(k==='svc_injury'){G.pendingClinic=true;}
   if(car)car.touched=true;}
 
 /* ===== personal armour, and engines, carburettors and exhausts for the car =====
@@ -1489,10 +1490,10 @@ function exitCar(force){const c=heroCar(),h=G.hero;if(!c)return;if(!force&&swapL
   SFX.door();document.body.classList.add('onfoot');
 }
 function hurtHero(n,src){if(n<=0||G.god)return;if(window.__dmg)window.__dmg[src||'?']=(window.__dmg[src||'?']||0)+n;
-  const h=G.hero,A=heroArmour();if(A)n*=1-A.cut;h.hp-=n;h.flash=1;G.hurt=Math.min(1,G.hurt+n/25);G.shake=Math.max(G.shake,Math.min(16,3+n*0.5));}
+  const h=G.hero,A=heroArmour();if(A)n*=1-A.cut;h.hp-=n;h.flash=1;maybeInjure(n,src);G.hurt=Math.min(1,G.hurt+n/25);G.shake=Math.max(G.shake,Math.min(16,3+n*0.5));}
 function updateHeroOnFoot(dt,inp){
   // walking pace is deliberately unhurried
-  const h=G.hero,A=heroArmour(),sp=h.crouch?28:inp.sprint?100*(1-(A?A.slow:0)):58,k=Math.min(1,dt*10);h.atkCd-=dt;h.swing=Math.max(0,h.swing-dt);   // cooldowns run on foot; driveHero runs them in the car
+  const h=G.hero,A=heroArmour(),lg=injFx().walk,sp=(h.crouch?28:inp.sprint?100*(1-(A?A.slow:0)):58)*lg,k=Math.min(1,dt*10);h.atkCd-=dt;h.swing=Math.max(0,h.swing-dt);   // cooldowns run on foot; driveHero runs them in the car
   const sf=slopeFactor(h.x,h.y,inp.mx,inp.my,false)*(terrainAt(h.x,h.y)===T.DRY?0.85:1);   // climbing is slow going, and so is soft sand
   h.vx+=(inp.mx*sp*sf-h.vx)*k;h.vy+=(inp.my*sp*sf-h.vy)*k;
   h.x+=h.vx*dt;h.y+=h.vy*dt;h.speed=Math.hypot(h.vx,h.vy);
@@ -1518,7 +1519,7 @@ function hasTool(car){return !!(G.hero.inv.toolkit||(car&&car.items.toolkit));}
 function useItem(k,inv,car){const it=ITEMS[k],h=G.hero;if(!it||!inv[k])return false;
   if(it.use==='drink'){if(h.water>=99)return say('You’re not thirsty');h.water=Math.min(100,h.water+it.val);SFX.slosh();}
   else if(it.use==='eat'){if(h.food>=99)return say('You’re not hungry');h.food=Math.min(100,h.food+it.val);SFX.pick();}
-  else if(it.use==='heal'){if(h.hp>=99)return say('You’re not hurt');h.hp=Math.min(100,h.hp+it.val);SFX.pick();}
+  else if(it.use==='heal'){if(h.hp>=heroHpCap()-1)return say(heroCapLoss()?'That’s as good as it gets until a doctor sees your injuries':'You’re not hurt');h.hp=Math.min(heroHpCap(),h.hp+it.val);SFX.pick();}
   else if(it.use==='fuel'){if(!car)return say('No car to pour it into');const f=canFill(inv);if(f<=0.05)return say('Your jerry cans are empty');if(car.fuel>=99)return say('The tank is full');
     const amt=Math.min(f,100-car.fuel);car.fuel+=amt;setFill(inv,f-amt);car.touched=true;SFX.slosh();popText(car.x,car.y-30,'+ '+Math.round(amt)+'% fuel','#f2a03d');return true;}   // the cans stay with you, emptier
   else if(it.use==='wear'){h.armour=h.armour===k?null:k;say(h.armour?'You strap on the '+it.name.toLowerCase():'You take off the armour');return true;}
@@ -1576,9 +1577,50 @@ function getActions(){
 // loose items on the ground: walk over them to pick them up, if you can carry them
 function collectPickups(){const h=G.hero;
   for(const k of G.pickups){if(k.dead)continue;if(Math.hypot(k.x-h.x,k.y-h.y)>h.r+18)continue;
-    const it=ITEMS[k.item];if(invWeight(h.inv)+it.kg>HERO_CAP+1e-6){if(!k.warned){k.warned=true;showMsg('Too heavy to carry: '+it.name,1.8);}continue;}
+    const it=ITEMS[k.item];if(invWeight(h.inv)+it.kg>heroCap()+1e-6){if(!k.warned){k.warned=true;showMsg('Too heavy to carry: '+it.name,1.8);}continue;}
     invAdd(h.inv,k.item,1);popText(k.x,k.y,'+ '+it.name,'#f2a03d');k.dead=true;if(k.id)G.removed.add(k.id);SFX.pick();}
 }
+
+/* ===== injuries: on top of health =====
+   Any hit you take in a fight (on foot or in a car) or a heavy crash has a one-in-ten chance of an injury. An injury takes its rating
+   off your health and off your health's ceiling: bandages and first-aid kits can't heal you past that ceiling (shown red at the right
+   of the health bar) until a city doctor treats you. Each kind of injury has its side effects; a second of the same kind lowers the
+   ceiling again but doesn't double its side effects. A doctor's treatment clears the injuries (and their side effects) at once;
+   your ceiling comes back up a day per injury while you rest in their care, and if you leave early it stays where it's got to.
+   (Room is left for more injuries, permanent ones and diseases later: add them to INJURIES.) ===== */
+const INJURIES={
+  arm:{name:'Fractured arm',rating:10,fx:{wobble:1,weapon:0.65}},
+  collar:{name:'Fractured collarbone',rating:10,fx:{wobble:1,carry:2/3}},
+  ribs:{name:'Fractured ribs',rating:10,fx:{wobble:1,carry:2/3}},
+  leg:{name:'Fractured leg',rating:15,fx:{walk:0.5,carry:0.5}},
+  concussion:{name:'Concussion',rating:15,fx:{wobble:1,view:'near'}}};
+function heroInj(){const h=G.hero;return h.injuries||(h.injuries=[]);}
+function heroCapLoss(){return G.hero.capLoss||0;}
+function heroHpCap(){return Math.max(10,Math.round(100-heroCapLoss()));}
+// the side effects of what you have, one lot per kind
+function injFx(){const kinds=[...new Set(heroInj().map(i=>i.type))],fx={wobble:0,weapon:1,carry:1,walk:1,view:null};
+  for(const k of kinds){const e=INJURIES[k]&&INJURIES[k].fx;if(!e)continue;if(e.wobble)fx.wobble=1;if(e.weapon)fx.weapon*=e.weapon;if(e.carry)fx.carry*=e.carry;if(e.walk)fx.walk*=e.walk;if(e.view)fx.view=e.view;}return fx;}
+function heroCap(){return Math.round(HERO_CAP*injFx().carry*10)/10;}   // how much you can carry
+function injure(src,type){const h=G.hero;type=type||Object.keys(INJURIES)[Math.floor(Math.random()*Object.keys(INJURIES).length)];const I=INJURIES[type];
+  heroInj().push({type,rating:I.rating,when:G.clock,src});h.capLoss=(h.capLoss||0)+I.rating;h.hp=Math.max(1,Math.min(h.hp-I.rating,heroHpCap()));
+  showMsg('Injured: '+I.name.toLowerCase()+'. Your health can’t go above '+heroHpCap()+'% until a doctor sees to it',3.2);SFX.hit&&SFX.hit(0.8);h.flash=1;return type;}
+// a hit you take: in a fight or a heavy crash, one in ten leaves an injury
+const INJ_NOT=['thirst','hunger','exhaustion','starv','test','fire','burn','cold','heat'];   // what can't break a bone: going without, and the elements
+function maybeInjure(n,src){if(n<=0||G.god)return;const s=String(src||'');if(INJ_NOT.some(k=>s.includes(k)))return;if(Math.random()<0.1)injure(s);}   // fights, being run down, crashes, animals
+// a doctor's care: injuries cleared now; the ceiling climbs back a day per injury while you stay
+function startClinic(n){const h=G.hero,nInj=heroInj().length;if(!nInj&&!heroCapLoss())return;const o=n.loc,b=o&&o.bld&&o.bld[n.def.work]||null,bx=b?b.x:n.x,by=b?b.y:n.y;
+  G.clinic={days:Math.max(1,nInj),rate:heroCapLoss()/Math.max(1,nInj),loc:o?o.id:null,t:0,b};if(b)b.roofA=0;   /* the clinic's roof off, so you can see yourself in bed */h.injuries=[];
+  h.lying={x:bx+(b?Math.cos(b.rot)*6:0),y:by+(b?Math.sin(b.rot)*6:0),head:b?b.rot-Math.PI/2:0,fromX:h.x,fromY:h.y,len:14};h.inCar=null;h.x=h.lying.x;h.y=h.lying.y;G.cam.x=h.x;G.cam.y=h.y;   // inside, so the roof lifts off to show you
+  state='clinic';showClinic();}
+function showClinic(){const h=G.hero,C=G.clinic;let el=document.getElementById('clinicBox');if(!el){el=document.createElement('div');el.id='clinicBox';el.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 40px);transform:translateX(-50%);background:rgba(28,22,18,.88);color:#efe2c4;border:1px solid rgba(239,226,196,.4);border-radius:10px;padding:12px 16px;font:14px sans-serif;text-align:center;z-index:30;min-width:260px';
+    el.innerHTML='<div id="clinicTxt"></div><button id="clinicLeave" style="margin-top:8px;font:inherit;padding:6px 16px">Leave the clinic</button>';document.body.appendChild(el);document.getElementById('clinicLeave').addEventListener('click',e=>{e.stopPropagation();leaveClinic();});}
+  el.style.display='block';}
+function clinicTick(dt){const C=G.clinic,h=G.hero;if(!C)return;if(C.b)C.b.roofA=0;const mins=dt*CLOCK_RATE/60*10;G.clock+=mins;   // time runs ten times its usual pace while you mend
+  h.capLoss=Math.max(0,(h.capLoss||0)-C.rate*mins/DAY);h.hp=Math.min(heroHpCap(),h.hp+mins/DAY*60);h.rest=Math.min(100,h.rest+mins/60*4);h.food=Math.max(20,h.food-mins/60*0.4);h.water=Math.max(20,h.water-mins/60*0.6);
+  const t=document.getElementById('clinicTxt');if(t)t.textContent='Resting in the doctor’s care. Health '+Math.round(h.hp)+'%, your ceiling back to '+heroHpCap()+'%'+(h.capLoss>0.5?' (about '+(h.capLoss/C.rate).toFixed(1)+' days to go)':'. You’re mended.');
+  if(h.capLoss<=0.01){h.capLoss=0;}if(typeof updateHud==='function')updateHud();}
+function leaveClinic(){const h=G.hero;if(!G.clinic)return;G.clinic=null;h.capLoss=Math.max(0,Math.round((h.capLoss||0)*10)/10);if(h.lying)getUp();state='play';const el=document.getElementById('clinicBox');if(el)el.style.display='none';
+  showMsg(h.capLoss>0?'You leave the clinic. Your health can reach '+heroHpCap()+'% now':'You leave the clinic fully mended',2.6);}
 
 /* ===== effects and pickups ===== */
 function addPickup(item,x,y,id){G.pickups.push({item,x,y,id,t:Math.random()*TAU});}
@@ -2057,7 +2099,7 @@ function dctx(){const n=talk.npc,o=n.loc,h=G.hero,day=Math.floor(G.clock/DAY);
     daily:k=>!G.flags[k+'_'+o.id+'_'+day],markDaily:k=>{G.flags[k+'_'+o.id+'_'+day]=true;},
     has:(k,q)=>(h.inv[k]||0)>=(q||1),
     take:(k,q)=>{invTake(h.inv,k,q||1);},
-    give:(k,q)=>{for(let i=0;i<(q||1);i++){if(invWeight(h.inv)+ITEMS[k].kg<=HERO_CAP+1e-6)invAdd(h.inv,k,1);
+    give:(k,q)=>{for(let i=0;i<(q||1);i++){if(invWeight(h.inv)+ITEMS[k].kg<=heroCap()+1e-6)invAdd(h.inv,k,1);
       else if(car&&invWeight(car.items)+ITEMS[k].kg<=carCap(car)){invAdd(car.items,k,1);car.touched=true;}
       else addPickup(k,h.x+rand(-25,25),h.y+rand(-25,25));}popText(h.x,h.y-30,'+ '+ITEMS[k].name+(q>1?' ×'+q:''),'#f2a03d');},
     reveal:id=>{const was=G.known.has(id);G.known.add(id);if(!was)setTimeout(()=>showMsg('Marked on your map: '+LOCS[id].name,2.4),0);return LOCS[id];},
@@ -2275,11 +2317,12 @@ function updateFoe(f,dt){
 // ---- attacks ----
 function missChance(W,dist){return clamp(dist/W.range*0.9-0.08,0.03,0.85);}   // point blank: almost always hits; at the edge of range: mostly misses
 function fireWeapon(src,W,a,extraSpread,dist,tr){const sx=src.x+Math.cos(a)*14,sy=src.y+Math.sin(a)*14;
-  for(let i=0;i<W.pellets;i++){let aa=a+(Math.random()-0.5)*(W.spread+(extraSpread||0))*2;const sp=W.bow?680:W.pellets>1?820:1100;
+  const armHurt=(src===G.hero||src.driver==='hero')&&injFx().weapon<1;   // a broken arm: wilder aim
+  for(let i=0;i<W.pellets;i++){let aa=a+(Math.random()-0.5)*(W.spread+(extraSpread||0)+(armHurt?0.08:0))*2;const sp=W.bow?680:W.pellets>1?820:1100;
     // a single bullet at a known distance: decide hit or miss, and a miss goes clear of the target
     if(W.pellets===1&&dist>0){if(Math.random()<missChance(W,dist))aa=a+(Math.random()<0.5?-1:1)*(Math.asin(Math.min(1,((tr||10)+10)/dist))+Math.random()*0.08);
       else aa=a+(Math.random()-0.5)*Math.min(W.spread,Math.atan2((tr||10)*0.6,dist))*2;}
-    G.bullets.push({x:sx,y:sy,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,life:W.range/sp,dmg:W.dmg,arrow:!!W.bow,owner:src.kind==='foe'||src.driver==='raider'?'foe':'hero'});}
+    G.bullets.push({x:sx,y:sy,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,life:W.range/sp,dmg:W.dmg*(src===G.hero||src.driver==='hero'?injFx().weapon:1),arrow:!!W.bow,owner:src.kind==='foe'||src.driver==='raider'?'foe':'hero'});}
   if(W.bow){addNoise(src.x,src.y,W.noise);SFX.swing();return;}
   part({kind:'fire',x:sx,y:sy,vx:0,vy:0,life:.07,max:.07,size:9,drag:0,col:'#ffe08a'});addNoise(src.x,src.y,W.noise);SFX.gun(W);}
 function autoAim(range,arc){const h=G.hero;let best=null,bs=1e9;
@@ -2319,7 +2362,7 @@ function heroAttack(){const h=G.hero;if(h.inCar||h.atkCd>0||state!=='play')retur
     if(d>W.range+f.r+h.r||Math.abs(angDiff(Math.atan2(dy,dx),h.a))>W.arc/2)continue;
     const unaware=f.state!=='alert'&&!canSee(f,h);
     if(unaware){hitFoe(f,f.hp+1,dx/d,dy/d,W.knock*0.3);popText(f.x,f.y-24,'Takedown','#f2a03d');quiet=true;}
-    else hitFoe(f,W.dmg,dx/d,dy/d,W.knock);hit=true;}
+    else hitFoe(f,W.dmg*injFx().weapon,dx/d,dy/d,W.knock);hit=true;}
   // hitting townsfolk is assault: the town remembers, and its guards come for you
   for(const n of G.npcs){const dx=n.x-h.x,dy=n.y-h.y,d=Math.hypot(dx,dy);if(d<W.range+n.r+h.r&&Math.abs(angDiff(Math.atan2(dy,dx),h.a))<W.arc/2){assault(n);hit=true;}}
   for(const a of G.animals){if(a.state==='dead')continue;const dx=a.x-h.x,dy=a.y-h.y,d=Math.hypot(dx,dy);
@@ -2567,11 +2610,11 @@ function compAmmo(c){const W=c.weapon&&ITEMS[c.weapon]?WEAPONS[ITEMS[c.weapon].w
 function compPackChanged(){const c=G.comp;if(!c)return;if(c.weapon&&!(c.inv[c.weapon]>0))c.weapon=null;
   if(!c.weapon){let best=null,bs=-1;for(const k in c.inv){const it=ITEMS[k];if(!it||!it.weapon||!(c.inv[k]>0))continue;const W=WEAPONS[it.weapon],s=W.gun?(c.inv[W.ammo]>0?W.dmg+100:-1):W.dmg;if(s>bs){bs=s;best=k;}}c.weapon=best;}}
 // hand over (it leaves your pack and goes into theirs), top up, take back
-function giveCompWeapon(k){const c=G.comp,h=G.hero;if(!c||!h.inv[k])return false;if(!invMove(h.inv,c.inv,k,1,HERO_CAP))return false;c.weapon=k;
+function giveCompWeapon(k){const c=G.comp,h=G.hero;if(!c||!h.inv[k])return false;if(!invMove(h.inv,c.inv,k,1,heroCap()))return false;c.weapon=k;
   const W=WEAPONS[ITEMS[k].weapon];if(W.gun&&!(c.inv[W.ammo]>0)&&h.inv[W.ammo])giveCompAmmo(W.ammo);compPackChanged();return true;}
-function giveCompAmmo(a){const c=G.comp,h=G.hero;if(!c)return 0;return invMove(h.inv,c.inv,a,Math.min(h.inv[a]||0,30),HERO_CAP);}
+function giveCompAmmo(a){const c=G.comp,h=G.hero;if(!c)return 0;return invMove(h.inv,c.inv,a,Math.min(h.inv[a]||0,30),heroCap());}
 function takeCompWeapon(){const c=G.comp;if(!c||!c.weapon)return;const k=c.weapon,W=WEAPONS[ITEMS[k].weapon];returnToHero(k,1,c.inv);if(W.gun&&c.inv[W.ammo])returnToHero(W.ammo,c.inv[W.ammo],c.inv);c.weapon=null;compPackChanged();}
-function returnToHero(k,n,from){const h=G.hero;for(let i=0;i<n;i++){if(from){if(!(from[k]>0))break;invTake(from,k,1);}if(invWeight(h.inv)+ITEMS[k].kg<=HERO_CAP+1e-6)invAdd(h.inv,k,1);else addPickup(k,h.x+rand(-20,20),h.y+rand(-20,20));}}
+function returnToHero(k,n,from){const h=G.hero;for(let i=0;i<n;i++){if(from){if(!(from[k]>0))break;invTake(from,k,1);}if(invWeight(h.inv)+ITEMS[k].kg<=heroCap()+1e-6)invAdd(h.inv,k,1);else addPickup(k,h.x+rand(-20,20),h.y+rand(-20,20));}}
 // patching them up with your bandages or first-aid kits (the same as they'd do for you)
 function healComp(k){const c=G.comp,h=G.hero;if(!c||!h.inv[k]||ITEMS[k].use!=='heal'||c.hp>=c.maxHp)return false;invTake(h.inv,k,1);c.hp=Math.min(c.maxHp,c.hp+ITEMS[k].val);SFX.pick();
   popText(c.x,c.y-30,'+'+ITEMS[k].val+' '+c.def.name,'#b9d27a');return true;}
@@ -2622,10 +2665,10 @@ function compTick(){const c=G.comp;if(!c||c.state==='down')return;const h=G.hero
     const ok=take('drink')&take('eat');if(ok){c.missed=0;showMsg(c.def.name+' has a drink and a bite from your supplies',2.2);}
     else{c.missed++;if(c.missed>=2)return compLeave('hungry');showMsg(c.def.name+' goes without today. They won’t put up with that for long',2.6);}}
   if(c.abilityT>0||G.fightT>0)return;
-  if(compAbility(c)==='medic'&&h.hp<55&&Math.hypot(h.x-c.x,h.y-c.y)<200){h.hp=Math.min(100,h.hp+25);c.abilityT=90;popText(h.x,h.y-30,c.def.name+' patches you up','#b9d27a');}
+  if(compAbility(c)==='medic'&&h.hp<55&&Math.hypot(h.x-c.x,h.y-c.y)<200){h.hp=Math.min(heroHpCap(),h.hp+25);c.abilityT=90;popText(h.x,h.y-30,c.def.name+' patches you up','#b9d27a');}
   if(compAbility(c)==='mechanic'&&car&&car.speed<5&&Math.hypot(car.x-c.x,car.y-c.y)<300){const parts=['cond','engine','tyres','susp'].sort((a,b)=>car[a]-car[b]),p=parts[0];
     if(car[p]<80){addPart(car,p,15);car.touched=true;c.abilityT=180;popText(car.x,car.y-30,c.def.name+' fixes the '+PARTS[p].toLowerCase(),'#efe2c4');}}
-  if(compAbility(c)==='scrounger'&&Math.random()<0.004){const k=Math.random()<0.5?'water':'jerky';if(invWeight(h.inv)+ITEMS[k].kg<=HERO_CAP){invAdd(h.inv,k,1);c.abilityT=240;popText(h.x,h.y-30,c.def.name+' found '+ITEMS[k].name.toLowerCase(),'#f2a03d');}}
+  if(compAbility(c)==='scrounger'&&Math.random()<0.004){const k=Math.random()<0.5?'water':'jerky';if(invWeight(h.inv)+ITEMS[k].kg<=heroCap()){invAdd(h.inv,k,1);c.abilityT=240;popText(h.x,h.y-30,c.def.name+' found '+ITEMS[k].name.toLowerCase(),'#f2a03d');}}
 }
 
 /* ===== jobs: work people in towns want doing =====
@@ -2679,9 +2722,9 @@ function jobOffer(n){if(!n.loc||n.def.comp||['gatekeeper','guard'].includes(n.de
   return J;}
 function rewardText(rw){return Object.keys(rw).map(k=>rw[k]+' × '+(k==='jerrycan'?'jerry can full of fuel':ITEMS[k].name.toLowerCase())).join(', ');}
 // a jerry can as pay comes full of fuel
-function giveFullCan(){const h=G.hero,car=heroCar()||carById(G.lastCar);let inv=null;if(invWeight(h.inv)+ITEMS.jerrycan.kg<=HERO_CAP+1e-6)inv=h.inv;else if(car&&invWeight(car.items)+ITEMS.jerrycan.kg<=carCap(car)){inv=car.items;car.touched=true;}
+function giveFullCan(){const h=G.hero,car=heroCar()||carById(G.lastCar);let inv=null;if(invWeight(h.inv)+ITEMS.jerrycan.kg<=heroCap()+1e-6)inv=h.inv;else if(car&&invWeight(car.items)+ITEMS.jerrycan.kg<=carCap(car)){inv=car.items;car.touched=true;}
   if(!inv){addPickup('jerrycan',h.x+rand(-25,25),h.y+rand(-25,25));return;}invAdd(inv,'jerrycan',1);setFill(inv,canFill(inv)+CAN_CAP);popText(h.x,h.y-30,'+ Jerry can of fuel','#f2a03d');}
-function payJob(J,c){for(const k in J.reward){if(k==='jerrycan'){for(let i=0;i<J.reward[k];i++)giveFullCan();continue;}if(c)c.give(k,J.reward[k]);else for(let i=0;i<J.reward[k];i++){if(invWeight(G.hero.inv)+ITEMS[k].kg<=HERO_CAP)invAdd(G.hero.inv,k,1);else addPickup(k,body().x+rand(-30,30),body().y+rand(-30,30));}}
+function payJob(J,c){for(const k in J.reward){if(k==='jerrycan'){for(let i=0;i<J.reward[k];i++)giveFullCan();continue;}if(c)c.give(k,J.reward[k]);else for(let i=0;i<J.reward[k];i++){if(invWeight(G.hero.inv)+ITEMS[k].kg<=heroCap())invAdd(G.hero.inv,k,1);else addPickup(k,body().x+rand(-30,30),body().y+rand(-30,30));}}
   changeRep(J.fac,J.rep);G.townJobs=G.townJobs||{};G.townRep=G.townRep||{};G.townJobs[J.town]=(G.townJobs[J.town]||0)+1;G.townRep[J.town]=townStanding(J.town);   // standing with that town
   {const n=G.townJobs[J.town],cap=townJobCap(J.town),nm=LOCS[J.town].name;setTimeout(()=>showMsg(n>=cap?nm+' has nothing more for you. Time to move on':n===1?nm+' trusts you a little now: better work there':n===5?'You’re one of '+nm+'’s own now: their best work is yours':nm+': standing '+townStanding(J.town)+'%',2.6),1600);}
   G.flags['jobdone_'+J.giver+'_'+J.id.split('_').pop()]=true;if(J.marker){G.markers=G.markers.filter(m=>m.id!==J.marker);if(G.waypoint===J.marker)G.waypoint=null;}
@@ -2770,7 +2813,7 @@ function newGame(save){
     for(const s of save.cars||[]){const c=carById(s.id);if(c&&s.canFill)setFill(c.items,s.canFill);}
     G.wreckState=save.wreckState||{};
     const sh=save.hero;G.inside=-1;for(const l of LOCS)if(Math.hypot(sh.x-l.x,sh.y-l.y)<l.rad+400)G.inside=l.id;   // already inside a town: don't greet you again
-    Object.assign(G.hero,{x:sh.x,y:sh.y,a:sh.a||0,hp:sh.hp,water:sh.water??100,food:sh.food??100,rest:sh.rest??100,inv:sh.inv||{},weapon:sh.weapon||null,compass:!!sh.compass,armour:sh.armour||null});setFill(G.hero.inv,sh.canFill||0);G.kills=save.kills||0;
+    Object.assign(G.hero,{x:sh.x,y:sh.y,a:sh.a||0,hp:sh.hp,water:sh.water??100,food:sh.food??100,rest:sh.rest??100,inv:sh.inv||{},weapon:sh.weapon||null,compass:!!sh.compass,armour:sh.armour||null,injuries:sh.injuries||[],capLoss:sh.capLoss||0});setFill(G.hero.inv,sh.canFill||0);G.kills=save.kills||0;
     const c=carById(save.hero.inCar);if(c){c.driver='hero';G.hero.inCar=c.id;}
     if(save.comp&&COMPANIONS[save.comp.type]){const s=save.comp,p=makeComp(s.type,s.x,s.y);Object.assign(p,{hp:s.hp,state:s.state==='down'?'follow':s.state,weapon:s.weapon!==undefined?s.weapon:p.weapon,inv:s.inv||Object.assign(s.weapon?{[s.weapon]:1}:s.weapon===undefined&&s.type==='gunhand'?{revolver:1}:{},s.ammoInv||(s.type==='gunhand'&&s.ammoInv===undefined?{bullets:s.ammo??24}:{})),missed:s.missed||0,fedDay:s.fedDay??p.fedDay,inCar:!!(s.inCar&&G.hero.inCar)});G.comp=p;}
   } else {
@@ -2811,7 +2854,7 @@ function saveData(){
   const cp=G.comp;
   return {v:5,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
     removed:[...G.removed].slice(-800),lastCar:G.lastCar,
-    kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
+    kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
     cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items)}))};
 }
 // ---- saving is to files only (see the save-file code in the UI). Anything the old save slots left on a device is left alone, unused. ----
@@ -3134,7 +3177,7 @@ function tyreHud(c){let el=document.getElementById('tyreBox');if(!el){const at=d
   for(let k of [3,4])if(cells[k])cells[k].style.display='none';}
 function applyMobile(){document.body.classList.toggle('mobile',!!SETTINGS.mobile);}
 function updateHud(){const h=G.hero,car=heroCar(),fc=focusCar();
-  setHud('hpBar','w',Math.max(0,h.hp).toFixed(0)+'%');setHud('hpBar','low',h.hp<30);
+  setHud('hpBar','w',Math.max(0,h.hp).toFixed(0)+'%');setHud('hpBar','low',h.hp<30);{const el=document.getElementById('hpCap');if(el)el.style.width=heroCapLoss().toFixed(1)+'%';}
   for(const k of ['water','food','rest']){setHud(k+'Bar','w',Math.max(0,h[k]).toFixed(0)+'%');setHud(k+'Bar','low',h[k]<25);}
   setHud('clock','text',fmtClock(G.clock));
   setHud('gauges','nocar',!fc);
@@ -3142,7 +3185,7 @@ function updateHud(){const h=G.hero,car=heroCar(),fc=focusCar();
     setHud('condBar','w',Math.max(0,fc.cond).toFixed(0)+'%');setHud('condBar','low',fc.cond<30);
     setHud('carName','text',(car?'Driving the ':'Nearby: ')+fc.def.name);
     setHud('carWarn','text',carProblems(fc).join(', '));tyreHud(fc);}else tyreHud(null);
-  setHud('inv','text','Carrying '+invWeight(h.inv)+' of '+HERO_CAP+' kg'+(h.inv.jerrycan?', jerry cans '+Math.round(canFill(h.inv))+'% of '+h.inv.jerrycan*CAN_CAP+'%':''));
+  setHud('inv','text','Carrying '+invWeight(h.inv)+' of '+heroCap()+' kg'+(h.inv.jerrycan?', jerry cans '+Math.round(canFill(h.inv))+'% of '+h.inv.jerrycan*CAN_CAP+'%':''));
   // fighting on foot: make the Attack button big and easy to hit
   const fighting=!car&&(G.fightT>0||G.foes.some(f=>!f.dead&&f.state==='alert'&&Math.hypot(f.x-h.x,f.y-h.y)<450));
   if(fighting!==hudCache.combat){hudCache.combat=fighting;document.body.classList.toggle('combat',fighting);}
@@ -3218,7 +3261,7 @@ function boilBilly(){const h=G.hero;if(!h.inv.billy_full)return;if(G.foes.some(f
   for(let i=0;i<10;i++)part({kind:'fire',x:h.x+15+rand(-4,4),y:h.y+rand(-4,4),vx:0,vy:rand(-12,0),life:rand(.4,.8),max:.8,size:rand(4,7),grow:-5,drag:2,col:'#ffb347',lift:3});smoke(h.x+15,h.y,6);   // the little fire
   invTake(h.inv,'billy_full',1);invAdd(h.inv,'billy',1);invAdd(h.inv,'water',1);SFX.pick();showMsg('An hour by the fire: the billy’s boiled. A bottle of clean water. '+fmtClock(G.clock).split(', ')[1],3);}
 function doBedRest(hours,bed){const h=G.hero,rate=bedRate(bed),risk=bedRisk(bed);let slept=0,woken=false;
-  for(let i=0;i<hours;i++){G.clock+=60;slept++;h.rest=Math.min(100,h.rest+rate);h.hp=Math.min(h.maxHp||100,h.hp+(bed.b.ruined?1:3));
+  for(let i=0;i<hours;i++){G.clock+=60;slept++;h.rest=Math.min(100,h.rest+rate);h.hp=Math.min(heroHpCap(),h.hp+(bed.b.ruined?1:3));
     h.water=Math.max(0,h.water-2.5);h.food=Math.max(0,h.food-1.25);if(h.water<=0)h.hp-=8;if(h.food<=0)h.hp-=3;if(Math.random()<risk){woken=true;break;}}
   getUp();state='play';hidePanel();
   if(woken){const d=bed.b.doorOut;for(let k=0;k<2;k++)spawnLooseFoe(d.x+rand(-30,30),d.y+rand(-30,30),true);G.encActive=true;
@@ -3248,7 +3291,7 @@ function renderWork(){let html='';
     towns.map(id=>{const n=G.townJobs[id]||0,cap=townJobCap(id);return standBar(LOCS[id].name,townStanding(id),false,'('+n+' of '+cap+' jobs)');}).join(''):'<div class="stats">You haven’t worked for any town yet.</div>');
   $('invBody').innerHTML=html;}
 function otherInv(){if(!invOther)return null;if(invOther.kind==='comp')return G.comp?G.comp.inv:null;return invOther.kind==='car'?invOther.car.items:invOther.box.items;}
-function otherCap(){return invOther&&invOther.kind==='car'?carCap(invOther.car):invOther&&invOther.kind==='comp'?HERO_CAP:undefined;}
+function otherCap(){return invOther&&invOther.kind==='car'?carCap(invOther.car):invOther&&invOther.kind==='comp'?heroCap():undefined;}
 function otherTouched(){if(!invOther)return;if(invOther.kind==='comp')compPackChanged();else if(invOther.kind==='car')invOther.car.touched=true;else boxChanged(invOther.box);}
 function otherName(){if(!invOther)return '';if(invOther.kind==='comp')return G.comp?G.comp.def.name+'’s pack':'';if(invOther.kind==='car')return 'Boot of the '+invOther.car.def.name;
   return {crate:'Wooden crate',locker:'Rusted locker',esky:'Old esky',bag:'Raider’s bag'}[invOther.box.kind];}
@@ -3268,9 +3311,11 @@ function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
   return '<div class="irow"><i style="background:'+it.icon+'"></i><span class="nm">'+it.name+(n>1?' ×'+n:'')+'<small>'+(Math.round(it.kg*n*10)/10)+' kg</small></span>'+b+'</div>';}
 function renderInv(){$('invTitle').textContent=workMode?'Work':'Gear';if(workMode)return renderWork();const h=G.hero,o=otherInv(),car=invCar();let html='';
   html+='<div class="stats">Health '+Math.round(h.hp)+'%, water '+Math.round(h.water)+'%, food '+Math.round(h.food)+'%, rest '+Math.round(h.rest)+'%. '+fmtClock(G.clock)+'.</div>';
+  {const I=heroInj(),fx=injFx();if(I.length||heroCapLoss()>0)html+='<div class="stats" style="color:#e8a090"><b>Injuries:</b> '+(I.length?I.map(i=>INJURIES[i.type].name+' ('+i.rating+')').join(', '):'none now, still mending')+'. Your health can’t go above '+heroHpCap()+'% until a city doctor treats you.'+
+    (fx.wobble?' Your steering wobbles.':'')+(fx.weapon<1?' You fight less well.':'')+(fx.carry<1?' You can carry only '+heroCap()+' kg.':'')+(fx.walk<1?' You walk and run at half speed.':'')+(fx.view?' You can’t see far.':'')+'</div>';}
   html+='<div class="stats">Jobs and standing: see <b>Work</b>.</div>';
   if(G.comp){const p=G.comp;html+='<div class="stats">'+p.def.name+' the '+p.C.title+': '+(p.state==='down'?'down!':Math.round(p.hp)+'% health, '+(p.inCar?'riding with you':p.state==='wait'?'waiting':'following'))+', '+(p.weapon?ITEMS[p.weapon].name.toLowerCase()+(WEAPONS[ITEMS[p.weapon].weapon].gun?' ('+compAmmo(p)+')':''):'a club')+'.</div>';}
-  html+='<h3>You carry<small>'+invWeight(h.inv)+' of '+HERO_CAP+' kg</small></h3>';
+  html+='<h3>You carry<small>'+invWeight(h.inv)+' of '+heroCap()+' kg</small></h3>';
   const mine=Object.keys(h.inv);html+=mine.length?mine.map(k=>itemRow(k,h.inv[k],'me')).join(''):'<div class="empty">Nothing but the clothes on your back.</div>';
   if(o){const cap=otherCap();html+='<h3>'+otherName()+'<small>'+(cap!==undefined?invWeight(o)+' of '+cap+' kg':'')+'</small></h3>';
     const ks=Object.keys(o);html+=ks.length?ks.map(k=>itemRow(k,o[k],'other')).join('')+'<div class="irow"><span class="nm"></span><button class="go" data-a="takeevery">Take everything that fits</button></div>':'<div class="empty">Empty.</div>';}
@@ -3296,8 +3341,8 @@ function invClick(e){const btn=e.target.closest&&e.target.closest('button');if(!
   else if(a==='compass'){h.compass=true;SFX.click();}else if(a==='uncompass'){h.compass=false;}
   else if(a==='put'){if(!invMove(h.inv,o,k,1,otherCap()))say('No room left');else otherTouched();}
   else if(a==='drop'){const before=canFill(h.inv);if(invTake(h.inv,k,1)){addPickup(k,h.x+rand(-25,25),h.y+rand(-25,25));trimFill(h.inv);if(canFill(h.inv)<before-0.5)showMsg('The fuel in it soaks into the dirt',1.6);}}
-  else if(a==='take'||a==='takeall'){if(!invMove(o,h.inv,k,a==='take'?1:999,HERO_CAP))say('Too heavy to carry');else otherTouched();}
-  else if(a==='takeevery'){let moved=0;for(const kk of Object.keys(o).sort((x,y)=>ITEMS[x].kg-ITEMS[y].kg))moved+=invMove(o,h.inv,kk,999,HERO_CAP);
+  else if(a==='take'||a==='takeall'){if(!invMove(o,h.inv,k,a==='take'?1:999,heroCap()))say('Too heavy to carry');else otherTouched();}
+  else if(a==='takeevery'){let moved=0;for(const kk of Object.keys(o).sort((x,y)=>ITEMS[x].kg-ITEMS[y].kg))moved+=invMove(o,h.inv,kk,999,heroCap());
     if(moved)otherTouched();if(invCount(o))say('You can’t carry the rest');}
   renderInv();}
 
@@ -3377,7 +3422,9 @@ function tradeClick(e){const btn=e.target.closest&&e.target.closest('button');if
   else if(a==='clear'){trade.offer={};trade.want={};trade.svc={};}
   else if(a==='deal')doDeal();
   if(trade)renderTrade();}
-function doDeal(){const T=tradeTotals();if(!((T.get>0||TEST_MODE&&(Object.keys(trade.want).length||Object.keys(trade.svc).length))&&T.give>=T.get))return false;const n=trade.n,car=serviceCar(n),st=myStores(n.x,n.y),h=G.hero;
+function doDeal(){const r=doDeal0();if(r!==false)doDealClinic();return r;}
+function doDealClinic(){if(G.pendingClinic&&trade){G.pendingClinic=false;const n=trade.n;closeTrade();startClinic(n);return true;}return false;}
+function doDeal0(){const T=tradeTotals();if(!((T.get>0||TEST_MODE&&(Object.keys(trade.want).length||Object.keys(trade.svc).length))&&T.give>=T.get))return false;const n=trade.n,car=serviceCar(n),st=myStores(n.x,n.y),h=G.hero;
   for(const k in trade.offer){takeFrom(st,k,trade.offer[k]);if(h.weapon===k&&!h.inv[k])h.weapon=null;}for(const inv of st)trimFill(inv);
   for(const k in trade.want){T.stock[k]-=trade.want[k];if(T.stock[k]<=0)delete T.stock[k];giveItem(k,trade.want[k]);}
   const bunk=!!trade.svc.svc_bunk;for(const k in trade.svc)if(k!=='svc_bunk')applyService(k,car);
@@ -5344,6 +5391,7 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   for(const [,e] of V3.locs)if(e.m&&e.m.userData&&e.m.userData.barr)e.m.userData.barr.visible=townClosed(e.o);   // gates open once you've earned it
   if(V3.mats.water.userData.u)V3.mats.water.userData.u.wt.value=G.time||0;{const W=G.wind||{x:20,y:0,s:20},s=clamp(W.s/60,0.1,1.6);WIND3.uT.value=G.time||0;if(WIND3.uW.value)WIND3.uW.value.set(W.x/(W.s||1),0,W.y/(W.s||1));WIND3.uS.value=s;   // the wind, for flapping cloth
     if(CHAR3.mat&&CHAR3.mat.userData.u){const u=CHAR3.mat.userData.u;u.uT.value=G.time||0;u.uWind.value.set(W.x/(W.s||1),W.y/(W.s||1));u.uS.value=s;}}   // the slicks drift
+  {const cv=injFx().view;if(cv&&SETTINGS.viewDist!==cv){V3.viewSaved=V3.viewSaved||SETTINGS.viewDist;SETTINGS.viewDist=cv;}else if(!cv&&V3.viewSaved){SETTINGS.viewDist=V3.viewSaved;V3.viewSaved=null;}}   // concussed: you can't see far
   if(V3.viewKey!==SETTINGS.viewDist){V3.viewKey=SETTINGS.viewDist;applyView3();}
   stream3(b.x,b.y);farGround3(b.x,b.y);syncDynamic3();syncLoot3(b);syncFX3(b);
   for(const [,e] of V3.locs)if(e.m&&e.m.userData.roofs)e.m.userData.roofs.visible=!V3.noRoofs&&!e.o.bld.some(bd=>!bd.tank&&bd.roofA!==undefined&&bd.roofA<0.5);   // step indoors and the roof lifts off, as in 2D
@@ -5552,6 +5600,7 @@ function survival(dt,car){const h=G.hero,gm=dt*CLOCK_RATE/60;G.clock+=gm;
 }
 function driveHero(car,inp,dt){
   let thr=inp.thr,boost=inp.boost;car.braking=inp.brake;car.cruise=inp.cruise&&!inp.boost&&thr>0?thr:null;
+  {const fx=injFx();if(fx.wobble&&car.speed>30){const t=G.time;inp.steer=clamp(inp.steer+(Math.sin(t*2.3)*0.5+Math.sin(t*5.7+1)*0.3+Math.sin(t*11.1)*0.2)*0.22,-1,1);}}   // hurt: your hands aren't steady on the wheel
   const dead=carDead(car);
   if(dead){if(thr>0||(thr<0&&car.vf<=5)){if(G.deadMsgT<=0){showMsg(dead==='engine'?'The engine’s dead. It won’t turn over':'The car’s too battered to run',2.2);G.deadMsgT=4;}}
     if(thr>0||car.vf<=5)thr=Math.min(0,thr)*(car.vf>5?1:0);boost=false;car.cruise=null;}   // you can still brake and coast, but there's no drive
@@ -5578,7 +5627,7 @@ function driveHero(car,inp,dt){
 }
 // on the main road part of a leg that runs to (or from) a dirt-track junction, which way is "the right way"
 function legViaDir(L,ri){const V=L.via;if(L.dir>0)return ri.i<V.i?1:-1;return V.dir;}   // going to the track: toward the junction; coming off it: toward the town
-function update(dt){
+function update(dt){if(state==='clinic'){clinicTick(dt);return;}
   G.time+=dt;const h=G.hero;let car=heroCar();const inp=readInput(car);let eng={thr:0,boost:false};
   survival(dt,car);
   if(car)eng=driveHero(car,inp,dt);else updateHeroOnFoot(dt,inp);
@@ -5665,10 +5714,11 @@ let last=0,fpsS=60,dbgT=0;
 function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.016,dt=Math.min(0.033,raw);last=t;
   if(TEST_MODE&&G){fpsS+=(1/Math.max(raw,0.001)-fpsS)*0.05;dbgT-=raw;if(dbgT<=0){dbgT=0.5;$('dbg').textContent=Math.round(fpsS)+' fps, '+G.cars.length+' cars, '+G.npcs.length+' folk, '+G.foes.length+' raiders on foot, '+G.parts.length+' particles';}}
   // keep game time in step with real time even when frames come slowly: run several smaller steps rather than slowing the world down
+  if(state==='clinic')clinicTick(Math.min(raw,0.1));   // resting in a doctor's care
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
