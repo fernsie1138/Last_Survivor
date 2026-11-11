@@ -242,7 +242,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='7.2';
+const VERSION='7.3';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -425,8 +425,10 @@ if(TEST_MODE)buildTestRoads();else (function(){
   const rr2=rng(31337),mains=roads.length,pend=[];
   for(const ru of LOCS.filter(l=>l.type==='ruin')){if(rr2()<0.25)continue;
     let best=null,bd=170000;for(let mr=0;mr<mains;mr++){const M=roads[mr];for(let i=10;i<M.n-10;i+=5){const d=Math.hypot(M.xs[i]-ru.x,M.ys[i]-ru.y);if(d>=bd)continue;
-        const jx=M.xs[i],jy=M.ys[i];if(LOCS.some(o=>Math.hypot(o.x-jx,o.y-jy)<o.rad+250))continue;if(!landLine({x:jx,y:jy},ru))continue;bd=d;best={mr,i};}}
+        const jx=M.xs[i],jy=M.ys[i];if(LOCS.some(o=>Math.hypot(o.x-jx,o.y-jy)<o.rad+250))continue;if(!landLine({x:jx,y:jy},ru))continue;
+        bd=d;best={mr,i};}}
     if(!best)continue;const M=roads[best.mr],J={x:M.xs[best.i],y:M.ys[best.i],id:M.a},R=genRoad(J,ru,50000+ru.id*131,'dirt');R.junction={road:best.mr,i:best.i};roads.push(R);const di=roads.length-1;
+    {const a=Math.max(0,best.i-1),b2=Math.min(M.n-1,best.i+1),nx=-(M.ys[b2]-M.ys[a]),ny=M.xs[b2]-M.xs[a],k=Math.min(8,R.n-1),side=Math.sign((R.xs[k]-M.xs[best.i])*nx+(R.ys[k]-M.ys[best.i])*ny)||1;(M.joins||(M.joins=[])).push({i:best.i,side,hw:R.w/2,road:di});R.junction.side=side;}   // a T-junction: which side the track leaves from
     for(const [end,toward] of [[M.a,1],[M.b,-1]]){const along=toward>0?M.cum[best.i]:M.len-M.cum[best.i],len=along+R.len;
       pend.push([end,{to:ru.id,road:di,dir:1,len,via:{road:best.mr,dir:toward,i:best.i}}],[ru.id,{to:end,road:di,dir:-1,len,via:{road:best.mr,dir:-toward,i:best.i}}]);}}
   roads.forEach((R,ri)=>{if(R.cls==='dirt')return;LOCS[R.a].links.push({to:R.b,road:ri,dir:1});LOCS[R.b].links.push({to:R.a,road:ri,dir:-1});});
@@ -772,6 +774,18 @@ function heightAt(x,y){const c=getChunk(Math.floor(x/CH),Math.floor(y/CH)),fx=(x
 function slopeFactor(x,y,dx,dy,car){const l=Math.hypot(dx,dy);if(l<1e-6)return 1;const ux=dx/l,uy=dy/l,g=(heightAt(x+ux*24,y+uy*24)-heightAt(x,y))/24;
   if(car)return g>0?Math.max(0.75,1-g):Math.min(1.12,1-0.8*g);   /* uphill: half the slowdown it used to be (v7.1) */return g>0?Math.max(0.45,1-2.6*g):Math.min(1.15,1-0.6*g);}
 
+// no track joins a main road on (or right by) a bridge: once the terrain is known, any junction near a river, creek or canyon moves along
+// the main road to the nearest dry spot, and the track is laid again from there (its route links and the road grid with it)
+(function(){if(TEST_MODE)return;const wetAt=(M,i)=>{for(let q=Math.max(0,i-8);q<=Math.min(M.n-1,i+8);q++){const t=terrainRaw(M.xs[q],M.ys[q]);if(t===T.RIVER||t===T.CANYON||t===T.DRY)return true;}return false;};
+  for(let di=0;di<roads.length;di++){const R=roads[di];if(!R.junction)continue;const M=roads[R.junction.road],ru=LOCS[R.b];if(!wetAt(M,R.junction.i))continue;
+    let best=-1;for(let d=1;d<120&&best<0;d++)for(const i of [R.junction.i-d,R.junction.i+d]){if(i<10||i>M.n-11)continue;const x=M.xs[i],y=M.ys[i];if(wetAt(M,i)||!landLine({x,y},ru)||LOCS.some(o=>Math.hypot(o.x-x,o.y-y)<o.rad+250))continue;best=i;break;}
+    if(best<0)continue;const old=R.junction.i,NR=genRoad({x:M.xs[best],y:M.ys[best],id:M.a},ru,50000+ru.id*131+7,'dirt');
+    for(const k of ['xs','ys','cum','n','len','sx','sy'])R[k]=NR[k];R.junction.i=best;R.tt=null;
+    const a=Math.max(0,best-1),b2=Math.min(M.n-1,best+1),nx=-(M.ys[b2]-M.ys[a]),ny=M.xs[b2]-M.xs[a],k8=Math.min(8,R.n-1);R.junction.side=Math.sign((R.xs[k8]-M.xs[best])*nx+(R.ys[k8]-M.ys[best])*ny)||1;
+    for(const j of M.joins||[])if(j.road===di){j.i=best;j.side=R.junction.side;}
+    for(const o of LOCS)for(const l of o.links)if(l.road===di&&l.via){l.via.i=best;const along=l.via.dir>0===(l.dir>0)?M.cum[best]:M.len-M.cum[best];l.len=(l.dir>0?(l.via.dir>0?M.cum[best]:M.len-M.cum[best]):(l.via.dir>0?M.len-M.cum[best]:M.cum[best]))+R.len;}
+    for(const [key,arr] of grid){let w=0;for(let q=0;q<arr.length;q+=2)if(arr[q]!==di){arr[w++]=arr[q];arr[w++]=arr[q+1];}arr.length=w;}   // the road grid: out with the old line, in with the new
+    for(let i=0;i<R.n-1;i++){const k1=gkey(Math.floor(R.xs[i]/CELL),Math.floor(R.ys[i]/CELL)),k2=gkey(Math.floor(R.xs[i+1]/CELL),Math.floor(R.ys[i+1]/CELL));gadd(k1,di,i);if(k2!==k1)gadd(k2,di,i);}}})();
 /* ===== mesas and buttes =====
    Each is its own landform: a flat caprock top, cliffs stepped into benches, a scree apron at the base,
    and an outline notched by gullies. Buttes are the small, eroded ones; mesas are broader.
@@ -4284,7 +4298,7 @@ function buildChunk3(c){const ox=c.cx*CH,oy=c.cy*CH,N=V3_TV,E=N+2,hs=new Float32
       else if(t===T.DRY)cl=mix3(cl,dryC,clamp(sink/6,0,1));
       else cl=mix3(cl,sink>60?canyonC:bankC,clamp(sink/40,0,0.8));}
     if(roadK[k]>0){const ct=cuts[k],rag=fbm(n3Patch,x/55,y/55,2),vk=clamp(roadK[k]*(0.45+1.1*rag)-0.15*(1-roadK[k]),0,1);cl=mix3(cl,col3('#b39470'),0.35*vk);   /* ragged and patchy */if(Math.abs(ct)>2)cl=mix3(cl,col3(ct<0?'#8a5a3c':'#a07c58'),clamp(Math.abs(ct)/14,0,0.5)*(1-Math.abs(roadK[k]-0.5)*1.2));}   // a dusty road verge; raw earth showing in cuttings and on embankments
-    for(const lc of near){const d=Math.hypot(x-lc.x,y-lc.y),R=lc.type==='city'?lc.rad-120:lc.rad*0.8;if(d<R)cl=mix3(cl,townC,(lc.type==='ruin'?0.12:0.22)*clamp((R-d)/150,0,1));}
+    for(const lc of near){const d=Math.hypot(x-lc.x,y-lc.y);if(lc.type==='ruin'){const R=lc.rad*0.8;if(d<R)cl=mix3(cl,townC,0.12*clamp((R-d)/150,0,1));}else{const R=lc.rad-30;if(d<R)cl=mix3(cl,col3(ROAD3.dirt.base,0.95+0.08*fbm(n3Patch,x/90,y/90,2)),0.88*clamp((R-d)/60,0,1));}}   // inside the walls: packed dirt like the streets (a ruin: just a little worn)
     const v=0.92+0.16*fbm(n3Patch,x/700,y/700,2)+(pnoise(x>>3,y>>3)-0.5)*0.05;colr[o]=clamp(cl[0]*v,0,1);colr[o+1]=clamp(cl[1]*v,0,1);colr[o+2]=clamp(cl[2]*v,0,1);}
   const idx=[];for(let j=0;j<N-1;j++)for(let i=0;i<N-1;i++){const a=j*N+i,b=a+1,d=a+N,cc=d+1;idx.push(a,d,b,b,d,cc);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('normal',new THREE.BufferAttribute(nor,3));
@@ -4312,7 +4326,7 @@ function roadsMesh3(c,props){const ox=c.cx*CH,oy=c.cy*CH,gb=new GB(),seen=new Se
   for(let gx=Math.floor(ox/CELL)-1;gx<=Math.floor((ox+CH)/CELL)+1;gx++)for(let gy=Math.floor(oy/CELL)-1;gy<=Math.floor((oy+CH)/CELL)+1;gy++){const arr=grid.get(gkey(gx,gy));if(!arr)continue;
     for(let k=0;k<arr.length;k+=2){const ri=arr[k],s=arr[k+1],R=roads[ri],x=R.xs[s],y=R.ys[s];if(x<ox||x>=ox+CH||y<oy||y>=oy+CH)continue;const key=ri*1e7+s;if(seen.has(key))continue;seen.add(key);if(R.desertK===undefined){const bi=zoneAt(R.xs[s],R.ys[s]).biome;R.desertK=bi==='red'||bi==='salt'?1:0;}roadSeg3(gb,R,s,ri,props);}}
   return gb.mesh(V3.mats.road,ox,oy);}
-function roadSeg3(gb,R,s,ri,props){const S=ROAD3[R.cls],w=R.w,n0=roadN3(R,s),n1=roadN3(R,s+1),bridge=roadTerrain(R,s)>1||roadTerrain(R,s+1)>1;
+function roadSeg3(gb,R,s,ri,props){const tw0=nearLoc((R.xs[s]+R.xs[Math.min(R.n-1,s+1)])/2,(R.ys[s]+R.ys[Math.min(R.n-1,s+1)])/2,0),inTown=!!tw0&&tw0.type!=='ruin'&&Math.hypot(R.xs[s]-tw0.x,R.ys[s]-tw0.y)<tw0.rad-10,cls=inTown?'dirt':R.cls,S=ROAD3[cls],w=R.w,n0=roadN3(R,s),n1=roadN3(R,s+1),bridge=roadTerrain(R,s)>1||roadTerrain(R,s+1)>1;
   const h0=roadH3(R,s),h1=roadH3(R,s+1),x0=R.xs[s],y0=R.ys[s],x1=R.xs[s+1],y1=R.ys[s+1];
   const P=(k,off,lift)=>k?[x1+n1[0]*off,h1+lift,y1+n1[1]*off]:[x0+n0[0]*off,h0+lift,y0+n0[1]*off];
   const strip=(a,b,lift,col)=>gb.quadUp(P(0,a,lift),P(0,b,lift),P(1,b,lift),P(1,a,lift),col);
@@ -4329,29 +4343,38 @@ function roadSeg3(gb,R,s,ri,props){const S=ROAD3[R.cls],w=R.w,n0=roadN3(R,s),n1=
   /* years of neglect: the edges crumbled back unevenly (bites taken out here and there), the surface patchy, cracks and potholes,
      sand blown across it in drifts, the paint faded or worn away. All of it is in the same road mesh (no extra draw calls). */
   const segL=Math.hypot(x1-x0,y1-y0),c0=R.cum[s],rs=rng(ri*100003+s*7+11),seed=ri*7.31;
+  if(R.junction&&s<8){const M=roads[R.junction.road],J=R.junction.i,inMain=(x,y)=>{let bd=1e9;for(let q=Math.max(0,J-4);q<Math.min(M.n-1,J+4);q++){const ax=M.xs[q],ay=M.ys[q],bx=M.xs[q+1]-ax,by=M.ys[q+1]-ay,t=clamp(((x-ax)*bx+(y-ay)*by)/(bx*bx+by*by||1),0,1);bd=Math.min(bd,Math.hypot(x-ax-bx*t,y-ay-by*t));}return bd;};
+    const d0=inMain(x0,y0),d1=inMain(x1,y1),edge=M.w/2-2;if(d0<edge&&d1<edge)return;   // this bit lies on the main road itself
+    if(d0<edge&&d1>=edge&&!R.flared){R.flared=s;}
+    if(R.flared===s){const nM=roadN3(M,J),tx=nM[1],ty=-nM[0],sd=R.junction.side,F=16,cx=M.xs[J]+nM[0]*sd*(M.w/2-1),cy=M.ys[J]+nM[1]*sd*(M.w/2-1),yy=roadH3(M,J)+ROAD3.dirt.lift-0.05,hw=w/2;
+      const bL=pt(1,-hw,ROAD3.dirt.lift-0.05),bR=pt(1,hw,ROAD3.dirt.lift-0.05),A=[cx-tx*(hw+F),yy,cy-ty*(hw+F)],Bq=[cx+tx*(hw+F),yy,cy+ty*(hw+F)],C2=[(A[0]+Bq[0]+bL[0]+bR[0])/4,yy,(A[2]+Bq[2]+bL[2]+bR[2])/4];
+      const pc=col3(ROAD3.dirt.base,0.97),dL=(bL[0]-A[0])*(bL[0]-A[0])+(bL[2]-A[2])*(bL[2]-A[2]),dR=(bR[0]-A[0])*(bR[0]-A[0])+(bR[2]-A[2])*(bR[2]-A[2]),near=dL<dR?bL:bR,far2=dL<dR?bR:bL;
+      for(const [a,b] of [[A,Bq],[Bq,far2],[far2,near],[near,A]])gb.quadUp(a,b,C2,C2,pc);}}   // the mouth of the junction, flaring into the main road's edge
+  // where a track joins this road: on that side the edge runs straight and clean through the mouth (no crumbling, no lip, no paint)
+  let openL=false,openR=false;if(R.joins)for(const jn of R.joins){if(Math.abs(s-jn.i)*40<=jn.hw+20){if(jn.side<0)openL=true;else openR=true;}}
   const n1d=(t,k)=>{const i=Math.floor(t),f=t-i,a=hash2(i+k*977,ri*31+k),b=hash2(i+1+k*977,ri*31+k),h=x=>(x%1000)/1000,ff=f*f*(3-2*f);return h(a)*(1-ff)+h(b)*ff;};
   const erode=(u,sg)=>{const t=c0+u*segL,k=sg>0?1:2;let e=1.5+8*Math.pow(n1d(t/70,k),2);if(n1d(t/23,k+4)>0.82)e+=7*(n1d(t/23,k+4)-0.82)/0.18*3;return Math.min(e,w*0.3);};   // how far each edge has crumbled back
-  const eL=[],eR=[];for(let k=0;k<=ST;k++){eL.push(-w/2+erode(k/ST,-1));eR.push(w/2-erode(k/ST,1));}
+  const eL=[],eR=[];for(let k=0;k<=ST;k++){eL.push(openL?-w/2:-w/2+erode(k/ST,-1));eR.push(openR?w/2:w/2-erode(k/ST,1));}
   const base=col3(S.base);
   for(let k=0;k<ST;k++){const u0=k/ST,u1=(k+1)/ST,v=0.88+0.16*n1d((c0+u0*segL)/180,9)+(rs()-0.5)*0.04,c=[base[0]*v,base[1]*v,base[2]*v];   // patchy: old repairs, sun-bleached stretches
     gb.quadUp(pt(u0,eL[k],S.lift),pt(u0,eR[k],S.lift),pt(u1,eR[k+1],S.lift),pt(u1,eL[k+1],S.lift),c);}
-  const skirt=col3(S.base,0.65);for(let k=0;k<ST;k++){const u0=k/ST,u1=(k+1)/ST;for(const [E,sg] of [[eL,-1],[eR,1]]){const a=pt(u0,E[k],S.lift),b=pt(u1,E[k+1],S.lift),a2=pt(u0,E[k]+sg*2,-3),b2=pt(u1,E[k+1]+sg*2,-3),m=pt((u0+u1)/2,0,-10);gb.quad(a,b,b2,a2,skirt,m);}}   // the broken edge goes down into the ground
-  if(R.cls!=='highway'){const gc=groundCol3((x0+x1)/2,(y0+y1)/2);for(const [E,sg] of [[eL,-1],[eR,1]])for(let k=0;k<ST;k++){const u0=k/ST,u1=(k+1)/ST,t0=c0+u0*segL,t1=c0+u1*segL,f0=3+14*Math.pow(n1d(t0/26,sg>0?21:22),1.6),f1=3+14*Math.pow(n1d(t1/26,sg>0?21:22),1.6);
+  const skirt=col3(S.base,0.65);for(let k=0;k<ST;k++){const u0=k/ST,u1=(k+1)/ST;for(const [E,sg] of [[eL,-1],[eR,1]]){if((sg<0&&openL)||(sg>0&&openR))continue;const a=pt(u0,E[k],S.lift),b=pt(u1,E[k+1],S.lift),a2=pt(u0,E[k]+sg*2,-3),b2=pt(u1,E[k+1]+sg*2,-3),m=pt((u0+u1)/2,0,-10);gb.quad(a,b,b2,a2,skirt,m);}}   // the broken edge goes down into the ground
+  if(cls!=='highway'){const gc=groundCol3((x0+x1)/2,(y0+y1)/2);for(const [E,sg] of [[eL,-1],[eR,1]])for(let k=0;k<ST;k++){if((sg<0&&openL)||(sg>0&&openR))continue;const u0=k/ST,u1=(k+1)/ST,t0=c0+u0*segL,t1=c0+u1*segL,f0=3+14*Math.pow(n1d(t0/26,sg>0?21:22),1.6),f1=3+14*Math.pow(n1d(t1/26,sg>0?21:22),1.6);
       const fc=mix3(base,gc,0.45+0.25*n1d(t0/40,23));gb.quadUp(pt(u0,E[k],S.lift-0.1),pt(u0,E[k]+sg*f0,S.lift-0.35),pt(u1,E[k+1]+sg*f1,S.lift-0.35),pt(u1,E[k+1],S.lift-0.1),fc);}}   // loose dirt spilling off the edge in uneven tongues
   const flat=(pts,lift,col)=>{const c=pts.reduce((m,p)=>[m[0]+p[0]/pts.length,m[1]+p[1]/pts.length],[0,0]),C=pt(c[0],c[1],lift);for(let i=0;i<pts.length;i++){const a=pt(pts[i][0],pts[i][1],lift),b=pt(pts[(i+1)%pts.length][0],pts[(i+1)%pts.length][1],lift);gb.tri(C,a,b,col,0,1,0);}};
   const line=(u0,o0,u1,o1,wd,lift,col)=>{const dx=(u1-u0)*segL,dy=o1-o0,l=Math.hypot(dx,dy)||1,px=-dy/l*wd/2,py=dx/l*wd/2;gb.quadUp(pt(u0-px/segL,o0-py,lift),pt(u1-px/segL,o1-py,lift),pt(u1+px/segL,o1+py,lift),pt(u0+px/segL,o0+py,lift),col);};
   // the paint: edge lines broken where the edge has gone, the centre dashes faded or worn off
-  if(R.cls==='highway'){const ln=col3('#d8c8a8'),fade=0.35+0.6*n1d(c0/400,12);
-    for(let k=0;k<ST;k++){const u0=k/ST,u1=(k+1)/ST;for(const [o,E,sg] of [[-w/2+9,eL,-1],[w/2-9,eR,1]]){if(Math.abs(E[k]-sg*w/2)>6||Math.abs(E[k+1]-sg*w/2)>6||rs()<0.15)continue;
+  if(cls==='highway'){const ln=col3('#d8c8a8'),fade=0.35+0.6*n1d(c0/400,12);
+    for(let k=0;k<ST;k++){const u0=k/ST,u1=(k+1)/ST;for(const [o,E,sg] of [[-w/2+9,eL,-1],[w/2-9,eR,1]]){if((sg<0&&openL)||(sg>0&&openR))continue;if(Math.abs(E[k]-sg*w/2)>6||Math.abs(E[k+1]-sg*w/2)>6||rs()<0.15)continue;
       gb.quadUp(pt(u0,o-2,S.lift+0.2),pt(u0,o+2,S.lift+0.2),pt(u1,o+2,S.lift+0.2),pt(u1,o-2,S.lift+0.2),mix3(base,ln,fade));}}
     if(Math.floor(c0/55)%2===0&&rs()>0.2){const cl=mix3(base,col3('#e2c272'),fade*(0.6+rs()*0.4));for(let k=0;k<ST;k++)gb.quadUp(pt(k/ST,-2,S.lift+0.2),pt(k/ST,2,S.lift+0.2),pt((k+1)/ST,2,S.lift+0.2),pt((k+1)/ST,-2,S.lift+0.2),cl);}}
   else{const cr=mix3(base,col3(S.crown),0.5+0.4*n1d(c0/300,13)),cw=(k,sg)=>w*S.cw/2*(0.6+0.8*n1d((c0+k/ST*segL)/34,sg>0?24:25));for(let k=0;k<ST;k++)gb.quadUp(pt(k/ST,-cw(k,-1),S.lift+0.15),pt(k/ST,cw(k,1),S.lift+0.15),pt((k+1)/ST,cw(k+1,1),S.lift+0.15),pt((k+1)/ST,-cw(k+1,-1),S.lift+0.15),cr);}
   // cracks: thin dark lines wandering across, more toward the edges
-  const crackC=col3('#2e2822');if(rs()<(R.cls==='highway'?0.45:0.25)){let u=rs(),o=(rs()-0.5)*w*0.8;for(let j=0;j<3+Math.floor(rs()*4);j++){const u2=clamp(u+(rs()-0.3)*0.25,0,1),o2=clamp(o+(rs()-0.5)*w*0.25,-w/2+2,w/2-2);line(u,o,u2,o2,0.7+rs()*0.6,S.lift+0.25,crackC);if(rs()<0.3)line(u2,o2,clamp(u2+(rs()-0.5)*0.15,0,1),o2+(rs()-0.5)*8,0.5,S.lift+0.25,crackC);u=u2;o=o2;}}
+  const crackC=col3('#2e2822');if(rs()<(cls==='highway'?0.45:0.25)){let u=rs(),o=(rs()-0.5)*w*0.8;for(let j=0;j<3+Math.floor(rs()*4);j++){const u2=clamp(u+(rs()-0.3)*0.25,0,1),o2=clamp(o+(rs()-0.5)*w*0.25,-w/2+2,w/2-2);line(u,o,u2,o2,0.7+rs()*0.6,S.lift+0.25,crackC);if(rs()<0.3)line(u2,o2,clamp(u2+(rs()-0.5)*0.15,0,1),o2+(rs()-0.5)*8,0.5,S.lift+0.25,crackC);u=u2;o=o2;}}
   if(rs()<0.3){const sg=rs()<0.5?-1:1;let u=rs();for(let j=0;j<4;j++){const u2=clamp(u+0.12,0,1),o=sg*(w/2-erode(u,sg)-1-rs()*6);line(u,o,u2,sg*(w/2-erode(u2,sg)-1-rs()*6),0.8,S.lift+0.25,crackC);u=u2;}}   // alligator cracking along a crumbling edge
   // potholes: dark ragged hollows with a lighter broken rim
-  if(rs()<(R.cls==='dirt'?0.22:0.14)){const pu=0.15+rs()*0.7,po=(rs()-0.5)*w*0.6,rr=4+rs()*7,N=8,ring=[],rim=[];for(let i=0;i<N;i++){const a=i/N*TAU,j=0.7+rs()*0.5;ring.push([pu+Math.cos(a)*rr*j/segL,po+Math.sin(a)*rr*j]);rim.push([pu+Math.cos(a)*(rr*j+1.6)/segL,po+Math.sin(a)*(rr*j+1.6)]);}
-    flat(rim,S.lift+0.27,mix3(base,col3('#8a7a66'),0.45));flat(ring,S.lift+0.3,col3(R.cls==='dirt'?'#5a4632':'#221c18'));}
+  if(rs()<(cls==='dirt'?0.22:0.14)){const pu=0.15+rs()*0.7,po=(rs()-0.5)*w*0.6,rr=4+rs()*7,N=8,ring=[],rim=[];for(let i=0;i<N;i++){const a=i/N*TAU,j=0.7+rs()*0.5;ring.push([pu+Math.cos(a)*rr*j/segL,po+Math.sin(a)*rr*j]);rim.push([pu+Math.cos(a)*(rr*j+1.6)/segL,po+Math.sin(a)*(rr*j+1.6)]);}
+    flat(rim,S.lift+0.27,mix3(base,col3('#8a7a66'),0.45));flat(ring,S.lift+0.3,col3(cls==='dirt'?'#5a4632':'#221c18'));}
   // sand blown across in drifts from one side, thicker in the deserts; it tapers in and out along the road
   const desert=R.desertK===undefined?(R.desertK=0):R.desertK,sandK=n1d(c0/500+seed,14),sandOn=sandK>0.6-0.15*desert;
   if(sandOn){const sg=n1d(c0/900,15)>0.5?1:-1,depth=k=>{const t=c0+k/ST*segL,q=(n1d(t/500+seed,14)-(0.6-0.15*desert))/0.4;return clamp(q,0,1)*w*(0.25+0.55*n1d(t/90,16));};
@@ -4734,16 +4757,26 @@ function clutter3(gb,o){const r=rng(hash2(Math.round(o.x),Math.round(o.y))+5),bi
   for(let k=0;k<groups;k++){const p=r()<0.6?nearWall():spot(12);if(!p)continue;const [x,y]=p,yy=Y(x,y),m=1+Math.floor(r()*4);
     for(let j=0;j<m;j++){const a=r()*TAU,d=j?10+r()*4:0,px=x+Math.cos(a)*d,py=y+Math.sin(a)*d,c=col3(['#3f5a6a','#6a3a2a','#5a5a4a','#7a6a30','#4a4a48'][Math.floor(r()*5)]),py0=Y(px,py);
       if(r()<0.18)gb.wheel(px,py0+5,py,5,15,r()*TAU,10,c,c.map(v=>v*0.7));else{gb.cyl(px,py0,py,5,15,10,c,c.map(v=>v*0.75));for(const hh of [4.5,10.5])gb.cyl(px,py0+hh,py,5.3,0.8,10,c.map(v=>v*0.7));}}}}
+/* a dirt street (or yard) in a town, laid like the dirt roads outside: packed earth with patchy colour, a paler worn strip down the
+   middle that wanders, ragged edges spilling loose dirt in tongues, the odd pothole; drawn with the road material, so it has the grit */
+function dirtStrip3(gb,x1,y1,x2,y2,w,seed){const len=Math.hypot(x2-x1,y2-y1);if(len<4)return;const ux=(x2-x1)/len,uy=(y2-y1)/len,nx=-uy,ny=ux,r=rng(seed),n=Math.max(1,Math.ceil(len/20)),base=col3(ROAD3.dirt.base),crown=col3(ROAD3.dirt.crown),gc=groundCol3((x1+x2)/2,(y1+y2)/2);
+  const nz=(t,k)=>0.5+0.5*Math.sin(t*0.09+k*1.7+seed*0.001)*Math.cos(t*0.037+k*0.9);
+  const P=(t,o,lift)=>{const x=x1+ux*t+nx*o,y=y1+uy*t+ny*o;return [x,heightAt(x,y)+lift,y];};
+  for(let i=0;i<n;i++){const t0=len*i/n,t1=len*(i+1)/n,e0L=-w/2+3*nz(t0,1),e1L=-w/2+3*nz(t1,1),e0R=w/2-3*nz(t0,2),e1R=w/2-3*nz(t1,2),v=0.88+0.16*nz(t0,3)+(r()-0.5)*0.05;
+    gb.quadUp(P(t0,e0L,0.9),P(t0,e0R,0.9),P(t1,e1R,0.9),P(t1,e1L,0.9),base.map(q=>q*v));   // the packed earth
+    const cw0=w*0.21*(0.6+0.8*nz(t0,4)),cw1=w*0.21*(0.6+0.8*nz(t1,4)),off0=(nz(t0,5)-0.5)*w*0.2,off1=(nz(t1,5)-0.5)*w*0.2;
+    gb.quadUp(P(t0,off0-cw0,1.0),P(t0,off0+cw0,1.0),P(t1,off1+cw1,1.0),P(t1,off1-cw1,1.0),mix3(base,crown,0.6));   // the worn middle
+    for(const [eA,eB,sg] of [[e0L,e1L,-1],[e0R,e1R,1]]){const f0=3+12*Math.pow(nz(t0,6+sg),1.6),f1=3+12*Math.pow(nz(t1,6+sg),1.6);gb.quadUp(P(t0,eA,0.85),P(t0,eA+sg*f0,0.6),P(t1,eB+sg*f1,0.6),P(t1,eB,0.85),mix3(base,gc,0.5));}   // loose dirt at the edges
+    if(r()<0.06){const pc=P((t0+t1)/2,(r()-0.5)*w*0.5,1.05),rr=3+r()*4,N=7,pts=[];for(let k=0;k<N;k++){const a=k/N*TAU;pts.push([pc[0]+Math.cos(a)*rr*(0.7+r()*0.5),pc[1],pc[2]+Math.sin(a)*rr*(0.7+r()*0.5)]);}for(let k=0;k<N;k++)gb.tri(pc,pts[k],pts[(k+1)%N],col3('#5a4632'),0,1,0);}}}   // a pothole
 function buildLoc3(o){const gb=new GB(),rb=new GB(),wr=o.rad-40;
   if(o.paddocks)for(const p of o.paddocks){const c=Math.cos(p.rot),s=Math.sin(p.rot),hw=p.w/2,hh=p.h/2,Q=(u,v)=>[p.x+u*c-v*s,p.y+u*s+v*c];
     gb.drape([Q(-hw,-hh),Q(hw,-hh),Q(hw,hh),Q(-hw,hh)],1.4,col3(p.crop==='wheat'?'#c4a054':'#7a5030'),6);
     for(let u=-hw;u<=hw+1;u+=30)for(const v of [-hh,hh]){const q=Q(u,v);gb.box(q[0],heightAt(q[0],q[1])-1,q[1],3,11,3,p.rot,col3('#4e3a2c'));}
     for(let v=-hh+30;v<hh;v+=30)for(const u of [-hw,hw]){const q=Q(u,v);gb.box(q[0],heightAt(q[0],q[1])-1,q[1],3,11,3,p.rot,col3('#4e3a2c'));}}
-  if(o.streets)for(const t of o.streets){const len=Math.hypot(t.x2-t.x1,t.y2-t.y1),n=Math.ceil(len/40),ux=(t.x2-t.x1)/len,uy=(t.y2-t.y1)/len,px=-uy*t.w/2,py=ux*t.w/2;
-    for(let i=0;i<n;i++){const a=[t.x1+ux*len*i/n,t.y1+uy*len*i/n],b=[t.x1+ux*len*(i+1)/n,t.y1+uy*len*(i+1)/n];
-      gb.drape([[a[0]+px,a[1]+py],[b[0]+px,b[1]+py],[b[0]-px,b[1]-py],[a[0]-px,a[1]-py]],0.9,col3('#8c7a62'),2);}}
+  const sgb=new GB();   // the town's streets and yard: dirt, like the roads outside
+  if(o.streets)o.streets.forEach((t,i)=>dirtStrip3(sgb,t.x1,t.y1,t.x2,t.y2,t.w,o.id*977+i*31));
   if(o.square){const q=o.square,c=Math.cos(q.rot),s=Math.sin(q.rot),h=q.size/2,Q=(u,v)=>[q.x+u*c-v*s,q.y+u*s+v*c];
-    gb.drape([Q(-h,-h),Q(h,-h),Q(h,h),Q(-h,h)],2.0,col3('#9a876c'),6);const y=heightAt(q.x,q.y);gb.cyl(q.x,y,q.y,26,10,14,col3('#6b5a44'));gb.cyl(q.x,y,q.y,18,10.6,14,col3('#4f8aa8'));}
+    for(let k=-2;k<=2;k++){const a=Q(-h-6,k*h*0.4),b=Q(h+6,k*h*0.4);dirtStrip3(sgb,a[0],a[1],b[0],b[1],h*0.4+10,o.id*13+k);}const y=heightAt(q.x,q.y);   /* the yard: broad bands of packed dirt */gb.cyl(q.x,y,q.y,26,10,14,col3('#6b5a44'));gb.cyl(q.x,y,q.y,18,10.6,14,col3('#4f8aa8'));}
   if(o.pipes)for(const pp of o.pipes)for(let i=1;i<pp.length;i++){const a=pp[i-1],b=pp[i],len=Math.hypot(b.x-a.x,b.y-a.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;gb.box(mx,heightAt(mx,my)+8,my,len,7,7,Math.atan2(b.y-a.y,b.x-a.x),col3('#8d877c'));}
   {const rW=rng(o.id*131+7),half=wallGeo3().len*WALLS3.S*0.5;for(const w of o.wall){const ang=w.a+Math.PI/2,cx=o.x+Math.cos(w.a)*(wr+w.j),cy=o.y+Math.sin(w.a)*(wr+w.j);   // each wall run: two of David's wall sections side by side
     for(const sg of [-1,1]){const x=cx+Math.cos(ang)*sg*half*0.98,y=cy+Math.sin(ang)*sg*half*0.98;wallSection3(gb,x,y,ang,rW,col3(w.c),rW()<0.5);}}}
@@ -4758,7 +4791,7 @@ function buildLoc3(o){const gb=new GB(),rb=new GB(),wr=o.rad-40;
       const a0=g.a-g.half,a1=g.a+g.half,p0=[o.x+Math.cos(a0)*R,landY3(o.x+Math.cos(a0)*R,o.y+Math.sin(a0)*R)+16,o.y+Math.sin(a0)*R],p1=[o.x+Math.cos(a1)*R,landY3(o.x+Math.cos(a1)*R,o.y+Math.sin(a1)*R)+16,o.y+Math.sin(a1)*R];
       bb.beam(p0,p1,3,col3('#6a4a30'));}
     barr=bb.mesh(V3.mats.vc,o.x,o.y);}
-  const grp=new THREE.Group();if(barr){grp.add(barr);grp.userData.barr=barr;barr.visible=townClosed(o);}const m=gb.mesh(V3.mats.vc,o.x,o.y),roofs=rb.mesh(V3.mats.vc,o.x,o.y);if(m)grp.add(m);if(roofs){grp.add(roofs);grp.userData.roofs=roofs;}
+  const grp=new THREE.Group();if(barr){grp.add(barr);grp.userData.barr=barr;barr.visible=townClosed(o);}const m=gb.mesh(V3.mats.vc,o.x,o.y),roofs=rb.mesh(V3.mats.vc,o.x,o.y),sm=sgb.mesh(V3.mats.road,o.x,o.y);if(m)grp.add(m);if(sm)grp.add(sm);if(roofs){grp.add(roofs);grp.userData.roofs=roofs;}
   grp.matrixAutoUpdate=false;return grp;}
 
 /* ---- vehicles and people: models built once each, moved every frame ---- */
