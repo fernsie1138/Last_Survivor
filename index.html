@@ -242,7 +242,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='7.9';
+const VERSION='8.1';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1392,7 +1392,7 @@ function servicesFor(n,car){const role=n.def.role,out=[];
   if(role==='convoy'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill your tank from their drums ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8*3)});if(canSpace(G.hero.inv)>0.5)out.push({k:'svc_cans',name:'Fill your jerry cans',val:Math.ceil(canSpace(G.hero.inv)*0.8*3)});return out;}   // three times what a mechanic charges
   if(role==='mechanic'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill the tank ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8)});   // a full tank is worth eight bottles' worth of goods: fuel is dear
     if(car.cond<99)out.push({k:'svc_body',name:'Panel-beat the body ('+Math.round(car.cond)+'% → 100%)',val:Math.ceil((100-car.cond)*0.5)});
-    if(car.def.boot<100&&['coupe','sedan','cruiser','van','wagon'].includes(car.def.style)&&!(car.ups&&car.ups.stripped))out.push({k:'svc_strip',name:'Strip out the back seats (room for 100 kg, up from '+car.def.boot+')',val:35});   // a workshop job
+    if(car.def.boot<100&&['coupe','sedan','cruiser','van','wagon'].includes(car.def.style)&&!(car.ups&&car.ups.stripped))out.push({k:'svc_strip',name:'Strip out the back seats of '+(car.id===G.lastCar?'your ':'the ')+car.def.name+' (room for 100 kg, up from '+car.def.boot+')',val:35});   // a workshop job
     {const cur=carMotor(car),city=n.loc&&n.loc.type==='city';for(const k in MOTORS){const M=MOTORS[k];if(M.city&&!city)continue;if(car.ups&&car.ups[k])continue;out.push({k:'svc_motor_'+k,name:'Fit a '+M.name+' (+'+(M.spd*100)+'% speed, +'+(M.fuel*100)+'% fuel; you have the '+cur.name+')',val:M.price});}}
     if(car.engine<99)out.push({k:'svc_engine',name:'Overhaul the engine ('+Math.round(car.engine)+'% → 100%)',val:Math.ceil((100-car.engine)*1.2)});
     if(car.susp<99)out.push({k:'svc_susp',name:'Fix the suspension ('+Math.round(car.susp)+'% → 100%)',val:Math.ceil((100-car.susp)*0.8)});
@@ -1620,7 +1620,7 @@ function useItem(k,inv,car){const it=ITEMS[k],h=G.hero;if(!it||!inv[k])return fa
     const amt=Math.min(f,100-car.fuel);car.fuel+=amt;setFill(inv,f-amt);car.touched=true;SFX.slosh();popText(car.x,car.y-30,'+ '+Math.round(amt)+'% fuel','#f2a03d');return true;}   // the cans stay with you, emptier
   else if(it.use==='wear'){h.armour=h.armour===k?null:k;say(h.armour?'You strap on the '+it.name.toLowerCase():'You take off the armour');return true;}
   else if(it.use==='upgrade'){if(!car)return say('No car to fit it to');if(hasUp(car,it.up)&&!(UPGRADES[it.up].slot==='carb'&&car.ups[it.up]===1))return say(UPGRADES[it.up].slot==='carb'?'Twin carbs already: no room for a third':'That’s already fitted');if(!hasTool(car))return say('You need a toolkit to fit it');
-    const old=Object.keys(car.ups||{}).find(k=>UPGRADES[k].slot===UPGRADES[it.up].slot);fitUpgrade(car,it.up);SFX.clank();showMsg(UPGRADES[it.up].name+' fitted'+(old?', replacing the '+UPGRADES[old].name.toLowerCase():''),2.2);}
+    const old=Object.keys(car.ups||{}).find(k=>UPGRADES[k]&&UPGRADES[k].slot===UPGRADES[it.up].slot);fitUpgrade(car,it.up);SFX.clank();showMsg(UPGRADES[it.up].name+' fitted'+(old?', replacing the '+UPGRADES[old].name.toLowerCase():''),2.2);}
   else if(it.use==='repair'){if(!car)return say('No car to fix');
     if(it.part==='tyres'){if(Math.min(...car.tw)>=it.val-1)return say('Your tyres are better than that one');const which=fitSpare(car,it.val);car.touched=true;SFX.clank();showMsg('Spare fitted on the '+which,1.8);}
     else{if(car[it.part]>=99)return say(PARTS[it.part]+' already in good shape');
@@ -3444,7 +3444,7 @@ function doBedRest(hours,bed){const h=G.hero,rate=bedRate(bed),risk=bedRisk(bed)
 // ---- gear (inventory) screen ----
 let invOther=null;
 function openInv(other){if(state!=='play')return;
-  const car=heroCar()||nearestCar(50);invOther=other||(car?{kind:'car',car}:null);   // in the car, or standing beside it: its boot, and fitting parts to it
+  const mine=carById(G.lastCar),car=heroCar()||(mine&&!mine.wrecked&&Math.hypot(mine.x-G.hero.x,mine.y-G.hero.y)<mine.r+60?mine:nearestCar(50));invOther=other||(car?{kind:'car',car}:null);   // in the car, or standing beside it: its boot, and fitting parts to it
   if(invOther&&invOther.kind==='box'){const bx=invOther.box;boxItems(bx);
     // Mick has an eye for things other people miss
     if(G.comp&&compAbility(G.comp)==='scrounger'&&!G.comp.inCar&&!bx.scrounged){bx.scrounged=true;const extra=genLoot(bx.table||'ruin',(Math.random()*1e9)|0,1,bx.biome);
@@ -3467,7 +3467,7 @@ function renderWork(){let html='';
 function otherInv(){if(!invOther)return null;if(invOther.kind==='comp')return G.comp?G.comp.inv:null;return invOther.kind==='car'?invOther.car.items:invOther.box.items;}
 function otherCap(){return invOther&&invOther.kind==='car'?carCap(invOther.car):invOther&&invOther.kind==='comp'?heroCap():undefined;}
 function otherTouched(){if(!invOther)return;if(invOther.kind==='comp')compPackChanged();else if(invOther.kind==='car')invOther.car.touched=true;else boxChanged(invOther.box);}
-function otherName(){if(!invOther)return '';if(invOther.kind==='comp')return G.comp?G.comp.def.name+'’s pack':'';if(invOther.kind==='car')return 'Boot of the '+invOther.car.def.name;
+function otherName(){if(!invOther)return '';if(invOther.kind==='comp')return G.comp?G.comp.def.name+'’s pack':'';if(invOther.kind==='car')return 'Boot of the '+invOther.car.def.name+(invOther.car.id===G.lastCar?' (your car)':' (not your car)');
   return {crate:'Wooden crate',locker:'Rusted locker',esky:'Old esky',bag:'Raider’s bag'}[invOther.box.kind];}
 function invCar(){return heroCar()||(invOther&&invOther.kind==='car'?invOther.car:null);}
 function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
@@ -3497,7 +3497,7 @@ function renderInv(){$('invTitle').textContent=workMode?'Work':'Gear';if(workMod
     const probs=carProblems(car);if(probs.length)html+='<div class="stats" style="color:#ffb38a">'+probs.join('. ')+'.</div>';
     {const pb=partsBonus(car),fitted=Object.keys(car.ups||{}).filter(k=>SPEEDPARTS[k]).map(k=>SPEEDPARTS[k].name+(car.ups[k]===2?' (twin)':''));html+='<div class="stats">Engine: '+carMotor(car).name+(fitted.length?'; '+fitted.join(', '):'')+'. Top speed +'+(pb.spd*100).toFixed(1)+'%, fuel use +'+(pb.fuel*100).toFixed(1)+'%.</div>';}
     html+='<div class="stats">Tyres: '+car.tw.map((t,i)=>TYRE_NAMES[i]+' '+(t<=0?'flat':Math.round(t)+'%')).join(', ')+'.</div>';
-    const ups=Object.keys(car.ups||{});html+='<div class="stats">Upgrades: '+(ups.length?ups.map(u=>UPGRADES[u].name).join(', '):'none fitted')+'.</div>';
+    const ups=Object.keys(car.ups||{}).filter(u=>UPGRADES[u]||u==='stripped');html+='<div class="stats">Upgrades: '+(ups.length?ups.map(u=>u==='stripped'?'back seats stripped out (boot '+carCap(car)+' kg)':UPGRADES[u].name).join(', '):'none fitted')+'.</div>';   /* (a stripped interior isn't a bolt-on kit: this list used to fall over on it) */
     for(const p of ['cond','engine','tyres','susp']){const v=Math.round(car[p]);
       html+='<div class="part"><span class="pn">'+PARTS[p]+'</span><span class="pb"><b class="'+(v<35?'low':'')+'" style="width:'+v+'%"></b></span><span>'+v+'%</span></div>';}}
   // crafting
@@ -3525,6 +3525,11 @@ function toolsPanel(){if(state!=='play')return;state='paused';endStick();SFX.eng
   const h=G.hero,b=()=>body(),near=()=>heroCar()||nearestCar(400),done=t=>{state='play';hidePanel();if(t)showMsg(t,1.8);};
   showPanel({title:'Tools',sub:fmtClock(G.clock)+'. God mode is '+(G.god?'on':'off')+'.',buttons:[
     {label:'Spawn raider cars behind me',primary:true,fn:()=>{if(!heroCar())return done('Get in a car first');G.encT=999;spawnEncounter();done();}},
+    {label:'Dust storm…',fn:()=>{hidePanel();state='paused';const W=G.wind||{a:0};showPanel({title:'Dust storm',sub:G.storm&&G.storm.phase!=='none'?'There’s one '+(G.storm.phase==='coming'?'on its way':'blowing')+' now.':'Clear skies.',buttons:[   // the test range: call up a dust storm
+      {label:'Bring one in from the horizon',primary:true,fn:()=>{G.storm={phase:'coming',a:W.a,d:5200,speed:rand(45,70),len:rand(140,260),t:0,k:0};showMsg('A dust storm is coming. You can see it on the horizon',3);done();}},
+      {label:'Put me right in the middle of one',fn:()=>{G.storm={phase:'in',a:W.a,d:-300,speed:60,len:rand(140,260),t:200,k:1};done('You’re in a dust storm');}},
+      {label:'Clear it away',fn:()=>{G.storm={phase:'none',t:rand(500,1000),k:0,d:0};G.parts=G.parts.filter(p=>!p.gustDust);done('The dust clears');}},
+      {label:'Back',fn:()=>{hidePanel();toolsPanel();}}]});}},
     {label:'Spawn a raider car with a shooter',fn:()=>{if(!heroCar())return done('Get in a car first');spawnEncounter();for(const c of G.cars)if(c.driver==='raider')c.gunner=true;done();}},
     {label:'Spawn a raider on foot nearby',fn:()=>{const a=h.a+Math.PI*0.7;spawnLooseFoe(b().x+Math.cos(a)*260,b().y+Math.sin(a)*260,true).stun=0;done();}},
     {label:'Spawn wildlife: one of each, and a mob of roos',fn:()=>{const p=b(),put=(sp,ang,d,ex)=>{for(let k=0;k<10;k++){const x=p.x+Math.cos(ang+k*0.3)*d,y=p.y+Math.sin(ang+k*0.3)*d;if(!blockedAt(x,y)&&!obstacleAt(x,y,16))return spawnAnimal(sp,x,y,ex);}};
@@ -3560,7 +3565,8 @@ function carProblems(c){const out=[],fl=flats(c);
 
 // ---- trading: goods for goods, with services sold like goods ----
 let trade=null;
-function serviceCar(n){let car=null,cd=700;for(const c of G.cars){if(c.wrecked||c.driver==='raider'||!c.touched)continue;const d=Math.hypot(c.x-n.x,c.y-n.y);if(d<cd){cd=d;car=c;}}return car;}
+function serviceCar(n){const mine=heroCar()||carById(G.lastCar);if(mine&&!mine.wrecked&&Math.hypot(mine.x-n.x,mine.y-n.y)<900)return mine;   // your own car first
+  let car=null,cd=700;for(const c of G.cars){if(c.wrecked||c.driver==='raider'||!c.touched)continue;const d=Math.hypot(c.x-n.x,c.y-n.y);if(d<cd){cd=d;car=c;}}return car;}
 function openTrade(n){if(state!=='play'&&state!=='talk')return;trade={n,offer:{},want:{},svc:{}};state='trade';endStick();SFX.engine(0,0,false,false);
   $('tradePanel').classList.remove('hidden');$('ctx').innerHTML='';ctxKey='';renderTrade();}
 function closeTrade(){if(state!=='trade')return;state='play';trade=null;$('tradePanel').classList.add('hidden');}
@@ -5762,6 +5768,7 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   const ahead=car?70:30*(1-ik);cam.lookAt(b.x+Math.cos(vy)*ahead,gy+(car?16:15-8*ik),b.y+Math.sin(vy)*ahead);
   // light: day to night, the haze matching the sky
   const dk=darkness(),sky=new THREE.Color(0xe8c79a).lerp(new THREE.Color(0x15121c),clamp(dk/0.8,0,1));
+  if(G.storm&&G.storm.phase==='coming'){const near=clamp(1-G.storm.d/5200,0,1);sky.lerp(new THREE.Color(0x7c8090).lerp(new THREE.Color(0x15121c),clamp(dk/0.8,0,1)),0.18+0.32*near);}   // a storm coming: the sky clouds over, grey
   {const sk=typeof stormK==='function'?stormK():0;if(sk>0){sky.lerp(new THREE.Color(0xa88a5e).lerp(new THREE.Color(0x2a2218),clamp(dk/0.8,0,1)),sk*0.85);}sc.fog.near=V3.fogNear*(1-sk*0.92);sc.fog.far=V3.fogFar*(1-sk)+Math.min(V3.fogFar,420)*sk;stormWall3();}   // in a dust storm you can hardly see
   sc.background.copy(sky);sc.fog.color.copy(sky);V3.mats.far.userData.u.hzCol.value.copy(sky);V3.hemi.intensity=0.55*(1-dk)+0.13;V3.sun.intensity=Math.max(0,0.58*(1-dk*1.25));
   V3.sun.position.set(b.x-600,gy+1000,b.y-550);V3.sun.target.position.set(b.x,gy,b.y);V3.sun.target.updateMatrixWorld();
@@ -5797,14 +5804,30 @@ const V3P={v:null};
 function rewardSign3(n,label,sym,col){label=label||'Reward';sym=sym||'$';col=col||'#8ac060';if(!V3P.v)V3P.v=new THREE.Vector3();const v=V3P.v.set(n.x,groundY3(n.x,n.y)+27+Math.sin((G.time||0)*3)*1.2,n.y).project(V3.cam);if(v.z>1)return;const sx=(v.x+1)/2*W,sy=(1-v.y)/2*H-34*(SETTINGS.mobile?0.6:1);   /* above their name */if(sx<0||sx>W||sy<0||sy>H)return;
   ctx.save();const k=SETTINGS.mobile?0.6:1;ctx.fillStyle='rgba(28,22,18,.75)';ctx.beginPath();ctx.arc(sx,sy,15*k,0,TAU);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=3*k;ctx.stroke();
   ctx.fillStyle=col;ctx.font='bold '+Math.round(18*k)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sym,sx,sy+1);ctx.font=Math.round(11*k)+'px sans-serif';ctx.fillStyle='#efe2c4';ctx.fillText(label,sx,sy-24*k);ctx.restore();}
-// the storm front as seen from far away: a towering, ragged wall of dust across the horizon, upwind, rolling toward you
-function stormWall3(){const S=G.storm;let m=V3.stormWall;if(!m){const cv=document.createElement('canvas');cv.width=256;cv.height=128;const g=cv.getContext('2d');
-    const gr=g.createLinearGradient(0,0,0,128);gr.addColorStop(0,'rgba(184,152,106,0)');gr.addColorStop(0.25,'rgba(176,144,100,0.75)');gr.addColorStop(1,'rgba(160,128,88,0.95)');g.fillStyle=gr;g.fillRect(0,0,256,128);
-    for(let k=0;k<60;k++){const x=Math.random()*256,y=10+Math.random()*50,r=10+Math.random()*26;g.fillStyle='rgba(190,160,115,'+(0.3+Math.random()*0.4)+')';g.beginPath();g.arc(x,y,r,0,TAU);g.fill();}   // billowing top
-    const t=new THREE.CanvasTexture(cv);t.wrapS=THREE.RepeatWrapping;t.repeat.set(4,1);
-    m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide}));m.renderOrder=5;V3.scene.add(m);V3.stormWall=m;}
-  if(!S||S.phase!=='coming'||S.d<200){m.visible=false;return;}const b=body(),far=Math.min(S.d,V3.cam.far*0.92),ux=Math.cos(S.a),uy=Math.sin(S.a),cx=b.x-ux*far,cy=b.y-uy*far;
-  m.visible=true;m.position.set(cx,groundY3(b.x,b.y)+300,cy);m.scale.set(far*2.6,900,1);m.rotation.set(0,-Math.atan2(uy,ux)+Math.PI/2,0);m.material.opacity=clamp(1.6-far/5000,0.75,1);m.material.map.offset.x=(G.time||0)*0.01;}
+// the storm front as seen from far away (v8.0): a haboob, a towering, billowing wall of red dust rolling in across the country.
+// Built of a few hundred soft, lumpy puffs: a low skirt hugging the ground, tall billowing columns above it (taller in some places
+// than others, ragged along the top), the tops lit pale where the sun catches them and the undersides darker. The puffs slowly
+// swell and churn. The whole front curves round you, upwind, and comes on.
+function puffTex3(seed){const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d'),r=rng(seed);
+  for(let k=0;k<7;k++){const x=36+r()*56,y=40+r()*48,R=26+r()*20,gr=g.createRadialGradient(x-R*0.25,y-R*0.3,R*0.15,x,y,R);   // a few big, soft, overlapping lobes, lit from above
+    gr.addColorStop(0,'rgba(246,226,214,0.9)');gr.addColorStop(0.6,'rgba(226,200,186,0.75)');gr.addColorStop(1,'rgba(190,156,140,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,R,0,TAU);g.fill();}
+  const sh=g.createLinearGradient(0,40,0,128);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(60,30,20,0.45)');g.globalCompositeOperation='source-atop';g.fillStyle=sh;g.fillRect(0,0,128,128);   // shadowed underneath
+  const t=new THREE.CanvasTexture(cv);return t;}
+function stormWall3(){const S=G.storm;let W=V3.stormWall;
+  if(!W){const grp=new THREE.Group(),r=rng(777),texs=[puffTex3(11),puffTex3(23),puffTex3(37)],shades=[0xc8968a,0xb88478,0xa87468,0x96645a],mats=[];
+    for(const t of texs)for(const s of shades)mats.push(new THREE.SpriteMaterial({map:t,color:s,transparent:true,depthWrite:false,fog:false}));
+    const puffs=[],N=40;   // columns along the front, from one end to the other
+    for(let i=0;i<N;i++){const u=i/(N-1)*2-1,edge=Math.pow(Math.abs(u),2.2),H=(0.6+0.4*Math.sin(i*0.37+1)*Math.cos(i*0.13))*(1-edge*0.7)*1900+250;   /* a towering wall */   // tall in the middle, lower toward the ends, lumpy all along
+      const lay=Math.max(2,Math.round(H/260));for(let k=0;k<lay;k++){const h=k/(lay-1),sz=(1-h*0.35)*(H/lay)*3.4*(0.85+r()*0.4),y=sz*0.35+h*(H-sz*0.4);
+        const s=new THREE.Sprite(mats[Math.floor(r()*texs.length)*shades.length+(h>0.6?Math.floor(r()*2):1+Math.floor(r()*3))]);s.userData={u,y,z:(r()-0.5)*160-h*60,sz,ph:r()*TAU,sp:0.15+r()*0.2};grp.add(s);puffs.push(s);}
+      for(let k=0;k<2;k++){const s=new THREE.Sprite(mats[shades.length*Math.floor(r()*texs.length)+3]);s.userData={u:u+(r()-0.5)*0.03,y:60+r()*60,z:150+r()*100,sz:420+r()*200,ph:r()*TAU,sp:0.25+r()*0.2};grp.add(s);puffs.push(s);}}   // the low rolling skirt at its foot, out in front
+    grp.renderOrder=5;V3.scene.add(grp);W=V3.stormWall={grp,puffs};}
+  if(!S||S.phase!=='coming'||S.d<200){W.grp.visible=false;return;}
+  const b=body(),far=Math.min(S.d,V3.cam.far*0.9),ux=Math.cos(S.a),uy=Math.sin(S.a),cx=b.x-ux*far,cy=b.y-uy*far,gy=groundY3(b.x,b.y),t=G.time||0,span=far*1.7,k=far/3500;   // scaled with distance so it fills the horizon at any range
+  W.grp.visible=true;W.grp.position.set(cx,gy-20,cy);W.grp.rotation.set(0,-Math.atan2(uy,ux)+Math.PI/2,0);
+  const op=clamp(1.5-far/7000,0.8,1);
+  for(const s of W.puffs){const d=s.userData,a=d.u*0.9,bend=(1-Math.cos(a))*far*0.6,sw=1+0.06*Math.sin(t*d.sp+d.ph);   // the front curves round toward you at its ends; the puffs swell and churn
+    s.position.set(Math.sin(a)*span*0.62,d.y*k+Math.sin(t*d.sp*0.7+d.ph)*6*k,d.z*k+bend);s.scale.set(d.sz*k*sw,d.sz*k*sw,1);s.material.opacity=op;}}
 function arrow3D(wx,wy,label,col){if(!V3P.v)V3P.v=new THREE.Vector3();const v=V3P.v.set(wx,groundY3(wx,wy)+20,wy).project(V3.cam);
   let sx=(v.x+1)/2*W,sy=(1-v.y)/2*H;const behind=v.z>1;
   if(!behind&&sx>40&&sx<W-40&&sy>150&&sy<H-40)return;   // already on screen: no arrow needed
@@ -6080,7 +6103,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
