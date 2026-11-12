@@ -242,7 +242,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='7.3';
+const VERSION='7.5';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -753,6 +753,7 @@ function terrainRaw(x,y,f){f=f||terrainFactors(x,y);
   if(f.can>0.3&&fbm(nCanM,x/90000,y/90000,2)>0.56&&ridge(nCan,x,y,45000,3)>0.9972)return T.CANYON;
   return T.GROUND;}
 const TN=CH/32;   // 20 cells a side
+const LEVEL_GRID=new Map();   // building footprints, by chunk, for levelling the ground under them (filled once the towns are laid out)
 function buildTerrain(c){const ox=c.cx*CH,oy=c.cy*CH,terr=new Uint8Array(TN*TN),hgt=new Float32Array((TN+1)*(TN+1));
   const nearSea=landValue(ox+CH/2,oy+CH/2)<0.08,near=nearLoc(ox+CH/2,oy+CH/2,1400);
   for(let j=0;j<TN;j++)for(let i=0;i<TN;i++){const x=ox+(i+0.5)*32,y=oy+(j+0.5)*32;let t;
@@ -762,6 +763,12 @@ function buildTerrain(c){const ox=c.cx*CH,oy=c.cy*CH,terr=new Uint8Array(TN*TN),
         else{const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<ri.w/2+40)t=t===T.RIVER?T.BRIDGE_W:T.BRIDGE_C;}}}   // the road crosses on a bridge
     terr[j*TN+i]=t;}
   for(let j=0;j<=TN;j++)for(let i=0;i<=TN;i++)hgt[j*(TN+1)+i]=heightRaw(ox+i*32,oy+j*32);
+  // buildings stand on level ground: inside each footprint (and a little round it) the ground is at the building's height, blending
+  // back into the slope over 30 px (raised where the land falls away, cut where it rises)
+  {const L=LEVEL_GRID.get(c.cx+','+c.cy);if(L){const bestK=new Float32Array((TN+1)*(TN+1)),bestH=new Float32Array((TN+1)*(TN+1)),bestD=new Float32Array((TN+1)*(TN+1)).fill(1e9);for(const b of L){const cs=Math.cos(b.rot||0),sn=Math.sin(b.rot||0),hw=b.w/2,hh=b.h/2,BL=b.blend||40;
+    for(let j=0;j<=TN;j++)for(let i=0;i<=TN;i++){const x=ox+i*32,y=oy+j*32,dx=x-b.x,dy=y-b.y,lx=Math.abs(dx*cs+dy*sn),ly=Math.abs(-dx*sn+dy*cs),d0=Math.hypot(Math.max(0,lx-hw),Math.max(0,ly-hh));   // distance outside the footprint itself
+      const d=Math.max(0,d0-34),q=j*(TN+1)+i;if(d>=BL||d0>=bestD[q])continue;const u=d/BL,k=1-u*u*(3-2*u);bestD[q]=d0;bestK[q]=k;bestH[q]=b.baseH;}}   // the building whose footprint is nearest owns the point
+    for(let q=0;q<bestK.length;q++)if(bestK[q]>0)hgt[q]=hgt[q]*(1-bestK[q])+bestH[q]*bestK[q];}}
   c.terr=terr;c.hgt=hgt;c.boulders=fbm(nBould,(ox+CH/2)/15000,(oy+CH/2)/15000,2)>0.73;}
 function cellType(c,x,y){return c.terr[clamp(Math.floor((y-c.cy*CH)/32),0,TN-1)*TN+clamp(Math.floor((x-c.cx*CH)/32),0,TN-1)];}
 function terrainAt(x,y){return cellType(getChunk(Math.floor(x/CH),Math.floor(y/CH)),x,y);}
@@ -934,6 +941,53 @@ const FIELDS=[],FIELD_CELL=4096,fieldGrid=new Map();
 function fieldAt(x,y){const a=fieldGrid.get(Math.floor(x/FIELD_CELL)+','+Math.floor(y/FIELD_CELL));if(!a)return null;
   for(const f of a){const dx=x-f.x,dy=y-f.y,u=dx*f.ux+dy*f.uy,v=-dx*f.uy+dy*f.ux;if(Math.abs(u)<f.hw&&Math.abs(v)<f.hh)return f;}return null;}
 function fieldsNear(x,y,range){const out=new Set();for(let gy=Math.floor((y-range)/FIELD_CELL);gy<=Math.floor((y+range)/FIELD_CELL);gy++)for(let gx=Math.floor((x-range)/FIELD_CELL);gx<=Math.floor((x+range)/FIELD_CELL);gx++){const a=fieldGrid.get(gx+','+gy);if(a)for(const f of a)out.add(f);}return [...out];}
+
+/* ===== more to towns: sheds of all sizes, greenhouses, open-air workshops, an industrial yard in each city, fences round people's
+   plots; and every building's ground made level (raised or cut, blending into the slope round it, as for the roads) ===== */
+// do two boxes ({x,y,rot,hw,hh}) touch (within pad)? Separating axes.
+function obbHit(A,B,pad){const ax=[[Math.cos(A.rot),Math.sin(A.rot)],[-Math.sin(A.rot),Math.cos(A.rot)],[Math.cos(B.rot),Math.sin(B.rot)],[-Math.sin(B.rot),Math.cos(B.rot)]],dx=B.x-A.x,dy=B.y-A.y;
+  for(const [nx,ny] of ax){const ra=A.hw*Math.abs(nx*Math.cos(A.rot)+ny*Math.sin(A.rot))+A.hh*Math.abs(-nx*Math.sin(A.rot)+ny*Math.cos(A.rot)),rb=B.hw*Math.abs(nx*Math.cos(B.rot)+ny*Math.sin(B.rot))+B.hh*Math.abs(-nx*Math.sin(B.rot)+ny*Math.cos(B.rot));if(Math.abs(dx*nx+dy*ny)>ra+rb+(pad||0))return false;}return true;}
+function streetClear(o,x,y,pad){for(const t of o.streets||[]){const dx=t.x2-t.x1,dy=t.y2-t.y1,l2=dx*dx+dy*dy||1,u=clamp(((x-t.x1)*dx+(y-t.y1)*dy)/l2,0,1);if(Math.hypot(x-t.x1-dx*u,y-t.y1-dy*u)<t.w/2+pad)return false;}
+  if(o.square&&Math.hypot(x-o.square.x,y-o.square.y)<o.square.size*0.75+pad)return false;return true;}
+// level ground under every building, structure and yard: an index of their footprints, used when the ground's heights are made.
+// Run once the towns are laid out, and again once the factions have built theirs (a refinery); the ground is then made afresh.
+function levelIndex(){LEVEL_GRID.clear();
+  const all=[];for(const o of LOCS.concat(typeof HAMLETS!=='undefined'?HAMLETS:[])){for(const b of o.bld||[])all.push(b);for(const q of o.yards||[])all.push(q);}
+  for(const b of all)b.baseH=heightRaw(b.x,b.y);
+  // buildings almost touching share a level (else the ground between can't be level for both); the rest keep their own, like terraces
+  {const par=all.map((_,i)=>i),f=i=>par[i]===i?i:(par[i]=f(par[i])),gap=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)-(Math.hypot(a.w,a.h)+Math.hypot(b.w,b.h))/2;
+    for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++)if(gap(all[i],all[j])<24)par[f(i)]=f(j);
+    const g=new Map();all.forEach((b,i)=>{const k=f(i);if(!g.has(k))g.set(k,[]);g.get(k).push(b);});for(const [,grp] of g){if(grp.length<2)continue;const m=grp.reduce((s,b)=>s+b.baseH,0)/grp.length;for(const b of grp)b.baseH=m;}}
+  for(const b of all){let dh=0;const cs=Math.cos(b.rot||0),sn=Math.sin(b.rot||0);for(const [u,v] of [[1,1],[-1,1],[1,-1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]]){const x=b.x+(u*(b.w/2+34))*cs-(v*(b.h/2+34))*sn,y=b.y+(u*(b.w/2+34))*sn+(v*(b.h/2+34))*cs;dh=Math.max(dh,Math.abs(heightRaw(x,y)-b.baseH));}
+    b.blend=clamp(dh*5,40,320);const R0=Math.hypot(b.w,b.h)/2+50+b.blend;for(let gx=Math.floor((b.x-R0)/CH);gx<=Math.floor((b.x+R0)/CH);gx++)for(let gy=Math.floor((b.y-R0)/CH);gy<=Math.floor((b.y+R0)/CH);gy++){const k=gx+','+gy;if(!LEVEL_GRID.has(k))LEVEL_GRID.set(k,[]);LEVEL_GRID.get(k).push(b);}}
+  chunks.clear();}
+(function(){if(TEST_MODE)return;
+  for(const o of LOCS){if(o.type==='ruin'||!o.fits)continue;const r=rng(hash2(o.id*71+3,9)),wr=o.rad-70;o.fences=o.fences||[];o.yards=o.yards||[];
+    const free=(x,y,w,h)=>Math.hypot(x-o.x,y-o.y)+Math.hypot(w,h)/2<wr&&o.fits(x,y,{w,h})&&streetClear(o,x,y,Math.hypot(w,h)/2+8)&&!o.yards.some(q=>Math.hypot(q.x-x,q.y-y)<(Math.hypot(q.w,q.h)+Math.hypot(w,h))/2*0.95)&&!(o.carSpawns||[]).some(s=>Math.hypot(s.x-x,s.y-y)<Math.hypot(w,h)/2+30)&&!(o.fires||[]).some(f=>Math.hypot(f.x-x,f.y-y)<Math.hypot(w,h)/2+20)&&!(o.paddocks||[]).some(p=>Math.hypot(p.x-x,p.y-y)<(Math.hypot(p.w,p.h)+Math.hypot(w,h))/2+10);   /* clear of parked cars, fires and paddocks */
+    const place=(n,mk)=>{for(let k=0;k<n;k++)for(let t=0;t<60;t++){const a=r()*TAU,d=(o.type==='city'?200:120)+r()*(wr-(o.type==='city'?200:120)),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d,rot=a+Math.PI/2+(r()<0.5?0:Math.PI/2);if(mk(x,y,rot))break;}};
+    const city=o.type==='city';
+    // sheds: a lean little tin shed, a garden shed, a big machinery shed
+    place(city?8:o.type==='outpost'?3:2,(x,y,rot)=>{const q=r(),[w,h]=q<0.4?[38+r()*14,30+r()*10]:q<0.8?[58+r()*20,44+r()*14]:[96+r()*30,70+r()*20];if(!free(x,y,w,h))return false;
+      o.bld.push({kind:'shedx',x,y,rot,w,h,tank:true,struct:true,furn:[],roofA:1,size:q<0.4?0:q<0.8?1:2,seed:Math.floor(r()*1e9)});return true;});
+    // greenhouses: a frame of old windows and plastic over rows of vegetables
+    place(city?2:o.type==='outpost'?1:(r()<0.5?1:0),(x,y,rot)=>{const w=70+r()*30,h=36+r()*10;if(!free(x,y,w,h))return false;o.bld.push({kind:'greenhouse',x,y,rot,w,h,tank:true,struct:true,furn:[],roofA:1,seed:Math.floor(r()*1e9)});return true;});
+    // open-air workshops: a slab under a roof on poles, a car on blocks, an engine hanging from a hoist, benches, drums
+    place(city?2:1,(x,y,rot)=>{const w=90+r()*30,h=66+r()*16;if(!free(x,y,w,h))return false;o.yards.push({kind:'workshop',x,y,rot,w,h,seed:Math.floor(r()*1e9)});return true;});
+    // a city's industrial yard: a fenced compound with a big works shed, tanks, a chimney, scrap
+    if(city)place(1,(x,y,rot)=>{const w=300,h=220;if(!free(x,y,w,h))return false;const c=Math.cos(rot),s=Math.sin(rot),L=(u,v)=>({x:x+u*c-v*s,y:y+u*s+v*c});
+      const f=L(-30,-20);o.bld.push({kind:'works',x:f.x,y:f.y,rot,w:170,h:110,tank:true,struct:true,furn:[],roofA:1,seed:Math.floor(r()*1e9)});
+      const t1=L(100,-60),t2=L(100,10),ch=L(-110,70);o.bld.push(makeStruct('oiltank',t1.x,t1.y,rot,56),makeStruct('oiltank',t2.x,t2.y,rot,50),{kind:'chimney',x:ch.x,y:ch.y,rot,w:22,h:22,tank:true,struct:true,furn:[],roofA:1});
+      o.yards.push({kind:'scrapyard',x,y,rot,w,h,seed:Math.floor(r()*1e9)});
+      const pts=[L(-w/2,-h/2),L(w/2,-h/2),L(w/2,h/2),L(30,h/2)];o.fences.push({pts,kind:'iron'});o.fences.push({pts:[L(-30,h/2),L(-w/2,h/2),L(-w/2,-h/2)],kind:'iron'});return true;});
+    // fences round people's plots: a run of posts and wire (or old iron) round each house, open at the front
+    const plots=[];for(const q of o.yards)if(q.kind==='scrapyard')plots.push({x:q.x,y:q.y,rot:q.rot,hw:q.w/2,hh:q.h/2});   // the industrial yard's fence counts as a plot too
+    for(const b of o.bld){if(b.kind!=='house'||r()<0.15)continue;const c=Math.cos(b.rot),s=Math.sin(b.rot),L=(u,v)=>({x:b.x+u*c-v*s,y:b.y+u*s+v*c}),gap=b.door/2+14,kind=r()<0.6?'wire':'iron',ex=r();
+      for(const [mx,my] of [[22+ex*16,18+ex*14],[16,13],[11,9]]){const hw=b.w/2+mx,hh=b.h/2+my,P={x:b.x,y:b.y,rot:b.rot,hw,hh};
+        const corners=[L(hw,hh),L(hw,-hh),L(-hw,-hh),L(-hw,hh)];if(!corners.every(p=>Math.hypot(p.x-o.x,p.y-o.y)<wr+20))continue;
+        if(plots.some(q=>obbHit(P,q,8)))continue;if(o.bld.some(q=>q!==b&&obbHit(P,{x:q.x,y:q.y,rot:q.rot||0,hw:q.w/2,hh:q.h/2},6)))continue;if(o.yards.some(q=>obbHit(P,{x:q.x,y:q.y,rot:q.rot,hw:q.w/2,hh:q.h/2},6)))continue;
+        let clear=true;for(let k=0;k<4&&clear;k++){const a=corners[k],e=corners[(k+1)%4];for(let t=0;t<=1.001&&clear;t+=0.1){const x=a.x+(e.x-a.x)*t,y=a.y+(e.y-a.y)*t;if(!streetClear(o,x,y,4))clear=false;const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<ri.w/2+6)clear=false;}}if(!clear)continue;
+        plots.push(P);o.fences.push({pts:[L(gap,hh),L(hw,hh),L(hw,-hh),L(-hw,-hh),L(-hw,hh),L(-gap,hh)],kind,plot:P});break;}}}
+  levelIndex();})();   // the ground is made afresh with the levelling in it
 
 /* ===== vehicles: roster, physics, collisions ===== */
 // Fictional late-70s Australian cars. off = how well it copes off-road (1 = no penalty).
@@ -1196,7 +1250,7 @@ function invWeight(inv){let w=(inv&&inv._fill||0)*FUEL_KG;for(const k in inv)w+=
 function invAdd(inv,k,n){inv[k]=(inv[k]||0)+(n||1);}
 function invTake(inv,k,n){n=n||1;if(!inv[k]||inv[k]<n)return false;inv[k]-=n;if(inv[k]<=0)delete inv[k];return true;}
 function invCount(inv){let n=0;for(const k in inv)n+=inv[k];return n;}
-function carCap(c){return c.def.boot;}
+function carCap(c){return c.ups&&c.ups.stripped?Math.max(c.def.boot,100):c.def.boot;}   // back seats stripped out: room for 100 kg
 // move up to n of an item between inventories, respecting the destination's weight limit
 function invMove(from,to,k,n,cap){let moved=0;n=n||1;const per=k==='jerrycan'&&from.jerrycan?canFill(from)/from.jerrycan:0;   // a jerry can takes its fuel with it
   while(moved<n&&from[k]){if(cap!==undefined&&invWeight(to)+ITEMS[k].kg+per*FUEL_KG>cap+1e-6)break;invTake(from,k,1);invAdd(to,k,1);moved++;
@@ -1319,6 +1373,7 @@ function servicesFor(n,car){const role=n.def.role,out=[];
   if(role==='convoy'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill your tank from their drums ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8*3)});if(canSpace(G.hero.inv)>0.5)out.push({k:'svc_cans',name:'Fill your jerry cans',val:Math.ceil(canSpace(G.hero.inv)*0.8*3)});return out;}   // three times what a mechanic charges
   if(role==='mechanic'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill the tank ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8)});   // a full tank is worth eight bottles' worth of goods: fuel is dear
     if(car.cond<99)out.push({k:'svc_body',name:'Panel-beat the body ('+Math.round(car.cond)+'% → 100%)',val:Math.ceil((100-car.cond)*0.5)});
+    if(car.def.boot<100&&['coupe','sedan','cruiser','van','wagon'].includes(car.def.style)&&!(car.ups&&car.ups.stripped))out.push({k:'svc_strip',name:'Strip out the back seats (room for 100 kg, up from '+car.def.boot+')',val:35});   // a workshop job
     {const cur=carMotor(car),city=n.loc&&n.loc.type==='city';for(const k in MOTORS){const M=MOTORS[k];if(M.city&&!city)continue;if(car.ups&&car.ups[k])continue;out.push({k:'svc_motor_'+k,name:'Fit a '+M.name+' (+'+(M.spd*100)+'% speed, +'+(M.fuel*100)+'% fuel; you have the '+cur.name+')',val:M.price});}}
     if(car.engine<99)out.push({k:'svc_engine',name:'Overhaul the engine ('+Math.round(car.engine)+'% → 100%)',val:Math.ceil((100-car.engine)*1.2)});
     if(car.susp<99)out.push({k:'svc_susp',name:'Fix the suspension ('+Math.round(car.susp)+'% → 100%)',val:Math.ceil((100-car.susp)*0.8)});
@@ -1329,6 +1384,7 @@ function servicesFor(n,car){const role=n.def.role,out=[];
   if(role==='doctor'&&n.loc&&n.loc.type==='city'&&(heroInj().length||heroCapLoss()>0))out.push({k:'svc_injury',name:'Treat your injuries ('+(heroInj().map(i=>INJURIES[i.type].name.toLowerCase()).join(', ')||'mending')+'), then rest here to mend: a day per injury',val:30+heroCapLoss()*4});   // a city doctor's care
   return out;}
 function applyService(k,car){const h=G.hero;
+  if(k==='svc_strip'){car.ups=car.ups||{};car.ups.stripped=true;SFX.clank();showMsg('The back seats are out. Room for 100 kg in the back now',2.6);}
   if(k.startsWith('svc_motor_')){fitUpgrade(car,k.slice(10));car.engine=100;SFX.clank();showMsg('The mechanic drops in the '+MOTORS[k.slice(10)].name,2.6);}
   if(k==='svc_fuel')car.fuel=100;else if(k==='svc_body')car.cond=100;else if(k==='svc_engine')car.engine=100;else if(k==='svc_susp')car.susp=100;
   else if(k==='svc_tyres'){for(let i=0;i<4;i++)if(car.tw[i]<60)car.tw[i]=100;}
@@ -2584,6 +2640,8 @@ function amendsOptions(o){const h=G.hero.inv,food=(h.beans||0)+(h.jerky||0),opts
   if((h.water||0)>=3)opts.push({label:'three bottles of water',cost:{water:3}});
   if(food>=3){const c={};let need=3;for(const k of ['beans','jerky']){const t=Math.min(need,h[k]||0);if(t){c[k]=t;need-=t;}}opts.push({label:'three tins and packets of food',cost:c});}
   if((h.medkit||0)>=1)opts.push({label:'a first-aid kit',cost:{medkit:1}});return opts;}
+
+if(!TEST_MODE)levelIndex();   // the factions' own buildings (a refinery) stand level too
 
 /* ===== talking about the factions: lore, opinions, gatekeepers and their tasks, the wandering factions' drifters =====
    Anyone in a town will tell you about their own people (a different piece each time you ask), and what they make of the
@@ -4638,6 +4696,102 @@ function wallSection3(gb,x,y,ang,r,base,flip){const W=wallGeo3(),S=WALLS3.S,P=W.
     const v=B.v||(B.v=0.84+r()*0.22);c=c.map(q=>q*v);   // one shade per sheet (so its two triangles match), not per triangle
     for(let j=0;j<3;j++){const lx=(P[i+j*3+2]-W.cz)*S*fl,ly=(P[i+j*3+1]-W.mn[1])*S,lz=(P[i+j*3]-W.cx)*S*fl,lx2=lx+ly*tw,lz2=lz+ly*lean;   // along the wall, up, across it; leaning a touch
       gb.pushV(x+lx2*ca-lz2*sa,gy+ly,y+lx2*sa+lz2*ca,c[0],c[1],c[2],0);}}}
+/* ---- the clutter round every building (v7.4): a lean-to on one side with drums or firewood under it, a rain tank on a stand at a back
+   corner, sometimes a side room, a torn canvas flapping, sheets of iron and planks and tyres leaning on the walls, gutters and a
+   downpipe, a flue on the roof, an aerial; all of it rusted, faded, dirty ---- */
+const DIRT3={rust:'#8a4a24',rustD:'#5a3420',iron:'#7a7266',ironD:'#5a554e',timber:'#5a4430',timberL:'#7a6248',canvas:['#8a7a5a','#7a6a50','#6a6a52','#9a8a6a','#7a5a40']};
+function dcol3(r,hexes,k){const h=hexes[Math.floor(r()*hexes.length)];let c=col3(h);if(r()<0.3)c=mix3(c,col3(DIRT3.rust),0.4+r()*0.3);return c.map(v=>v*(0.82+r()*0.24)*(k||1));}
+function quad2(gb,a,b,c,d,col){gb.quad(a,b,c,d,col,[(a[0]+c[0])/2,(a[1]+c[1])/2+50,(a[2]+c[2])/2]);gb.quad(a,d,c,b,col.map(v=>v*0.85),[(a[0]+c[0])/2,(a[1]+c[1])/2-50,(a[2]+c[2])/2]);}   // a thin sheet, both faces
+function leanAgainst3(gb,L,y,r,lx,lz,nx,nz,WH){const q=r();   // something leant against a wall at (lx,lz), the wall facing (nx,nz)
+  if(q<0.3){const w=8+r()*6,h=16+r()*10,out=4+r()*3,tx=-nz,tz=nx;quad2(gb,L(lx+nx*out-tx*w/2,y,lz+nz*out-tz*w/2),L(lx+nx*out+tx*w/2,y,lz+nz*out+tz*w/2),L(lx+nx*0.8+tx*w/2,y+h,lz+nz*0.8+tz*w/2),L(lx+nx*0.8-tx*w/2,y+h,lz+nz*0.8-tz*w/2),dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.ironD]));}   // a sheet of iron
+  else if(q<0.55){for(let k=0;k<2+Math.floor(r()*3);k++){const o=(k-1)*2.2;gb.beam(L(lx+nx*(5+r()*2)-nz*o,y,lz+nz*(5+r()*2)+nx*o),L(lx+nx*0.8-nz*o,y+14+r()*10,lz+nz*0.8+nx*o),1+r()*0.5,dcol3(r,[DIRT3.timber,DIRT3.timberL]));}}   // planks
+  else if(q<0.72){const p=L(lx+nx*4,y,lz+nz*4);for(let k=0;k<1+Math.floor(r()*3);k++)gb.cyl(p[0],p[1]+k*2.6,p[2],4.6,2.6,10,col3('#1e1a17'),col3('#2a2622'));}   // a stack of tyres
+  else if(q<0.86){const p=L(lx+nx*5,y,lz+nz*5);gb.cyl(p[0],p[1],p[2],3.6,9,9,dcol3(r,['#3f5a6a','#6a3a2a','#5a5a4a',DIRT3.rust]),col3('#3a332c'));}   // a drum
+  else{const w=9,h=20,tx=-nz,tz=nx;quad2(gb,L(lx+nx*5-tx*w/2,y,lz+nz*5-tz*w/2),L(lx+nx*5+tx*w/2,y,lz+nz*5+tz*w/2),L(lx+nx+tx*w/2,y+h,lz+nz+tz*w/2),L(lx+nx-tx*w/2,y+h,lz+nz-tz*w/2),dcol3(r,[DIRT3.timberL,'#6a7a6a','#7a5a4a']));}}   // an old door
+// a ruined house by the road: what's left of it strewn round about. Roof sheets torn off and lying about or propped, a collapsed lean-to,
+// heaps of rubble and broken boards, a rusted fridge and a stove dragged out, a mattress, a fallen rain tank, tyres, drums, a burnt patch,
+// snapped fence posts, and rags of canvas caught on what still stands
+function ruinDebris3(gb,b,y,WH,r){const hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],around=(m)=>{const a=r()*TAU,ex=Math.cos(a),ez=Math.sin(a),k=1/Math.max(Math.abs(ex)/hw,Math.abs(ez)/hh);return [ex*(k+m),ez*(k+m)];};
+  for(let k=0;k<5;k++){const [lx,lz]=around(4+r()*30),a=r()*TAU,w=10+r()*8,d=7+r()*5,p=L(lx,y,lz),gy=heightAt(p[0],p[2])+0.3,tilt=r()<0.4?3+r()*6:0.3;   // roof sheets lying about, some propped on rubble
+    const ca=Math.cos(a),sa=Math.sin(a),c=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]].map(([u,v],i)=>[p[0]+u*ca-v*sa,gy+(i>=2?tilt:0),p[2]+u*sa+v*ca]);quad2(gb,c[0],c[1],c[2],c[3],dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.rustD,DIRT3.ironD]));}
+  for(let k=0;k<3;k++){const [lx,lz]=around(r()*14),p=L(lx,y,lz);gb.lump(p[0],heightAt(p[0],p[2])-0.5,p[2],8+r()*8,3+r()*4,r()*TAU,dcol3(r,['#7a6a58','#8a7a66','#6a5a48','#9a7a5a']));   // rubble heaps, with broken boards sticking out
+    for(let j=0;j<3;j++){const a=r()*TAU,l=8+r()*10,gy=heightAt(p[0],p[2]);gb.beam([p[0]+Math.cos(a)*2,gy+1,p[2]+Math.sin(a)*2],[p[0]+Math.cos(a)*l,gy+2+r()*5,p[2]+Math.sin(a)*l],1.1,dcol3(r,[DIRT3.timber,DIRT3.timberL,'#3a2a1c']));}}
+  {const [lx,lz]=around(10+r()*16),p=L(lx,y,lz),gy=heightAt(p[0],p[2]),a=r()*TAU;gb.box(p[0],gy-0.5,p[2],7,15,6,a,dcol3(r,['#c8c0b0','#b8b0a0']).map(v=>v*0.85),col3('#a8a090'));if(r()<0.5)gb.box(p[0]+Math.cos(a)*9,gy,p[2]+Math.sin(a)*9,7,8,6,a+0.3,dcol3(r,['#5a554e','#7a7266']));}   // a fridge, maybe a stove
+  {const [lx,lz]=around(8+r()*20),p=L(lx,y,lz),gy=heightAt(p[0],p[2]);gb.box(p[0],gy,p[2],16,1.6,9,r()*TAU,dcol3(r,['#8a7a64','#7a6a56','#9a8a74']));}   // a mattress, stained
+  if(r()<0.7){const [lx,lz]=around(6+r()*20),p=L(lx,y,lz),gy=heightAt(p[0],p[2]),a=r()*TAU,tc=dcol3(r,['#8a8478','#7a7266']);gb.wheel(p[0],gy+9,p[2],9,18,a,12,tc,mix3(tc,col3(DIRT3.rust),0.5));}   // a rain tank, fallen on its side
+  for(let k=0;k<3+Math.floor(r()*4);k++){const [lx,lz]=around(r()*35),p=L(lx,y,lz),gy=heightAt(p[0],p[2]);if(r()<0.5)gb.wheel(p[0],gy+0.8,p[2],4.6,2.6,0,10,col3('#1e1a17'),col3('#2a2622'));else gb.cyl(p[0],gy,p[2],3.6,r()<0.4?3:9,9,dcol3(r,['#3f5a6a','#6a3a2a',DIRT3.rust]),col3('#3a332c'));}   // tyres lying flat, drums (some crushed)
+  {const [lx,lz]=around(14+r()*10),p=L(lx,y,lz),gy=heightAt(p[0],p[2])+0.2,R0=8+r()*6,N=8,pts=[];for(let k=0;k<N;k++){const a=k/N*TAU;pts.push([p[0]+Math.cos(a)*R0*(0.7+r()*0.5),gy,p[2]+Math.sin(a)*R0*(0.7+r()*0.5)]);}for(let k=0;k<N;k++)gb.tri([p[0],gy,p[2]],pts[k],pts[(k+1)%N],col3('#2a2420'),0,1,0);}   // an old fire's black patch
+  if(r()<0.6){const side=r()<0.5?1:-1,x0=side*hw,x1=side*(hw+20),z0=(r()-0.5)*hh,len=b.h*0.45;quad2(gb,L(x0,y+WH*0.45,z0-len/2),L(x0,y+WH*0.45,z0+len/2),L(x1,heightAt(...L(x1,0,z0).filter((_,i)=>i!==1))+1,z0+len/2),L(x1,heightAt(...L(x1,0,z0).filter((_,i)=>i!==1))+1,z0-len/2),dcol3(r,[DIRT3.rust,DIRT3.iron]));   // a lean-to come down, one edge on the ground
+    gb.beam(L(x1-side*2,y,z0+len/2-2),L(x1+side*4,y+6,z0+len/2+4),1.4,dcol3(r,[DIRT3.timber]));}
+  {const [lx,lz]=around(16+r()*8),a=r()*TAU;for(let k=0;k<5;k++){if(r()<0.35)continue;const p=L(lx+Math.cos(a)*k*12,y,lz+Math.sin(a)*k*12),gy=heightAt(p[0],p[2]),h=r()<0.5?3+r()*3:8+r()*2;gb.beam([p[0],gy-1,p[2]],[p[0]+(r()-0.5)*3,gy+h,p[2]+(r()-0.5)*3],1.4,dcol3(r,['#8f8a80','#6e6a62',DIRT3.timber]));}}   // snapped fence posts
+  for(let k=0;k<2;k++){if(r()<0.4)continue;const sd=r()<0.5?1:-1,lz=(r()-0.5)*b.h*0.6,A=L(sd*(hw+1),y+WH*(0.4+r()*0.2),lz-6),B2=L(sd*(hw+1),y+WH*0.45,lz+6);gb.cloth(A,B2,[sd*cs*0.2,-1,sd*sn*0.2],WH*0.3,dcol3(r,DIRT3.canvas),r,{rows:3,cols:2});}}   // rags of canvas caught on the walls
+function bldExtras3(gb,b,y,WH,r,rui){if(b.tank||b.struct)return;if(rui)ruinDebris3(gb,b,y,WH,r);const hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],big=b.w>160;
+  const side=r()<0.5?1:-1,top=y+WH*0.8;
+  // a lean-to off one side: a skillion of iron on rough posts, things kept under it
+  if(!rui&&r()<0.6&&!big){const dep=22+r()*8,len=b.h*(0.55+r()*0.3),z0=(r()-0.5)*(b.h-len),x0=side*hw,x1=side*(hw+dep),hi=y+WH*0.72,lo=y+WH*0.5,ic=dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.ironD]);
+    quad2(gb,L(x0,hi,z0-len/2),L(x0,hi,z0+len/2),L(x1,lo,z0+len/2),L(x1,lo,z0-len/2),ic);
+    for(const zz of [z0-len/2+2,z0+len/2-2])gb.beam(L(x1-side*1.5,y,zz),L(x1-side*1.5,lo,zz),1.6,dcol3(r,[DIRT3.timber]));
+    for(let k=0;k<2+Math.floor(r()*3);k++){const p=L(side*(hw+6+r()*(dep-10)),y,z0+(r()-0.5)*len*0.8);if(r()<0.5)gb.cyl(p[0],y,p[2],3.6,9,9,dcol3(r,['#3f5a6a','#6a3a2a',DIRT3.rust]),col3('#3a332c'));else gb.box(p[0],y,p[2],10,5+r()*4,6,b.rot+r()*0.3,dcol3(r,[DIRT3.timber,DIRT3.timberL]));}   // drums, firewood
+    if(r()<0.6)gb.cloth(L(x1,lo-0.5,z0-len*0.3),L(x1,lo-0.5,z0+len*0.1),[side*cs*0.2,-1,side*sn*0.2],10+r()*6,dcol3(r,DIRT3.canvas),r,{rows:3,cols:2});}   // a canvas hung off its edge, flapping
+  // a rain tank on a timber stand at a back corner, a pipe from the gutter
+  if(r()<0.5){const tx=-side*(hw+13),tz=-hh+12,p=L(tx,y,tz),R0=9+r()*3,H0=16+r()*6,tc=dcol3(r,['#8a8478','#7a7266','#9a948a']);
+    gb.box(p[0],y,p[2],R0*2+2,8,R0*2+2,b.rot,dcol3(r,[DIRT3.timber]));gb.cyl(p[0],y+8,p[2],R0,H0,12,tc,tc.map(v=>v*1.08));
+    for(let k=1;k<4;k++)gb.cyl(p[0],y+8+k*H0/4,p[2],R0+0.4,0.8,12,mix3(tc,col3(DIRT3.rust),0.6));gb.beam(L(tx,y+8+H0,tz),L(-side*(hw-4),y+WH*0.8,tz),0.8,col3(DIRT3.ironD));}
+  // a side room off the back
+  if(!rui&&!big&&r()<0.3){const w=b.w*0.35,d=22,p=L((r()-0.5)*(b.w-w),y,-hh-d/2),wc=dcol3(r,[DIRT3.iron,DIRT3.timberL,'#6a6052']);gb.box(p[0],y,p[2],w,WH*0.62,d,b.rot,wc,wc.map(v=>v*0.9));
+    quad2(gb,L((r()-0.5)*4-w/2+p[0]*0,y+WH*0.66,-hh),L(w/2,y+WH*0.66,-hh),L(w/2,y+WH*0.55,-hh-d-3),L(-w/2,y+WH*0.55,-hh-d-3),dcol3(r,[DIRT3.rust,DIRT3.iron]));}
+  // gutter along the front, a downpipe at a corner
+  if(!rui){gb.lbox(b,0,hh+1.5,y+WH*0.86,b.w*0.96,1.6,2,dcol3(r,[DIRT3.iron,DIRT3.rust]));const dp=L(hw-2,0,hh+1.5);gb.beam([dp[0],y,dp[2]],[dp[0],y+WH*0.86,dp[2]],0.9,dcol3(r,[DIRT3.ironD,DIRT3.rust]));}
+  // a flue through the roof, smoke-blackened at the top
+  if(!rui&&r()<0.6){const p=L((r()-0.5)*b.w*0.5,0,(r()-0.5)*b.h*0.4);gb.cyl(p[0],y+WH*0.9,p[2],1.8,WH*0.45,8,col3('#5a554e'),col3('#1e1a17'));gb.cyl(p[0],y+WH*1.33,p[2],3,1.6,8,col3('#3a332c'));}
+  // things leant against the walls, all round
+  const n=rui?5:3+Math.floor(r()*4);for(let k=0;k<n;k++){const wall=Math.floor(r()*4),u=r()-0.5;
+    if(wall===0)leanAgainst3(gb,L,y,r,u*b.w*0.85,-hh,0,-1,WH);else if(wall===1)leanAgainst3(gb,L,y,r,hw,u*b.h*0.8,1,0,WH);else if(wall===2)leanAgainst3(gb,L,y,r,-hw,u*b.h*0.8,-1,0,WH);
+    else{const ux=(r()<0.5?-1:1)*(b.door/2+8+r()*(hw-b.door/2-12));leanAgainst3(gb,L,y,r,ux,hh,0,1,WH);}}
+  // a torn canvas over a window
+  if(r()<0.35){const sd=r()<0.5?1:-1,lz=(r()-0.5)*b.h*0.5,A=L(sd*(hw+1),y+WH*0.62,lz-7),B2=L(sd*(hw+1),y+WH*0.62,lz+7);gb.cloth(A,B2,[sd*cs*0.15,-1,sd*sn*0.15],WH*0.35,dcol3(r,DIRT3.canvas),r,{rows:3,cols:2});}}
+// ---- the new kinds of structure: tin sheds, greenhouses, a works shed, a chimney ----
+function shedx3(gb,b){const r=rng(b.seed||7),y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],H=[20,26,38][b.size||0];
+  const base=dcol3(r,[DIRT3.iron,'#8a8478','#6a6052',DIRT3.ironD]);gb.lbox(b,0,0,y-2,b.w,H*0.62+2,b.h,base,base);   // corrugated walls
+  for(let x=-hw+3;x<hw;x+=5)for(const sg of [-1,1]){const c=r()<0.2?mix3(base,col3(DIRT3.rust),0.6+r()*0.3):base.map(v=>v*(0.88+r()*0.1));gb.lbox(b,x,sg*(hh+0.3),y,1.2,H*0.62-1,0.6,c);}   // ribs, some rusted through
+  for(let z=-hh+3;z<hh;z+=5)for(const sg of [-1,1]){const c=r()<0.2?mix3(base,col3(DIRT3.rust),0.6):base.map(v=>v*(0.86+r()*0.1));gb.lbox(b,sg*(hw+0.3),z,y,0.6,H*0.62-1,1.2,c);}
+  const rc=dcol3(r,[DIRT3.rust,DIRT3.iron,DIRT3.ironD]),ov=4;quad2(gb,L(-hw-ov,y+H,-hh-ov),L(hw+ov,y+H,-hh-ov),L(hw+ov,y+H*0.6,hh+ov),L(-hw-ov,y+H*0.6,hh+ov),rc);   // a skillion roof, rusty
+  gb.box(...L(0,0,-hh),b.w,H*0.38+0.5,1,b.rot,base.map(v=>v*0.9));gb.lbox(b,0,0,y+H*0.6,b.w,H*0.4,b.h-2,base.map(v=>v*0.92));   // the high back wall
+  gb.lbox(b,(r()-0.5)*b.w*0.3,hh+0.7,y,b.w*(b.size===2?0.5:0.32),H*0.5,0.8,col3(b.size===2?'#4a4640':'#3a332c'));   // a door (a roller door on the big one)
+  for(let k=0;k<2+(b.size||0)*2;k++)leanAgainst3(gb,L,y,r,(r()-0.5)*b.w*0.8,(r()<0.5?-1:1)*hh,0,r()<0.5?-1:1,H);
+  if(r()<0.4)gb.cloth(L(-hw-1,y+H*0.55,-4),L(-hw-1,y+H*0.55,6),[-cs*0.2,-1,-sn*0.2],H*0.4,dcol3(r,DIRT3.canvas),r,{rows:2,cols:2});}
+function greenhouse3(gb,b){const r=rng(b.seed||9),y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],eave=14,ridge=22,frame=col3('#4a4036'),pane=['#c8d2c0','#b8c4b0','#d0d4c4','#a8b4a0'];
+  gb.lbox(b,0,0,y-1,b.w,5,b.h,dcol3(r,['#8a6a52','#7a5a42']));   // a low base wall
+  for(let x=-hw;x<=hw+0.1;x+=b.w/6){for(const sg of [-1,1])gb.beam(L(x,y+4,sg*hh),L(x,y+eave,sg*hh),0.8,frame);gb.beam(L(x,y+eave,-hh),L(x,y+ridge,0),0.7,frame);gb.beam(L(x,y+eave,hh),L(x,y+ridge,0),0.7,frame);}
+  gb.beam(L(-hw,y+ridge,0),L(hw,y+ridge,0),0.9,frame);
+  const pn=(a,b2,c,d)=>{if(r()<0.12)return;quad2(gb,a,b2,c,d,col3(pane[Math.floor(r()*pane.length)],0.9+r()*0.15));};   // panes of old glass and plastic, the odd one gone
+  for(let i=0;i<6;i++){const x0=-hw+i*b.w/6,x1=x0+b.w/6;for(const sg of [-1,1]){pn(L(x0,y+4,sg*hh),L(x1,y+4,sg*hh),L(x1,y+eave,sg*hh),L(x0,y+eave,sg*hh));pn(L(x0,y+eave,sg*hh),L(x1,y+eave,sg*hh),L(x1,y+ridge,0),L(x0,y+ridge,0));}}
+  for(const sg of [-1,1]){pn(L(sg*hw,y+4,-hh),L(sg*hw,y+4,hh),L(sg*hw,y+eave,hh),L(sg*hw,y+eave,-hh));gb.tri(L(sg*hw,y+eave,-hh),L(sg*hw,y+eave,hh),L(sg*hw,y+ridge,0),col3(pane[0]),sg*cs,0,sg*sn);}
+  for(const z of [-hh*0.5,hh*0.5]){gb.lbox(b,0,z,y,b.w*0.86,3,b.h*0.28,dcol3(r,['#6a4a30']));for(let x=-hw*0.8;x<hw*0.8;x+=7){const p=L(x,0,z+(r()-0.5)*4);gb.lump(p[0],y+3,p[2],2.5+r()*2,3+r()*3,r()*TAU,dcol3(r,['#5a7a3a','#6a8a40','#4a6a30','#7a8a4a']));}}}   // beds of vegetables
+function works3(gb,b){const r=rng(b.seed||11),y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],H=40,base=dcol3(r,[DIRT3.iron,'#8a8478',DIRT3.ironD]);
+  gb.lbox(b,0,0,y-2,b.w,H+2,b.h,base,base);for(let x=-hw+4;x<hw;x+=7)for(const sg of [-1,1]){const c=r()<0.25?mix3(base,col3(DIRT3.rust),0.5+r()*0.4):base.map(v=>v*(0.86+r()*0.1));gb.lbox(b,x,sg*(hh+0.3),y,1.6,H-1,0.6,c);}
+  const teeth=4,tw=b.w/teeth;for(let i=0;i<teeth;i++){const x0=-hw+i*tw,x1=x0+tw,rc=dcol3(r,[DIRT3.rust,DIRT3.iron]);quad2(gb,L(x0,y+H,-hh),L(x1,y+H+16,-hh),L(x1,y+H+16,hh),L(x0,y+H,hh),rc);quad2(gb,L(x1,y+H,-hh),L(x1,y+H+16,-hh),L(x1,y+H+16,hh),L(x1,y+H,hh),col3('#2a3034'));}   // a sawtooth roof, its glazing dark
+  for(const lx of [-hw*0.5,hw*0.3])gb.lbox(b,lx,hh+0.8,y,34,30,1,col3('#4a4640'));   // roller doors
+  for(let k=0;k<3;k++){const p=L(-hw*0.7+k*hw*0.6,0,-hh*0.3);gb.cyl(p[0],y+H+10,p[2],2.5,22,8,col3('#5a554e'),col3('#1e1a17'));}   // vents
+  for(let k=0;k<8;k++)leanAgainst3(gb,L,y,r,(r()-0.5)*b.w*0.9,(r()<0.5?-1:1)*hh,0,r()<0.5?-1:1,H);}
+function chimney3(gb,b){const y=heightAt(b.x,b.y),bc=col3('#7a4a34');gb.cyl(b.x,y,b.y,11,120,10,bc,bc);for(let k=1;k<6;k++)gb.cyl(b.x,y+k*22,b.y,11.6,2,10,col3('#5a3a28'));gb.cyl(b.x,y+118,b.y,12.5,4,10,col3('#1e1a17'));}
+// open-air yards: a workshop under a roof on poles; a scrap yard
+function yard3(gb,q){const r=rng(q.seed||13),y=heightAt(q.x,q.y),hw=q.w/2,hh=q.h/2,cs=Math.cos(q.rot),sn=Math.sin(q.rot),L=(lx,ly,lz)=>[q.x+lx*cs-lz*sn,ly,q.y+lx*sn+lz*cs];
+  if(q.kind==='workshop'){gb.box(q.x,y-1.5,q.y,q.w,2.2,q.h,q.rot,col3('#6a665e'),col3('#76726a'));   // a cracked, oil-stained slab
+    const rw=q.w*0.7,rd=q.h*0.6,rz=-hh+rd/2+4;for(const lx of [-rw/2,rw/2])for(const lz of [rz-rd/2,rz+rd/2])gb.beam(L(lx,y,lz),L(lx,y+(lz<rz?30:24),lz),1.6,dcol3(r,[DIRT3.timber,DIRT3.ironD]));
+    quad2(gb,L(-rw/2-4,y+30,rz-rd/2-4),L(rw/2+4,y+30,rz-rd/2-4),L(rw/2+4,y+24,rz+rd/2+4),L(-rw/2-4,y+24,rz+rd/2+4),dcol3(r,[DIRT3.rust,DIRT3.iron]));   // its roof
+    wreck3(gb,{x:L(0,0,rz)[0],y:L(0,0,rz)[2],rot:q.rot,w:44,h:22,burnt:false});   // a car up on blocks, half stripped
+    {const p=L(rw/2-8,0,rz-rd/2+6);gb.beam([p[0]-6,y,p[2]],[p[0],y+28,p[2]],1.2,col3('#5a554e'));gb.beam([p[0]+6,y,p[2]],[p[0],y+28,p[2]],1.2,col3('#5a554e'));gb.beam([p[0],y+28,p[2]],[p[0],y+16,p[2]],0.4,col3('#2a2622'));gb.box(p[0],y+10,p[2],8,6,6,q.rot,col3('#4a4640'));}   // an engine on the hoist
+    gb.box(...L(-rw/2+6,0,rz-rd/2+3),18,6,5,q.rot,dcol3(r,[DIRT3.timber]));gb.box(...L(-rw/2+6,6,rz-rd/2+3).map((v,i)=>i===1?y+6:v),18,0.8,6,q.rot,col3('#5a554e'));   // a bench
+    for(let k=0;k<5+Math.floor(r()*4);k++){const p=L((r()-0.5)*q.w*0.9,0,(r()-0.5)*q.h*0.9);if(r()<0.4)gb.cyl(p[0],y,p[2],3.6,9,9,dcol3(r,['#3f5a6a','#6a3a2a',DIRT3.rust]),col3('#3a332c'));else if(r()<0.6)gb.cyl(p[0],y,p[2],4.6,2.6,10,col3('#1e1a17'),col3('#2a2622'));else gb.box(p[0],y,p[2],6+r()*6,0.6,3+r()*4,r()*TAU,dcol3(r,[DIRT3.iron,DIRT3.rust]));}
+    if(r()<0.7)gb.cloth(L(-rw/2-4,y+29,rz-rd/2-4),L(-rw/2-4,y+25,rz+rd/2+4),[-cs*0.2,-1,-sn*0.2],14,dcol3(r,DIRT3.canvas),r,{rows:3,cols:3});}   // a tarp for a wall, flapping
+  else if(q.kind==='scrapyard'){for(let k=0;k<6;k++){const p=L((r()-0.5)*q.w*0.8,0,hh*0.45+(r()-0.5)*q.h*0.2);gb.lump(p[0],y,p[2],10+r()*10,5+r()*7,r()*TAU,dcol3(r,[DIRT3.rust,DIRT3.ironD,DIRT3.iron]));}   // heaps of scrap
+    for(let k=0;k<3;k++){const p=L(-hw*0.6+k*hw*0.6,0,hh*0.75);wreck3(gb,{x:p[0],y:p[2],rot:q.rot+(r()-0.5)*0.6,w:44,h:22,burnt:r()<0.4});}
+    for(let k=0;k<10;k++){const p=L((r()-0.5)*q.w*0.9,0,(r()-0.5)*q.h*0.9);if(r()<0.5)gb.cyl(p[0],y,p[2],3.6,9,9,dcol3(r,[DIRT3.rust,'#3f5a6a']),col3('#3a332c'));else gb.cyl(p[0],y,p[2],4.6,2.6,10,col3('#1e1a17'),col3('#2a2622'));}}}
+// fences round plots and yards: wire on posts, or old iron sheets nailed up
+function fence3(gb,f,seed){const r=rng(seed);for(let k=1;k<f.pts.length;k++){const a=f.pts[k-1],b=f.pts[k],len=Math.hypot(b.x-a.x,b.y-a.y),n=Math.max(1,Math.round(len/(f.kind==='iron'?10:14))),ang=Math.atan2(b.y-a.y,b.x-a.x);
+    if(f.kind==='wire'){const pts=[];for(let i=0;i<=n;i++)pts.push([a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n]);fenceRun3(gb,pts,seed+k*7,(x,y)=>heightAt(x,y));}
+    else for(let i=0;i<n;i++){if(r()<0.06)continue;const x=a.x+(b.x-a.x)*(i+0.5)/n,y=a.y+(b.y-a.y)*(i+0.5)/n,gy=heightAt(x,y),h=14+r()*4;gb.box(x,gy-1,y,len/n+0.6,h,0.8,ang,dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.ironD,'#6a6052']));}}}
 function building3(gb,rb,b){const y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,t=5,g=b.door/2,r=rng(hash2(Math.round(b.x),Math.round(b.y))),rui=b.ruined,WH=WALLH3[b.kind]||34;
   const mix=MIX3[b.kind]||['iron','board','sheet'],o={r,y,WH,t,rui,mix},cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],wood=col3('#4e3a2c');
   gb.lbox(b,0,0,y-4,b.w,6.5,b.h,col3(rui?'#5e4c3c':FLOOR[b.kind]||'#7a6a58'));
@@ -4658,7 +4812,7 @@ function building3(gb,rb,b){const y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,t=5,g=b.
   if(rui){   // fallen-in roof sheets, frame posts with nothing left to hold up
     for(let k=0;k<3;k++){const lx=(r()-0.5)*b.w*0.6,lz=(r()-0.5)*b.h*0.5,w=18+r()*16,l=26+r()*20,a=r()*TAU,hi=WH*(0.3+r()*0.4),ac=col3(RUST3[Math.floor(r()*RUST3.length)]);
       const ca=Math.cos(a),sa=Math.sin(a),Q=(u,v,yy)=>L(lx+u*ca-v*sa,yy,lz+u*sa+v*ca);gb.quad(Q(-w/2,0,y+2.6),Q(w/2,0,y+2.6),Q(w/2,l,y+hi),Q(-w/2,l,y+hi),ac,Q(0,l/2,y-30));gb.quad(Q(-w/2,0,y+2.4),Q(w/2,0,y+2.4),Q(w/2,l,y+hi-0.6),Q(-w/2,l,y+hi-0.6),ac.map(v=>v*0.7),Q(0,l/2,y+90));}
-    return;}
+    bldExtras3(gb,b,y,WH,r,rui);return;}   /* a ruin's clutter too (v7.5) */
   // the roof: a patchwork of sheets, edges overlapping, a few rusted patches; on flat roofs, tyres and sandbags to hold it down
   const ey=y+WH,ov=5,pitched=['house','shed','pub','barn'].includes(b.kind),sheets=Math.max(3,Math.round(Math.max(b.w,b.h)/24));
   const rc=k=>col3(k%3===0?ROOF[b.kind]||'#8f8a80':RUST3[Math.floor(r()*RUST3.length)],0.9+r()*0.15);
@@ -4673,7 +4827,8 @@ function building3(gb,rb,b){const y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,t=5,g=b.
     for(let k=0;k<3+Math.floor(r()*3);k++){const p=L((r()-0.5)*b.w*0.8,0,(r()-0.5)*b.h*0.8);if(r()<0.5)rb.cyl(p[0],ey+3.6,p[2],6.5,3.2,10,col3('#1e1a17'),col3('#2a2622'));else rb.box(p[0],ey+3.6,p[2],10,4,6,r()*TAU,col3('#8a7a5a'),col3('#9a8a68'));}   // tyres and sandbags
     if(b.kind==='warehouse')for(let x=-hw+20;x<hw-10;x+=40)rb.lbox(b,x,0,ey+3.6,14,9,b.h,col3('#9a978e'),col3('#b8b5ac'));
     else if(b.kind!=='garage')rb.lbox(b,0,hh+ov-2,ey,b.w+2*ov,10,4,col3(MAT3[mix[0]][2]||MAT3[mix[0]][0]),col3('#5a4a3a'));
-    if(r()<0.5){const p=L(-hw*0.6,0,-hh*0.5);rb.beam([p[0],ey+3,p[2]],[p[0],ey+34,p[2]],1.2,col3('#5a544c'));rb.beam([p[0]-6,ey+30,p[2]],[p[0]+6,ey+30,p[2]],0.8,col3('#5a544c'));}}}   // a bent aerial
+    if(r()<0.5){const p=L(-hw*0.6,0,-hh*0.5);rb.beam([p[0],ey+3,p[2]],[p[0],ey+34,p[2]],1.2,col3('#5a544c'));rb.beam([p[0]-6,ey+30,p[2]],[p[0]+6,ey+30,p[2]],0.8,col3('#5a544c'));}}
+  bldExtras3(gb,b,y,WH,r,rui);}   // a bent aerial; then the clutter round it (v7.4)
 // furniture, in the building's frame: beds, tables and chairs, bar, shelves with tins, benches, crates, bales, the hoist, drums, rubble
 function furn3(gb,b,fy,r){const B=(lx,lz,yy,sx,sy,sz,col,top)=>gb.lbox(b,lx,lz,yy,sx,sy,sz,col,top),cs=Math.cos(b.rot),sn=Math.sin(b.rot),W=(lx,lz)=>[b.x+lx*cs-lz*sn,b.y+lx*sn+lz*cs];
   const wood=col3('#5a3f2a'),woodL=col3('#7a5a3c'),metal=col3('#6d665d'),tins=['#a8a296','#8a3b1e','#5f6b45','#c9b28a','#3f5a6a','#9a6a48'];
@@ -4718,7 +4873,8 @@ function buildShell3(s){const gb=new GB(),y=heightAt(s.x,s.y)-3,r=rng(hash2(Math
 
 /* ---- towns, cities and ruins: buildings, the town wall, streets, the square, paddocks, tanks and towers ---- */
 const WALLH3={house:34,shed:30,pub:46,garage:40,clinic:34,servo:32,store:36,warehouse:56,barn:58,office:42};
-function struct3(gb,b){const y=heightAt(b.x,b.y)-2,r=b.w/2;
+function struct3(gb,b){if(b.kind==='shedx')return shedx3(gb,b);if(b.kind==='greenhouse')return greenhouse3(gb,b);if(b.kind==='works')return works3(gb,b);if(b.kind==='chimney')return chimney3(gb,b);
+  const y=heightAt(b.x,b.y)-2,r=b.w/2;
   if(b.kind==='oiltank'){gb.cyl(b.x,y,b.y,r,82,16,col3('#c9c5bc'),col3('#b8b2a6'));gb.cyl(b.x,y+82,b.y,r*0.3,6,10,col3('#a8a296'));}
   else if(b.kind==='column'){gb.cyl(b.x,y,b.y,r,210,10,col3('#8d877c'),col3('#6d675c'));for(let k=1;k<4;k++)gb.cyl(b.x,y+k*52,b.y,r+3,4,10,col3('#5a544c'));}
   else if(b.kind==='flare'){gb.cyl(b.x,y,b.y,5,240,6,col3('#5a544c'));gb.lump(b.x,y+238,b.y,10,30,0,col3('#ffb040'),null,col3('#ffe08a'));}
@@ -4780,6 +4936,7 @@ function buildLoc3(o){const gb=new GB(),rb=new GB(),wr=o.rad-40;
   if(o.pipes)for(const pp of o.pipes)for(let i=1;i<pp.length;i++){const a=pp[i-1],b=pp[i],len=Math.hypot(b.x-a.x,b.y-a.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;gb.box(mx,heightAt(mx,my)+8,my,len,7,7,Math.atan2(b.y-a.y,b.x-a.x),col3('#8d877c'));}
   {const rW=rng(o.id*131+7),half=wallGeo3().len*WALLS3.S*0.5;for(const w of o.wall){const ang=w.a+Math.PI/2,cx=o.x+Math.cos(w.a)*(wr+w.j),cy=o.y+Math.sin(w.a)*(wr+w.j);   // each wall run: two of David's wall sections side by side
     for(const sg of [-1,1]){const x=cx+Math.cos(ang)*sg*half*0.98,y=cy+Math.sin(ang)*sg*half*0.98;wallSection3(gb,x,y,ang,rW,col3(w.c),rW()<0.5);}}}
+  for(const q of o.yards||[])yard3(gb,q);(o.fences||[]).forEach((f,i)=>fence3(gb,f,o.id*53+i*7));   // workshops, scrap yards, fences
   for(const b of o.bld){if(b.struct)struct3(gb,b);else if(b.tank){const y=heightAt(b.x,b.y);gb.cyl(b.x,y-2,b.y,29,34,14,col3('#9c958a'),col3('#7d766c'));}else building3(gb,rb,b);}
   clutter3(gb,o);
   // barricades across the gates, shown while the town is shut to you
@@ -5812,7 +5969,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
