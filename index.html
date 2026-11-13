@@ -196,7 +196,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
     <small id="clock"></small>
     <small id="wiped"></small>
     <small id="dbg"></small>
-    <div class="hbtns"><button id="zoomBtn" class="hidden">Reset zoom</button><button id="toolsBtn" class="hidden">Tools</button><button id="workBtn">Work</button><button id="gearBtn">Gear</button><button id="mapBtn">Map</button><button id="pauseBtn">Pause</button></div>
+    <div class="hbtns"><button id="zoomBtn" class="hidden">Reset zoom</button><button id="toolsBtn" class="hidden">Tools</button><button id="journalBtn">Journal</button><button id="workBtn">Work</button><button id="gearBtn">Gear</button><button id="mapBtn">Map</button><button id="pauseBtn">Pause</button></div>
   </div>
 </div>
 <div id="msg"></div>
@@ -242,7 +242,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='8.6';
+const VERSION='8.7';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -2741,6 +2741,216 @@ for(const k of Object.keys(DLG)){if(!k.endsWith('_start')||['gatekeeper_start','
   const bye=N.opts.findIndex(o=>o.go===null&&/Bye|Leave|See you/i.test(typeof o.t==='string'?o.t:''));const extra=[{t:'Tell me about your people',go:'fac_lore'},{t:'Who else is out there?',go:'fac_others'}];
   if(bye>=0)N.opts.splice(bye,0,...extra);else N.opts.push(...extra);}
 
+/* ===== the story: the Long Dry (v8.7) =====
+   The secret: the rain isn't gone, it's held. A weather machine built before the war (the Engine, at the Coolibah Range Station)
+   still runs on Fuel King diesel, kept running by Marshal Hester Kade of the Iron Legion so that whoever holds the water and the
+   guns holds everything. Nobody tells the player this. They find it out in pieces from the people they meet, from documents
+   recovered on jobs, and from what ordinary folk let slip about their lives; the Journal keeps what they've found. The full story
+   bible is docs/LORE.md. ===== */
+
+// ---- what can be found out, by chapter
+const STORY_CHAPTERS=['The Burn','The Long Dry','The New Order','Out West'];   // (the last chapter's name gives nothing away)
+const CLUES={
+  burn_war:{ch:0,t:'There was a war in the north in the spring of ’79. Four days, people say. Australia was barely touched by the bombs, but everything we traded with was gone.'},
+  burn_mirra:{ch:0,t:'One bomb did fall here: on Mirrabooka Station, a defence radio base in the red centre. It landed short. Half the soldiers there died.'},
+  burn_bulletin:{ch:0,t:'Mirrabooka read the government’s Last Bulletin on the radio in December ’79: the inland was to be abandoned. Everyone south and east before the 31st.'},
+  burn_south:{ch:0,t:'The government went south and east, to “the Island”, people say. It never came back.'},
+  dry_onenight:{ch:1,t:'The rain didn’t fade away. It stopped across the whole inland in a single night, in November ’79. Waterholes that had never failed went dry within the year.'},
+  dry_redwind:{ch:1,t:'The Red Winds, the great dust storms, began the summer after the rain stopped. They always come out of the west.'},
+  dry_coolibah:{ch:1,t:'Out west, in the Coolibah Range, there was a station: officially for the weather. The Legion turns travellers back from the ranges.'},
+  dry_rainmaker:{ch:1,t:'The station in the ranges ran something called Project Rainmaker: a scheme to make and steer the weather across a quarter of the country.'},
+  dry_marsh:{ch:1,t:'Project Rainmaker’s chief scientist was Dr Evelyn Marsh. “Evie”. She died at the station in the first winter of the Dry.'},
+  order_trek:{ch:2,t:'Old Bill Haddon led the Great Trek: two hundred families inland from the dying coast in ’80. The further west they went, the drier it got.'},
+  order_kings:{ch:2,t:'The Fuel Kings were the refinery’s workers. Their foreman, Rory Vance, held the place with a few rifles and now calls himself King.'},
+  order_legion:{ch:2,t:'The Iron Legion is what’s left of the Mirrabooka garrison, marched out of the crater by their captain, Hester Kade. She calls herself Marshal now.'},
+  order_settlers:{ch:2,t:'The Settlers are the Trek families who stayed to farm, gathered by June Pell, the Trek’s nurse. They call her Mother.'},
+  order_scourge:{ch:2,t:'Dog Mulligan, warlord of the Rust Scourge, was a Legion sergeant. He deserted when he found out something about the Marshal, and went mad in the other direction.'},
+  sec_tanker:{ch:3,t:'Every week, a Fuel King tanker drives west into the ranges, where there’s nothing. Legion soldiers ride escort. The drivers call it “the run to nowhere”.'},
+  sec_engine:{ch:3,t:'The rain isn’t gone. It’s held. The machine at the station, the Engine, is still running, and it runs on diesel.'},
+  sec_kade:{ch:3,t:'Marshal Kade knows. She ordered the Engine kept running “for leverage”: in a land with no rain, whoever holds the water and the guns holds everything.'},
+  sec_switch:{ch:3,t:'The Engine can be stopped: cut its fuel, then turn Dr Marsh’s brass key in the control room.'},
+  sec_place:{ch:3,t:'The Coolibah Range Station is marked on your map.'},
+  mulligan_dead:{ch:2,t:'Dog Mulligan is dead, his war wagon a burning wreck on the road. The Scourge will have to find a new prophet.'},
+  end_engine:{ch:3,t:'You cut the fuel and turned the brass key. The Engine at Coolibah is silent. The wind is changing.'}};
+// ---- documents recovered on jobs, transcribed into the Journal
+const STORY_DOCS={
+  tapes:{title:'Dr Marsh’s tapes (three reels, from the Coolibah Range Station)',lines:[
+    '[Reel 1, 9 Nov 1979] “Canberra has ordered a full clearing run. Every cloud on the continent pushed out to sea before it can rain fallout on us. I’ve told them the Engine isn’t built for that. They’ve told me there’s a war on. Albie, mark the time. Twenty-two hundred. Full power.”',
+    '[Reel 2, March 1980] “It won’t let go. The pattern’s locked. Every model says the same: as long as the Engine runs, the rain is held off the inland. Held, not lost. It’s all still out there, waiting over the sea.”',
+    '[Reel 3, June 1980, coughing] “Captain Kade has the station. I showed her how to shut it down: cut the fuel, turn the brass key. She thanked me and posted a guard on the control room. I don’t think she means to. Albie, if you hear this, finish it. Please finish it.”']},
+  log:{title:'Sergeant Tom Clancy’s radio log (from the ruins of Mirrabooka Station)',lines:[
+    '“2 Dec ’79. Read the Last Bulletin on all channels, 0600. Inland to be abandoned. Evacuation points close the 31st. God help the ones who can’t get there.”',
+    '“14 Dec ’79. Capt. Kade on the secure set to Coolibah: Rainmaker to be kept running. Her words: ‘No rain means no one moves without us. Keep it running, for leverage.’ Not my business. Logged anyway.”',
+    '“2 Feb ’81. Still on the air. Told a truck from Broken Hill the western road’s blocked by the Legion. Rosie, if this gets to you, your dad stayed on the radio. Somebody had to.”']}};
+Object.assign(ITEMS,{tape_marsh:{name:'Reel-to-reel tapes',kg:0.6,use:null,job:true,icon:'#3a3a40'},log_clancy:{name:'Radio log book',kg:0.4,use:null,job:true,icon:'#5a4430'}});
+Object.assign(VALUE,{tape_marsh:0,log_clancy:0});
+
+// ---- the cast: who they are (the Journal's bio, opening up as you learn more), where they are
+const CAST={
+  rory:{name:'Rory Vance',bio:'Calls himself King of the Fuel Kings. A heavy man in a gold-painted hard hat he calls the Crown. Grand and suspicious.',fac:'fuelkings',notes:{order_kings:'Was the refinery foreman when the Burn came.',sec_tanker:'His tankers make the weekly run west to nowhere.',sec_kade:'Feeds the Engine for Kade, paid in ammunition and water. He’s starting to suspect what it is.'}},
+  hester:{name:'Hester Kade',bio:'Marshal of the Iron Legion. Burn scars down one side of her face; speaks as if every word were an order.',fac:'ironlegion',notes:{burn_mirra:'Was the captain at Mirrabooka when the bomb fell.',order_legion:'Marched the survivors out of the crater and made them the Legion.',sec_kade:'Keeps the Engine running so the Legion can rule a thirsty land.'}},
+  june:{name:'June Pell',bio:'“Mother” of the Settlers. A grey, sun-browned woman with a nurse’s hands and a farmer’s patience.',fac:'settlers',notes:{order_trek:'Walked with Bill Haddon on the Great Trek as its nurse.',order_settlers:'Gathered the families who stayed to farm.'}},
+  albie:{name:'Albie Dunn',bio:'The “Prophet” of the Children of the Dust. Thin as a fence wire, talks to someone called Evie who isn’t there.',fac:'pilgrims',notes:{dry_marsh:'Was Dr Marsh’s assistant at the station.',sec_engine:'Knows the Engine still runs.',sec_switch:'Knows how to stop it.'}},
+  rosie:{name:'Rosie Clancy',bio:'A young mechanic with oil to the elbows and her father’s laugh.',fac:'settlers',notes:{burn_bulletin:'Her father, Sgt Tom Clancy, read the Last Bulletin at Mirrabooka.'}},
+  nan:{name:'Nan Haddon',bio:'A tiny old woman who keeps a ledger in a biscuit tin and doesn’t miss a thing.',fac:'drovers',notes:{order_trek:'Widow of Old Bill Haddon, who led the Great Trek.'}},
+  agnes:{name:'Sister Agnes',bio:'A preacher of the Children of the Dust, in a robe the colour of the storms.',fac:'pilgrims',notes:{dry_redwind:'Preaches that the Red Wind is a judgement.'}},
+  benny:{name:'Benny Ray',bio:'A settler with a soldier’s haircut grown out, who jumps when anyone says “Legion”.',fac:'settlers',notes:{sec_tanker:'Rode escort on the tanker runs before he deserted.',order_scourge:'Served under Mulligan before Mulligan went mad.'}},
+  lil:{name:'Lil Vance',bio:'A Freeholder, sharp-tongued, with the same jaw as the King of the Fuel Kings.',fac:'freeholders',notes:{order_kings:'Rory Vance’s daughter. She doesn’t call him King.'}},
+  wally:{name:'Wally Grieve',bio:'“Two-Ton” Wally, a Fuel King truckie, usually found at the bar.',fac:'fuelkings',notes:{sec_tanker:'Drives the run to nowhere, and is frightened of what’s at the end of it.'}},
+  jim:{name:'Jim Kurrajong',bio:'An old ranger who still wears his park badge, and reads the country like a book.',fac:'settlers',notes:{dry_onenight:'Watched every waterhole in his country fail in one night.'}},
+  harriet:{name:'Dr Harriet Shaw',bio:'A city doctor with a cough of her own and a long memory.',fac:'settlers',notes:{dry_marsh:'Treated evacuees from the weather station in ’79.'}},
+  marsh:{name:'Dr Evelyn Marsh',dead:true,bio:'Chief scientist of Project Rainmaker. Dead since the first winter of the Dry.',notes:{sec_engine:'Her machine is still running.'}},
+  clancy:{name:'Sgt Tom Clancy',dead:true,bio:'Radio operator at Mirrabooka Station. Read the Last Bulletin; stayed on the air after everyone else had gone.',notes:{sec_kade:'Logged Kade’s order to keep Rainmaker running.'}},
+  haddon:{name:'Old Bill Haddon',dead:true,bio:'Drover. Led the Great Trek inland in ’80. Died on the road.',notes:{dry_coolibah:'His ledger says the Legion turned the Trek back at the western ranges.'}},
+  mulligan:{name:'Dog Mulligan',bio:'Warlord of the Rust Scourge. A deserter from the Legion who thinks the Red Wind chose him.',notes:{order_scourge:'Was a sergeant in the Legion.'}}};
+
+// ---- the journal: what you've found out, who you've met, documents you've read (kept in the save with the other flags)
+function journal(){return G.flags.journal||(G.flags.journal={clues:{},people:{},docs:{}});}
+function hasClue(id){return !!journal().clues[id];}
+function addClue(id,quiet){const J=journal();if(J.clues[id]||!CLUES[id])return false;J.clues[id]=G.clock;if(!quiet)setTimeout(()=>showMsg('Journal updated: '+STORY_CHAPTERS[CLUES[id].ch],2.2),900);return true;}
+function addClues(...ids){let n=0;for(const id of ids)if(addClue(id,n++>0))n++;}
+function meet(key,where){const J=journal();if(!J.people[key])J.people[key]={met:G.clock,where:where||''};}
+function readDoc(k){const J=journal();if(!J.docs[k]){J.docs[k]=G.clock;setTimeout(()=>showMsg('Journal: '+STORY_DOCS[k].title.split(' (')[0]+' transcribed',2.6),1500);}}
+function meetFolk(n,line){const J=journal(),k='f:'+n.def.id;if(!J.people[k])J.people[k]={met:G.clock,where:n.loc?n.loc.name:'',name:n.def.name,line};}
+
+// ---- where everyone is: fixed when the world is made, from the towns and ruins there are (a few ruins get their old names back)
+const STORY={loc:{},station:null,mirra:null};
+(function(){if(TEST_MODE)return;const S=LOCS[START],d=o=>Math.hypot(o.x-S.x,o.y-S.y),used=new Set([START]),r=rng(1979);
+  const towns=LOCS.filter(o=>o.service&&!o.camp&&o.npcs&&o.npcs.filter(q=>q.role==='settler'&&!q.comp).length>=2);
+  const take=(f,minD,maxD)=>{const c=towns.filter(o=>!used.has(o.id)&&f(o)&&d(o)>=(minD||0)&&d(o)<=(maxD||1e9)).sort((a,b)=>d(a)-d(b));const o=c[0]||towns.filter(o=>!used.has(o.id)).sort((a,b)=>d(a)-d(b))[0];if(o)used.add(o.id);return o;};
+  const place={june:take(o=>o.faction==='settlers',8000),rory:take(o=>o.faction==='fuelkings'&&o.type==='city'),hester:take(o=>o.faction==='ironlegion'),
+    rosie:null,nan:take(o=>o.faction==='drovers'||o.faction==='settlers',20000),agnes:take(o=>o.faction==='pilgrims'||o.type==='outpost',30000),benny:take(o=>o.faction==='settlers',15000),
+    lil:take(o=>o.faction==='freeholders'),wally:null,jim:take(o=>o.type==='outpost',45000),harriet:take(o=>o.type==='city'),albie:take(o=>o.type==='outpost',60000)};
+  if(place.hester){const h=place.hester;place.rosie=take(o=>Math.hypot(o.x-h.x,o.y-h.y)<120000);}
+  if(place.rory){const k=place.rory;place.wally=take(o=>Math.hypot(o.x-k.x,o.y-k.y)<150000&&o.npcs.some(q=>q.role==='publican'));}
+  for(const key in place){const o=place[key];if(!o)continue;const def=o.npcs.find(q=>q.role==='settler'&&!q.comp&&!q.story&&q.name!=='Dot');if(!def)continue;def.story=key;def.name=CAST[key].name;def.fac=CAST[key].fac||def.fac;STORY.loc[key]=o.id;}
+  // two ruins get their old names back: the station in the ranges (far out west of here) and the bombed radio base
+  const ruins=LOCS.filter(o=>o.type==='ruin'&&!o.camp&&o.bld&&o.bld.length).sort((a,b)=>d(b)-d(a));
+  const st=ruins.find(o=>d(o)>60000&&d(o)<160000)||ruins[0];if(st){st.name='Coolibah Range Station';STORY.station=st.id;}
+  const mi=ruins.filter(o=>o!==st).sort((a,b)=>Math.abs(d(a)-50000)-Math.abs(d(b)-50000))[0];if(mi){mi.name='Mirrabooka Station';STORY.mirra=mi.id;}})();
+
+
+// ---- story jobs: built on the ordinary job kinds, with their own words, and Journal pieces when they're done
+function storyJob(c,key,spec){const n=c.n,o=n.loc;const J=Object.assign({id:'js_'+key,giver:n.def.id,giverName:n.def.name,town:o.id,fac:n.def.fac||o.faction||'settlers',rep:8,story:key},spec);return J;}
+function storyItemJob(c,key,item,locId,title,desc,reward){const pl=LOCS[locId];if(!pl)return null;const b=pl.bld&&pl.bld[0],sp=b&&b.L?b.L(0,0):{x:pl.x,y:pl.y};
+  return storyJob(c,key,{type:'item',item,x:sp.x,y:sp.y,place:pl.name,guarded:true,title,desc,reward});}
+function offerStory(c,J){if(!J)return '“Not now.”';if(jobs().length>=3)return '“You’ve your hands full. Come back when you’ve less on.”';if(acceptJob(J))return null;return '“Not now.”';}
+const _payJob=payJob;payJob=function(J,c){_payJob(J,c);if(!J.story)return;G.flags['story_'+J.story]=true;
+  if(J.story==='tapes'){readDoc('tapes');meet('marsh');addClues('dry_rainmaker','dry_marsh','sec_engine');}
+  if(J.story==='log'){readDoc('log');meet('clancy');addClues('burn_bulletin','sec_kade');}
+  if(J.story==='mulligan')addClue('mulligan_dead');
+  if(J.story==='engine'){addClue('end_engine');G.flags.engineOff=true;changeRep('ironlegion',-60);}};
+// the last job: at the station, cut the fuel and turn the key
+function storyTick(){const b=body();for(const J of jobs()){if(J.type!=='engine'||J.done)continue;const st=LOCS[STORY.station];if(st&&Math.hypot(b.x-st.x,b.y-st.y)<st.rad*0.6&&state==='play'){
+    state='paused';showPanel({title:'The Engine',sub:'Under the station, past a door blown off its hinges, a hall of humming steel, warm as a living thing. Fuel lines as thick as your arm run into it from tanks outside. On a desk in the control room, a brass key in a panel, and a photograph of a woman in a lab coat, laughing.',
+      buttons:[{label:'Close the fuel valves, then turn the brass key',primary:true,fn:()=>{hidePanel();state='play';J.done=true;J.found=true;payJob(J,null);showMsg('The hum dies away. For the first time in five years, the Engine is silent. June’s reward is yours',4.5);}},{label:'Not yet',fn:()=>{hidePanel();state='play';J.wait=G.time+60;}}]});return;}}}
+// the end job is ready when it's done; it's paid where you stand
+const _jobReady=jobReady;jobReady=function(J){if(J.type==='engine')return !!J.done;return _jobReady(J);};
+
+// ---- everyone else: a life story for every settler, drifter and townsperson, some of them touching the larger one
+const FOLK={from:['a dairy outside Mount Gambier','the fishing boats at Port Lincoln','the mines at Broken Hill','a wheat farm near Kimba','the railway at Port Augusta','a pub in Coober Pedy','the Adelaide suburbs','a sheep station past Hay','the opal fields','a shop in Whyalla','the cane fields up north','a mission school'],
+  did:['drove trucks','sheared sheep','taught primary school','fixed tractors','nursed at the base hospital','dug opal','sold insurance, if you can believe it','worked the railway','cooked in a roadhouse','kept bees','was a bank clerk','played bass in a pub band'],
+  lost:['lost my wife in the Years of Smoke','buried both my brothers on the road','haven’t seen my kids since the evacuation','lost everything in a Red Wind','had a farm, till the bores went dry','lost a leg’s worth of feeling to a raider’s bullet','came through it with nobody','lost my dog, and I still miss him more than most people'],
+  hope:['Now I just want a roof that doesn’t leak.','I’m saving for a ute. One day.','Some nights I think about Haven.','I’d give anything for a proper rain.','Mostly I want to be left alone.','I want to see the sea again.','I keep bees again. Two hives. They’re all right.','I want my kids to grow up knowing what a creek sounds like.'],
+  hooks:[['My brother was a soldier at Mirrabooka. He was there when the bomb fell short. The ones who lived became the Legion. He didn’t.','burn_mirra'],
+    ['I heard the Last Bulletin on a car radio. Inland abandoned. Get south by the 31st. We didn’t make it.','burn_bulletin'],
+    ['The rain stopped in one night. I mean it: one night. Clouds over the ranges, then nothing, for five years.','dry_onenight'],
+    ['I walked with the Great Trek, with Old Bill Haddon. Best man I ever knew.','order_trek'],
+    ['My uncle drove tankers for the Kings. West, every week, into the ranges. Never said what for.','sec_tanker'],
+    ['The war? Four days, they say. I was asleep for one of them.','burn_war'],
+    ['The storms always come out of the west. Always. My nan said that’s where the devil lives.','dry_redwind'],
+    ['The government went south. To the Island, they reckon. Took the doctors and the fuel and left us the flies.','burn_south'],
+    ['My cousin rode with the Scourge for a bit. Said Mulligan used to be Legion. Said he talks to the wind.','order_scourge']]};
+function folkStory(n){const r=rng((n.def.seed||7)*31+5),p=a=>a[Math.floor(r()*a.length)];const hook=r()<0.35?p(FOLK.hooks):null;
+  return {text:'I’m from '+p(FOLK.from)+'. I '+p(FOLK.did)+', before. I '+p(FOLK.lost)+'. '+(hook?hook[0]+' ':'')+p(FOLK.hope),hook:hook&&hook[1]};}
+DLG.folk_story={text:c=>{const s=folkStory(c.n);if(s.hook)addClue(s.hook);meetFolk(c.n,s.text.split('. ')[0]+'.');return '“'+s.text+'”';},opts:[{t:'Thanks for telling me',go:'__start'}]};
+for(const k of Object.keys(DLG)){if(!k.endsWith('_start')||['gatekeeper_start','companion_start','refuse'].includes(k)||k.startsWith('st_'))continue;const N=DLG[k];if(!N.opts)continue;
+  N.opts.push({t:'Tell me about yourself',if:c=>!c.n.def.story&&!c.n.def.comp,go:'folk_story'});}
+
+// ---- the conversations. Each major character has several topics, some only open once you know something; each one gives up a piece.
+const sayQ=s=>'“'+s+'”',knownP=k=>!!(journal().people[k]),TK=(id,txt)=>c=>{addClue(id);return txt;};
+Object.assign(DLG,{
+  // King Rory Vance: grand, suspicious, a little mad; feeds the Engine and is beginning to be afraid of it
+  st_rory:{text:c=>{const f=!knownP('rory');meet('rory',c.n.loc.name);return f?'A heavy man in a hard hat painted gold sits on a throne made from a bucket seat. “Kneel. No? Nobody kneels any more. I am Rory, first of the name, King of the Fuel Kings. What do you want from my kingdom?”':sayQ(c.pick(['Back again, subject.','Every drop in this land passes through my hands. Remember that.','The Crown sees you.']));},
+    opts:[{t:'How does a man become a king?',go:'rory_self'},{t:'What happened, when the world ended?',go:'rory_past'},{t:'What do you want, Your Majesty?',go:'rory_want'},
+      {t:'Your tankers drive west every week, into nothing. Why?',if:c=>hasClue('sec_tanker'),go:'rory_tanker'},
+      {t:'Any work for a loyal subject?',if:c=>!G.flags.story_mulligan&&!jobs().some(j=>j.story==='mulligan'),go:'rory_job'},{t:'Long live the King',go:null}]},
+  rory_self:{text:TK('order_kings','“I was foreman here when the radio started talking about the war. The bosses got in their cars and drove south. I didn’t. I kept the flare lit and the gates shut and the pumps turning, and when the government stopped answering the phone I painted this hat and that was that. Someone has to be King. Better a man who knows a pump from a pipe.”'),opts:[{t:'Go on',go:'st_rory'}]},
+  rory_past:{text:c=>{addClue('burn_war');return '“Four days of war, then nothing on the radio but the Mirrabooka boys reading the same bulletin over and over. Then the rain stopped.” He taps the Crown. “One night. Like a tap. I was shipping diesel west for a weather station, back then. Funny, that.” He stops smiling. “Not funny. Forget I said it.”';},opts:[{t:'A weather station?',go:'rory_weather'},{t:'Go on',go:'st_rory'}]},
+  rory_weather:{text:c=>{addClue('dry_coolibah');return '“Coolibah Range. Government place. Diesel by the tanker-load, every week, signed off by me. Why would a weather station drink like a city?” His eyes slide to his guards. “That’s enough questions. A King keeps his own counsel.”';},opts:[{t:'Go on',go:'st_rory'}]},
+  rory_want:{text:c=>sayQ('Everything that burns, through my hands. Every truck that moves, moves because I let it. That’s a crown worth wearing.')+' He lowers his voice. “And I’d like to sleep at night. I don’t, much.”',opts:[{t:'Why not?',if:c=>hasClue('sec_tanker'),go:'rory_tanker'},{t:'Go on',go:'st_rory'}]},
+  rory_tanker:{text:c=>{addClue('sec_tanker');if(hasClue('sec_engine'))addClue('sec_kade');return 'The King goes pale under the gold hat. “Who told you that?” He waves the guards back. “The Marshal pays me. Bullets, water, peace on my roads. And I send her diesel, west, every week, to the old station. She says it’s for her generators.” He laughs, too loud. “Generators. A city’s worth of generators. I’m not a fool. Something out there is drinking my fuel, and the sky hasn’t rained since it started. But a King keeps his bargains. Doesn’t he?”';},opts:[{t:'Go on',go:'st_rory'}]},
+  rory_job:{text:c=>{const J=(()=>{const n=c.n,o=n.loc,H=huntStart(o,rng(G.clock|0));if(!H)return null;Object.assign(H,{kind:'brute',fac:'scourge',name:'Dog Mulligan’s war wagon'});return storyJob(c,'mulligan',{type:'hunt',hunt:H,title:'Kill Dog Mulligan',desc:'Mulligan’s Scourge have hit three of the King’s tankers. His war wagon roams the main roads. Ask around in the towns, find it and destroy it.',reward:{jerrycan:3,rifle:1,rounds:20},rep:12});})();
+    addClue('order_scourge');const r=offerStory(c,J);return r||'“Dog Mulligan. Used to be one of the Marshal’s soldiers, now he’s a dog that bites my trucks. He talks to the wind and the wind talks back. Find his war wagon and burn it, and the Crown will remember you.”';},opts:[{t:'Go on',go:'st_rory'}]},
+  // Marshal Hester Kade: sane, cold, brave; keeps the Engine running
+  st_hester:{text:c=>{const f=!knownP('hester');meet('hester',c.n.loc.name);return f?'A woman in a pressed, patched uniform. Burn scars run down one side of her face. “Marshal Kade, Iron Legion. You’re in my territory. State your business, and keep it short.”':sayQ(c.pick(['You again. Report.','Order is a wall, and walls need tending.','Be brief.']));},
+    opts:[{t:'Where did the Legion come from?',go:'hester_self'},{t:'What happened at Mirrabooka?',go:'hester_mirra'},{t:'What do you want for this country?',go:'hester_want'},
+      {t:'The machine at Coolibah. You’re keeping it running.',if:c=>hasClue('sec_engine'),go:'hester_engine'},{t:'Dismissed',go:null}]},
+  hester_self:{text:TK('order_legion','“My garrison held Mirrabooka for the government. When the government stopped answering, we held it for ourselves. I marched the survivors out of the crater with a radio and two trucks. Everything you see that works, works because the Legion keeps the roads.”'),opts:[{t:'Go on',go:'st_hester'}]},
+  hester_mirra:{text:c=>{addClue('burn_mirra');addClue('burn_bulletin');return '“One bomb. Meant for us. It came down eleven kilometres short and took half my men anyway. Our radioman, Clancy, read the Last Bulletin for a month after. Good man. Read what he was told.” Her jaw tightens. “He kept a log. Wrote everything down. Everything.”';},opts:[{t:'Go on',go:'st_hester'}]},
+  hester_want:{text:c=>sayQ('Order. You’ve seen the Years of Smoke, or you’ve heard of them. Gangs. Cannibals. Children selling themselves for a bottle of water. Never again. Scarcity is a hard teacher, but it teaches people to follow.'),opts:[{t:'Go on',go:'st_hester'}]},
+  hester_engine:{text:c=>{addClue('sec_kade');return 'For a long moment, Kade says nothing. Then: “Dr Marsh showed me how to turn it off. I chose not to. If it rains, every farmer with a shovel thinks he’s a nation. Every gang has water and nothing to fear. It would be the Years of Smoke again, inside a year. I keep the rain off this country because I love it.” Her hand rests on her pistol. “You won’t speak of this. Will you.”';},opts:[{t:'I won’t (for now)',go:null},{t:'People are dying of thirst',go:'hester_thirst'}]},
+  hester_thirst:{text:c=>sayQ('People are dying of everything. Fewer of them under the Legion than under anyone else. Get out of my sight, before I decide you’re a threat to order.'),opts:[{t:'Leave',go:null}]},
+  // Mother June Pell: kind, stubborn; the player's guide toward the truth
+  st_june:{text:c=>{const f=!knownP('june');meet('june',c.n.loc.name);return f?'A grey, sun-browned woman looks up from mending a water bag. “Hello, love. I’m June. Most call me Mother, though I never had any of my own. You look thirsty. Everyone does.”':sayQ(c.pick(['Hello, love. Sit a while.','Any news from the roads?','There’s tea, of a sort.']));},
+    opts:[{t:'How did the Settlers start?',go:'june_self'},{t:'Do you remember when the rain stopped?',go:'june_rain'},{t:'What do you need?',go:'june_want'},
+      {t:'I’ve heard of a station in the ranges',if:c=>hasClue('dry_coolibah')&&!G.flags.story_tapes&&!jobs().some(j=>j.story==='tapes'),go:'june_tapes'},
+      {t:'I know what stopped the rain. And how to stop it.',if:c=>hasClue('sec_switch')&&hasClue('sec_place')&&!G.flags.story_engine&&!jobs().some(j=>j.story==='engine'),go:'june_end'},{t:'Take care, Mother',go:null}]},
+  june_self:{text:c=>{addClue('order_trek');addClue('order_settlers');return '“I was a nurse on the coast. When the food stopped coming, Bill Haddon came through with his trucks and said he was going inland to find water. Two hundred families followed him. I went as their nurse. Bill died on the road, and the Trek broke up, and some of us stayed here to grow what we could. Somebody had to be in charge. They picked the one who knew where the bandages were.”';},opts:[{t:'Go on',go:'st_june'}]},
+  june_rain:{text:c=>{addClue('dry_onenight');addClue('dry_redwind');return '“The ninth of November. I remember because it was my sister’s birthday. Clouds over the west, heavy as anything, and then they just… went. Peeled away like someone pulled a sheet. It never came back. And the next summer, the Red Winds. Always from the west.” She looks west herself. “It isn’t natural, love. Weather doesn’t do that.”';},opts:[{t:'Go on',go:'st_june'}]},
+  june_want:{text:c=>sayQ('Rain. Same as everyone. But more than that, I want to know why. If the sky’s broken, I’ll make my peace with it. But if someone broke it…')+' She ties off the thread hard. “Ask around for me, will you? Out west especially.”',opts:[{t:'I’ll ask',go:'st_june'}]},
+  june_tapes:{text:c=>{const J=storyItemJob(c,'tapes','tape_marsh',STORY.station,'Find out what was at the Coolibah Range Station','June wants to know what was at the old station in the Coolibah Range, far '+(STORY.station!==undefined&&LOCS[STORY.station]?dirText(c.n.loc,LOCS[STORY.station].x,LOCS[STORY.station].y):'west')+'. Search it. Anything written down, recorded, anything at all. The Legion has been seen there.',{water:5,medkit:2,jerrycan:2});
+    if(J)G.known.add(STORY.station);const r=offerStory(c,J);return r||'June goes very still. “A weather station. In the ranges. Out west.” She grips your hand. “Go there, love. Look for anything they left behind. Papers, recordings. Bring them to me. Be careful: Bill always said the Legion turned the trucks back at the ranges.”';},opts:[{t:'I’ll go',go:'st_june'}]},
+  june_end:{text:c=>{const st=LOCS[STORY.station];const J=st?storyJob(c,'engine',{type:'engine',x:st.x,y:st.y,title:'Shut down the Engine',desc:'At the Coolibah Range Station: cut the Engine’s fuel, then turn Dr Marsh’s brass key in the control room. The Legion guards it.',reward:{water:6,medkit:3,armour_heavy:1},rep:20}):null;
+    const r=offerStory(c,J);return r||'June listens to all of it without a word. When you finish, she is crying, and smiling. “Held. Not lost. All that rain, just waiting over the sea.” She wipes her face. “Then go and let it go, love. Whatever it costs. Kade will never forgive you. I don’t care.”';},opts:[{t:'I’ll do it',go:null}]},
+  // Professor Albie Dunn: very crazy; Marsh's assistant; knows everything, in riddles
+  st_albie:{text:c=>{const f=!knownP('albie');meet('albie',c.n.loc.name);return f?'A man as thin as fence wire, in a robe sewn from dust masks, turns to someone beside him who isn’t there. “Evie, we’ve a visitor.” To you: “The Prophet, they call me. I was a technician. Grade four. I mark the time.”':sayQ(c.pick(['Twenty-two hundred. Full power. Mark the time.','Evie says you’ve been asking questions. Evie likes questions.','The wind remembers. Ask it.']));},
+    opts:[{t:'Who’s Evie?',go:'albie_evie'},{t:'Why do they call you the Prophet?',go:'albie_prophet'},
+      {t:'What was Project Rainmaker?',if:c=>hasClue('dry_coolibah')||hasClue('dry_rainmaker'),go:'albie_rain'},
+      {t:'Is the machine still running?',if:c=>hasClue('dry_rainmaker')||hasClue('dry_marsh'),go:'albie_engine'},
+      {t:'How do you stop it?',if:c=>hasClue('sec_engine'),go:'albie_switch'},{t:'Where is it?',if:c=>hasClue('sec_engine'),go:'albie_where'},{t:'Goodbye, Professor',go:null}]},
+  albie_evie:{text:c=>{addClue('dry_marsh');return '“Dr Evelyn Marsh. Chief scientist. She’s right here.” He gestures at nothing. “She died in the first winter. Red lung. I held her hand. She asked me to finish it and I ran away, I ran into the storm and the storm took me in.” He smiles at the empty air. “She’s forgiven me. Mostly.”';},opts:[{t:'Go on',go:'st_albie'}]},
+  albie_prophet:{text:c=>{addClue('dry_redwind');return '“The Children found me walking in a Red Wind. They thought the wind had made me. I let them think so. They feed me.” He leans close. “The wind isn’t God, friend. The wind is a machine breathing out.”';},opts:[{t:'Go on',go:'st_albie'}]},
+  albie_rain:{text:c=>{addClue('dry_rainmaker');return '“Rainmaker! We were going to end drought for ever. Seed the clouds, steer the fronts, rain where we liked. Evie built the Engine. It worked. It worked beautifully.” His face falls. “Then Canberra said: push it all out to sea, every cloud, before the fallout comes down in the rain. Full power. Twenty-two hundred, ninth of November. Mark the time.”';},opts:[{t:'Go on',go:'st_albie'}]},
+  albie_engine:{text:c=>{addClue('sec_engine');addClue('dry_onenight');return '“Still running! Hear it?” He cocks his head west. “It locked. It won’t let go while it runs. The rain isn’t gone, the rain is held. Held! All of it, out over the sea, waiting. Evie said so. Evie wrote it down on her tapes.” He giggles, then stops. “It drinks diesel. Somebody feeds it. Who feeds it, Evie? Who?”';},opts:[{t:'Go on',go:'st_albie'}]},
+  albie_switch:{text:c=>{addClue('sec_switch');return '“First you starve it.” He counts on bony fingers. “The valves. Big red wheels, outside, on the tanks. Shut them all. Then down, down to the control room. Evie’s key. Brass. In the panel by her photo. Turn it to the left until it clicks. That’s all. That’s all it ever was.” He whispers: “I never had the courage.”';},opts:[{t:'Go on',go:'st_albie'}]},
+  albie_where:{text:c=>{const st=LOCS[STORY.station];if(st){G.known.add(st.id);G.markers.push({id:G.markerSeq++,x:Math.round(st.x),y:Math.round(st.y),text:'Coolibah Range Station'});}addClue('sec_place');addClue('dry_coolibah');return '“The Coolibah Range.” He draws on your map with a dirty fingernail, quite precisely. “There. They call it the station. The soldiers keep it now. Evie’s photograph is still on the desk.”';},opts:[{t:'Go on',go:'st_albie'}]},
+  // the secondary characters
+  st_rosie:{text:c=>{const f=!knownP('rosie');meet('rosie',c.n.loc.name);return f?'A young woman with oil to her elbows grins up from under a ute. “Rosie Clancy. Don’t step on the spanners.”':sayQ(c.pick(['G’day again.','Found anything out there?']));},
+    opts:[{t:'Clancy? Like the radioman at Mirrabooka?',go:'rosie_dad'},{t:'Is there anything I can do for you?',if:c=>knownP('rosie')&&!G.flags.story_log&&!jobs().some(j=>j.story==='log'),go:'rosie_job'},{t:'See you',go:null}]},
+  rosie_dad:{text:c=>{addClue('burn_bulletin');addClue('burn_mirra');return '“My dad, Tom Clancy. He read the Last Bulletin. ‘The inland is to be abandoned.’ I was nine. I heard it on the kitchen wireless and I knew his voice.” She wipes her hands. “He never came home. Stayed on the air for a year after. The Legion says he died at his post. They won’t say more.”';},opts:[{t:'Go on',go:'st_rosie'}]},
+  rosie_job:{text:c=>{const J=storyItemJob(c,'log','log_clancy',STORY.mirra,'Find Tom Clancy’s radio log','Rosie Clancy wants her father’s radio log, from the ruins of Mirrabooka Station'+(LOCS[STORY.mirra]?', '+dirText(c.n.loc,LOCS[STORY.mirra].x,LOCS[STORY.mirra].y):'')+'. He wrote down everything that was said on the air.',{parts:2,tyre:1,kit_hdr_std:1});
+    if(J)G.known.add(STORY.mirra);const r=offerStory(c,J);return r||'“Dad logged everything. Every call. If his log’s still out at the station, I want it. I want to know what he was doing all that time.” Her voice cracks. “Please.”';},opts:[{t:'I’ll find it',go:'st_rosie'}]},
+  st_nan:{text:c=>{const f=!knownP('nan');meet('nan',c.n.loc.name);return f?'A tiny old woman with a biscuit tin on her lap. “Nan Haddon. Sit down, you’re making my neck hurt.”':sayQ('You again. Sit.');},
+    opts:[{t:'Haddon? Old Bill Haddon?',go:'nan_bill'},{t:'What’s in the tin?',go:'nan_ledger'},{t:'Bye, Nan',go:null}]},
+  nan_bill:{text:TK('order_trek','“My Bill led the Great Trek. Two hundred families off the coast, all the way inland, looking for water. He knew every waterhole from here to the Gulf. He kept walking west because west was where the water always was. Then it wasn’t.” She pats the tin. “He’s buried on the road. He’d have liked that.”'),opts:[{t:'Go on',go:'st_nan'}]},
+  nan_ledger:{text:c=>{addClue('dry_coolibah');meet('haddon');return '“Bill’s ledger. Every family, every birth, every death, every waterhole.” She opens it to a page of tidy pencil. “Here. ‘Western ranges, 12 March ’80. Army trucks across the road. Told to turn back. Soldier said there’s a government station up there and nobody goes near.’ Bill was ever so cross. He said, what kind of weather station needs guns?”';},opts:[{t:'Go on',go:'st_nan'}]},
+  st_agnes:{text:c=>{const f=!knownP('agnes');meet('agnes',c.n.loc.name);return f?'A woman in a robe the colour of the storms raises her hands. “The Red Wind is the breath of judgement, traveller. I am Sister Agnes. Repent, and keep your water covered.”':sayQ('The wind blows from the west, as it always will.');},
+    opts:[{t:'Judgement for what?',go:'agnes_wind'},{t:'Who leads the Children?',go:'agnes_prophet'},{t:'Bless you, Sister',go:null}]},
+  agnes_wind:{text:TK('dry_redwind','“For the war! For the bombs! The sky closed its hand on the inland and the Red Wind came to scour us clean. It always comes from the west, where the Prophet walked out of the storm.”'),opts:[{t:'Go on',go:'st_agnes'}]},
+  agnes_prophet:{text:c=>{const o=LOCS[STORY.loc.albie];if(o)G.known.add(o.id);return '“The Prophet! He walked out of a Red Wind with dust in his mouth and told us the wind is breathing. He speaks with a spirit he calls Evie.”'+(o?' She points. “He dwells at '+o.name+', '+dirText(c.n.loc,o.x,o.y)+'. Go to him, if you have the courage.”':'');},opts:[{t:'Go on',go:'st_agnes'}]},
+  st_benny:{text:c=>{const f=!knownP('benny');meet('benny',c.n.loc.name);return f?'A man with a soldier’s haircut grown out jumps when you come close. “Benny. Benny Ray. Just a farmer. Always been a farmer.”':sayQ('You didn’t tell anyone about me, right?');},
+    opts:[{t:'You were Legion, weren’t you?',go:'benny_legion'},{t:'What did you do in the Legion?',if:c=>G.flags.benny_open,go:'benny_tanker'},{t:'Easy, Benny',go:null}]},
+  benny_legion:{text:c=>{G.flags.benny_open=true;addClue('order_scourge');return 'He looks around, then deflates. “Yeah. Was. My sergeant was Mulligan. Before he went mad, he was the best of us. Then one night he found out something about the Marshal, and he walked out, and took half the platoon. I walked out the other way. The Legion shoots deserters, so…” He shrugs. “Farmer.”';},opts:[{t:'Go on',go:'st_benny'}]},
+  benny_tanker:{text:c=>{addClue('sec_tanker');addClue('dry_coolibah');return '“Escort duty, mostly. Ride shotgun on the Fuel King tankers, west, every week, up into the Coolibah Range. There’s an old station up there. We’d drop the diesel into these big tanks outside, and you could feel it humming through your boots. Nobody said what it was. You didn’t ask.”';},opts:[{t:'Go on',go:'st_benny'}]},
+  st_lil:{text:c=>{const f=!knownP('lil');meet('lil',c.n.loc.name);return f?'A sharp-faced woman with a familiar jaw folds her arms. “Lil Vance. And before you ask: yes, him. No, I don’t call him King.”':sayQ('Still poking around?');},
+    opts:[{t:'What was your father like, before?',go:'lil_dad'},{t:'See you, Lil',go:null}]},
+  lil_dad:{text:c=>{addClue('order_kings');addClue('dry_rainmaker');meet('rory');return '“A foreman. A good one. Proud of his pumps. Used to bring me to work and let me sit in the tanker cabs.” She snorts. “He was so proud of one contract: diesel to a government weather station out west. Rainmaker, it was called. He thought it was a joke. Make it rain, the army reckons. He stopped laughing about the time the rain stopped. Started wearing the hat about then too.”';},opts:[{t:'Go on',go:'st_lil'}]},
+  st_wally:{text:c=>{const f=!knownP('wally');meet('wally',c.n.loc.name);return f?'A huge man with a beer in each hand. “Two-Ton Wally. Kings’ best driver. Don’t laugh, I can still fit in the cab.”':sayQ('Buy us a drink, mate?');},
+    opts:[{t:'Where do you drive?',go:'wally_run'},{t:'Cheers, Wally',go:null}]},
+  wally_run:{text:c=>{addClue('sec_tanker');addClue('dry_coolibah');return 'Wally stops smiling. “The run to nowhere. Every week. Full tanker, west, up the ranges, Legion blokes riding with me. Old station. Big fuel tanks with red wheels on top. You fill ’em, you turn round, you don’t look back.” He drinks. “There’s something under that place, mate. It hums. My teeth ache for a day after.”';},opts:[{t:'Go on',go:'st_wally'}]},
+  st_jim:{text:c=>{const f=!knownP('jim');meet('jim',c.n.loc.name);return f?'An old man with a faded park ranger’s badge. “Jim Kurrajong. I looked after this country, once. It looked after me back.”':sayQ('Country’s still thirsty.');},
+    opts:[{t:'What happened to your country?',go:'jim_night'},{t:'Do you know the western ranges?',go:'jim_map'},{t:'Goodbye, Jim',go:null}]},
+  jim_night:{text:TK('dry_onenight','“Ninth of November ’79. I was camped at a soak that’s never been dry since my grandfather’s time. Storm building in the west. And then it just stopped building. Turned round. Went. Next morning every soak and waterhole in my country was a mud pan by Christmas, and the wind came up red out of the west. Country doesn’t do that by itself.”'),opts:[{t:'Go on',go:'st_jim'}]},
+  jim_map:{text:c=>{addClue('dry_coolibah');return 'He unfolds a sun-bleached park map. “Coolibah Range. See that square? ‘Commonwealth Meteorological Station. No public access.’ Built in ’76. Strange weather came off those ranges after they built it. Too much rain, then none.” He folds it carefully. “I went to look, after. Soldiers on the road. Turned me round.”';},opts:[{t:'Go on',go:'st_jim'}]},
+  st_harriet:{text:c=>{const f=!knownP('harriet');meet('harriet',c.n.loc.name);return f?'A woman in a stained white coat, coughing into a handkerchief. “Dr Harriet Shaw. If you’re not bleeding, take a seat and wait.”':sayQ('Breathing all right?');},
+    opts:[{t:'Have you been a doctor long?',go:'harriet_red'},{t:'Thanks, doctor',go:null}]},
+  harriet_red:{text:c=>{addClue('burn_war');addClue('dry_marsh');return '“Since before the war. I was at the base hospital when they brought in a truckload from a weather station in the ranges. Red lung, all of them: dust and fever. Scientists, mostly. One of them kept saying ‘Evie’s machine, Evie’s machine, we have to tell Evie.’ Died that night.” She coughs. “I wrote it down. Nobody ever asked.”';},opts:[{t:'Go on',go:'st_harriet'}]}});
+
+// story characters can be asked about jobs they've given you, like anyone else; and the hook into who you talk to
+for(const k of Object.keys(DLG))if(k.startsWith('st_')&&DLG[k].opts)DLG[k].opts.unshift({t:'About that job…',if:c=>jobs().some(j=>j.giver===c.n.def.id),go:'job_turnin'});
+const _startNodeFor=startNodeFor;startNodeFor=function(n){if(n.def.story&&DLG['st_'+n.def.story])return 'st_'+n.def.story;return _startNodeFor(n);};
+
 /* ===== companions: one at a time, on foot or riding shotgun ===== */
 function compActive(){return G.comp&&!G.comp.gone;}
 function compOnFoot(){return compActive()&&!G.comp.inCar&&G.comp.state!=='down';}
@@ -3187,6 +3397,7 @@ window.addEventListener('touchstart',touchStart,{passive:false});window.addEvent
 window.addEventListener('touchend',touchEnd);window.addEventListener('touchcancel',touchEnd);
 $('gearBtn').addEventListener('click',e=>{e.stopPropagation();openInv(null);});
 $('workBtn').addEventListener('click',e=>{e.stopPropagation();openWork();});
+$('journalBtn').addEventListener('click',e=>{e.stopPropagation();openJournal();});
 $('invClose').addEventListener('click',e=>{e.stopPropagation();closeInv();});
 $('invBody').addEventListener('click',invClick);
 $('tradeClose').addEventListener('click',e=>{e.stopPropagation();closeTrade();});
@@ -3482,8 +3693,22 @@ function openInv(other){if(state!=='play')return;
     if(G.comp&&compAbility(G.comp)==='scrounger'&&!G.comp.inCar&&!bx.scrounged){bx.scrounged=true;const extra=genLoot(bx.table||'ruin',(Math.random()*1e9)|0,1,bx.biome);
       for(const k in extra)invAdd(bx.items,k,extra[k]);boxChanged(bx);if(Object.keys(extra).length)popText(G.hero.x,G.hero.y-30,G.comp.def.name+' spots something extra','#f2a03d');}}
   state='inv';endStick();SFX.engine(0,0,false,false);$('invPanel').classList.remove('hidden');$('ctx').innerHTML='';ctxKey='';renderInv();}
-function closeInv(){if(state!=='inv')return;state='play';workMode=false;$('invPanel').classList.add('hidden');}
-let workMode=false;
+function closeInv(){if(state!=='inv')return;state='play';workMode=false;journalMode=false;$('invPanel').classList.add('hidden');}
+let workMode=false,journalMode=false;
+function openJournal(){if(state!=='play')return;invOther=null;journalMode=true;state='inv';endStick();SFX.engine(0,0,false,false);$('invPanel').classList.remove('hidden');$('ctx').innerHTML='';ctxKey='';renderInv();}
+// the Journal: what you've pieced together (by chapter, in the order things happened, not the order you found them), documents
+// you've recovered, and the people you've met with what you know of them. Blank pages are just that: nothing says what's missing.
+function renderJournal(){const J=journal();let html='';const ids=Object.keys(CLUES);
+  html+='<h3>What you’ve pieced together</h3>';let any=false;
+  STORY_CHAPTERS.forEach((ch,i)=>{const got=ids.filter(id=>CLUES[id].ch===i&&J.clues[id]);if(!got.length)return;any=true;html+='<div class="stats"><b>'+ch+'</b></div>'+got.map(id=>'<div class="stats">• '+CLUES[id].t+'</div>').join('');});
+  if(!any)html+='<div class="stats">Nothing yet. People talk, if you ask them the right things.</div>';
+  const docs=Object.keys(J.docs||{});if(docs.length){html+='<h3>Documents</h3>';for(const k of docs){const D=STORY_DOCS[k];html+='<div class="stats"><b>'+D.title+'</b></div>'+D.lines.map(l=>'<div class="stats" style="font-style:italic">'+l+'</div>').join('');}}
+  const ppl=Object.keys(J.people||{}),cast=ppl.filter(k=>CAST[k]),folk=ppl.filter(k=>k.startsWith('f:'));
+  html+='<h3>People</h3>';if(!cast.length&&!folk.length)html+='<div class="stats">You haven’t got to know anyone yet.</div>';
+  for(const k of cast){const C=CAST[k],P=J.people[k],notes=Object.keys(C.notes||{}).filter(id=>J.clues[id]).map(id=>C.notes[id]);
+    html+='<div class="stats"><b>'+C.name+'</b>'+(C.dead?' (dead)':P.where?' — '+P.where:'')+'. '+C.bio+(notes.length?' '+notes.join(' '):'')+'</div>';}
+  if(folk.length)html+='<div class="stats" style="opacity:.8"><b>Others you’ve talked to</b></div>'+folk.map(k=>{const P=J.people[k];return '<div class="stats">'+P.name+(P.where?', '+P.where:'')+': '+P.line+'</div>';}).join('');
+  $('invBody').innerHTML=html;}
 function openWork(){if(state!=='play')return;invOther=null;workMode=true;state='inv';endStick();SFX.engine(0,0,false,false);$('invPanel').classList.remove('hidden');$('ctx').innerHTML='';ctxKey='';renderInv();}
 // a standing bar: factions run from -100% (hated: the bar runs left, red) to +100% (friends: right, green); towns from 0 to 100%
 function standBar(name,v,two,note){const pc=Math.round(v),col=two?(v<-15?'#c2381f':v<15?'#c9a24a':'#7aa860'):(v<35?'#c9a24a':'#7aa860'),w=two?Math.abs(v)/2:v,left=two?(v<0?50-w:50):0;
@@ -3515,7 +3740,7 @@ function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
   if(side==='me'&&!heroCar())b+='<button data-a="drop" data-k="'+k+'">Drop</button>';
   if(side==='other'){b+='<button data-a="take" data-k="'+k+'">Take</button>';if(n>1)b+='<button data-a="takeall" data-k="'+k+'">All</button>';}
   return '<div class="irow"><i style="background:'+it.icon+'"></i><span class="nm">'+it.name+(n>1?' ×'+n:'')+'<small>'+(Math.round(it.kg*n*10)/10)+' kg</small></span>'+b+'</div>';}
-function renderInv(){$('invTitle').textContent=workMode?'Work':'Gear';if(workMode)return renderWork();const h=G.hero,o=otherInv(),car=invCar();let html='';
+function renderInv(){$('invTitle').textContent=journalMode?'Journal':workMode?'Work':'Gear';if(journalMode)return renderJournal();if(workMode)return renderWork();const h=G.hero,o=otherInv(),car=invCar();let html='';
   html+='<div class="stats">Health '+Math.round(h.hp)+'%, water '+Math.round(h.water)+'%, food '+Math.round(h.food)+'%, rest '+Math.round(h.rest)+'%. '+fmtClock(G.clock)+'.</div>';
   {const I=heroInj(),fx=injFx();if(I.length||heroCapLoss()>0)html+='<div class="stats" style="color:#e8a090"><b>Injuries:</b> '+(I.length?I.map(i=>INJURIES[i.type].name+' ('+i.rating+')').join(', '):'none now, still mending')+'. Your health can’t go above '+heroHpCap()+'% until a city doctor treats you.'+
     (fx.wobble?' Your steering wobbles.':'')+(fx.weapon<1?' You fight less well.':'')+(fx.carry<1?' You can carry only '+heroCap()+' kg.':'')+(fx.walk<1?' You walk and run at half speed.':'')+(fx.view?' You can’t see far.':'')+'</div>';}
@@ -6230,7 +6455,7 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
   G.pruneT-=dt;if(G.pruneT<=0){G.pruneT=1;pruneChunks(b.x,b.y);}
   // places: discover them as you approach, stop in at outposts and cities
   G.knowT-=dt;if(G.knowT<=0){G.knowT=1;for(const l of LOCS)if(!G.known.has(l.id)&&Math.hypot(l.x-b.x,l.y-b.y)<4000){G.known.add(l.id);if(l.type==='ruin')showMsg((l.camp&&!G.flags['camp_'+l.id]?'Raider camp: ':'Spotted: ')+l.name,2.4);}}
-  G.facT=(G.facT||0)-dt;if(G.facT<=0){G.facT=1;compTick();jobsTick();for(const o of LOCS)if(o.service&&Math.hypot(o.x-b.x,o.y-b.y)<o.rad+700&&townHostile(o))hostileGuards(o);}
+  G.facT=(G.facT||0)-dt;if(G.facT<=0){G.facT=1;compTick();jobsTick();if(typeof storyTick==='function')storyTick();for(const o of LOCS)if(o.service&&Math.hypot(o.x-b.x,o.y-b.y)<o.rad+700&&townHostile(o))hostileGuards(o);}
   G.zoneT-=dt;if(G.zoneT<=0){G.zoneT=1.5;const z=zoneAt(b.x,b.y).name;if(z!==G.zoneName){if(G.zoneName)showMsg(z,2.4);G.zoneName=z;}}
   for(const l of LOCS){const d=Math.hypot(b.x-l.x,b.y-l.y);
     if(G.inside===l.id){if(d>l.rad+400)G.inside=-1;}
@@ -6251,7 +6476,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={V3,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={V3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
