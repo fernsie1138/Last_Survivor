@@ -242,7 +242,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='9.2';
+const VERSION='9.3';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1789,8 +1789,9 @@ function stormStep(dt){const S=G.storm||(G.storm={phase:'none',t:rand(300,700),k
   else if(S.phase==='in'){S.t-=dt;S.k=1;if(S.t<=0){S.phase='going';S.t=30;}}
   else if(S.phase==='going'){S.t-=dt;S.k=clamp(S.t/30,0,1);if(S.t<=0){S.phase='none';S.t=rand(500,1000);S.k=0;}}
   if(S.phase!=='none'&&G.wind){G.wind.a+=angDiff(S.a,G.wind.a)*Math.min(1,dt*0.5);if(S.k>0.1||S.phase==='coming')G.wind.gTarget=Math.max(G.wind.gTarget||0,0.9);}   // the wind swings round behind it and blows hard
-  if(S.k>0.05&&state==='play'){const W=G.wind||{x:40,y:0},n=Math.round(S.k*9*dt*60)/9;for(let i=0;i<n*5;i++){const a=Math.random()*TAU,d=rand(30,520);   // dust pouring past
-      part({kind:'dust',gustDust:true,x:b.x+Math.cos(a)*d-W.x*1.5,y:b.y+Math.sin(a)*d-W.y*1.5,vx:W.x*0.6,vy:W.y*0.6,life:rand(3,6),max:6,size:rand(40,90),grow:20,drag:0.1,col:Math.random()<0.5?'#b8986a':'#a88a5e'});}}}
+  const pre=S.phase==='coming'?clamp(1-S.d/1100,0,1)*0.7:0,kk=Math.max(S.k,pre);   // the dust starts streaming past while the wall is still a way off
+  if(kk>0.05&&state==='play'){const W=G.wind||{x:40,y:0},n=Math.round(kk*9*dt*60)/9;for(let i=0;i<n*5;i++){const a=Math.random()*TAU,d=rand(30,520);   // dust pouring past
+      part({kind:'dust',gustDust:true,x:b.x+Math.cos(a)*d-W.x*1.5,y:b.y+Math.sin(a)*d-W.y*1.5,vx:W.x*0.6,vy:W.y*0.6,life:rand(3,6),max:6,size:rand(40,90),grow:20,drag:0.1,col:Math.random()<0.5?'#c8b08a':'#b8a07c'});}}}
 function stormK(){return G.storm?G.storm.k||0:0;}
 function stormSight(){return 1-0.75*stormK();}   // how far anyone can see: a quarter as far in the thick of it
 function popText(x,y,t,col){G.texts.push({x,y,t,col:col||'#efe2c4',life:1.2});}
@@ -2002,7 +2003,7 @@ function updateConvoyCar(e,dt){const C=e.convoy,R=roads[C.road];if(!R){e.gone=tr
   const look=Math.round((40+e.speed*0.35)/40)+2,j=clamp(i+C.dir*look,0,R.n-2),a=Math.atan2(R.ys[j+1]-R.ys[j],R.xs[j+1]-R.xs[j])+(C.dir<0?Math.PI:0),lane=-R.w*0.22;
   const tx=R.xs[j]-Math.sin(a)*lane,ty=R.ys[j]+Math.cos(a)*lane;
   // the gap to the vehicle ahead in the column
-  if(C.hold){driveCar(e,e.vf>5?-1:0,0,dt,false,false);return;}   // waiting for you to come and escort it
+  if(C.hold||(C.escortJob&&!heroCar())){driveCar(e,e.vf>5?-1:0,0,dt,false,false);return;}   // waiting for you (to set off, or to get back in your car)   // waiting for you to come and escort it
   if(C.stopped){C.stopT-=dt/Math.max(1,C.cars.length);if(C.stopT<=0||Math.hypot(body().x-e.x,body().y-e.y)>1200)C.stopped=false;driveCar(e,e.vf>5?-1:0,0,dt,false,false);return;}   // pulled up for you
   let want=C.speed;const ahead=C.cars.filter(c=>c!==e&&!c.wrecked&&c.order<e.order&&c.driver==='convoy').sort((p,q)=>q.order-p.order)[0];
   if(ahead){const gap=Math.hypot(ahead.x-e.x,ahead.y-e.y)-(ahead.def.len+e.def.len)/2,goal=60;want=clamp(ahead.speed+(gap-goal)*1.4,0,C.speed*1.3);}
@@ -3078,6 +3079,7 @@ function escortTick(J){if(!ESCORTS[J.id]&&!J.arrived){escortStart(J);return;}   
   if(C.hold){if(live.some(c=>Math.hypot(c.x-b.x,c.y-b.y)<320)&&heroCar()){C.hold=false;showMsg(J.type==='escort_car'?J.who+' pulls out. Stay close to them':'The convoy rolls out. Stay with them',2.6);if(J.marker){G.markers=G.markers.filter(m=>m.id!==J.marker);J.marker=null;}}return;}
   const R=roads[C.road],e=live[0],i=nearestIdx(R,e.x,e.y),prog=Math.abs(i-C.from)/Math.max(1,C.total);
   for(const at of [0.3,0.65])if(prog>at&&!C['hit'+at]){C['hit'+at]=true;if(!G.encActive&&Math.hypot(e.x-b.x,e.y-b.y)<1500){G.encT=0;spawnEncounter();showMsg('Raiders! Protect the '+(J.type==='escort_car'?'car':'convoy'),2.4);}}   // the ambushes
+  if(!heroCar()){if(!C.waitSaid&&live.some(c=>Math.hypot(c.x-b.x,c.y-b.y)<1500)){C.waitSaid=true;showMsg((J.type==='escort_car'?J.who+' pulls over':'The convoy pulls over')+' and waits for you',2.2);}C.lostT=0;return;}C.waitSaid=false;   /* out of your car: they wait */
   if(live.every(c=>Math.hypot(c.x-b.x,c.y-b.y)>2600)){C.lostT=(C.lostT||0)+1;if(C.lostT===10)showMsg('You’ve fallen behind the '+(J.type==='escort_car'?'car':'convoy')+'. Catch up!',2.4);if(C.lostT>=60){for(const c of C.cars)c.gone=true;C.dead=true;}}else C.lostT=0;}
 function jobFail(J,msg){if(J.marker)G.markers=G.markers.filter(m=>m.id!==J.marker);if(J.huntMarker)G.markers=G.markers.filter(m=>m.id!==J.huntMarker);G.flags.jobs=jobs().filter(j=>j!==J);changeRep(J.fac,-3);showMsg(msg,3);}
 // someone with nothing for you can tell you who has
@@ -6280,11 +6282,11 @@ function rewardSign3(n,label,sym,col){label=label||'Reward';sym=sym||'$';col=col
 // swell and churn. The whole front curves round you, upwind, and comes on.
 function puffTex3(seed){const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d'),r=rng(seed);
   for(let k=0;k<7;k++){const x=36+r()*56,y=40+r()*48,R=26+r()*20,gr=g.createRadialGradient(x-R*0.25,y-R*0.3,R*0.15,x,y,R);   // a few big, soft, overlapping lobes, lit from above
-    gr.addColorStop(0,'rgba(246,226,214,0.9)');gr.addColorStop(0.6,'rgba(226,200,186,0.75)');gr.addColorStop(1,'rgba(190,156,140,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,R,0,TAU);g.fill();}
+    gr.addColorStop(0,'rgba(244,234,214,0.9)');gr.addColorStop(0.6,'rgba(226,210,184,0.75)');gr.addColorStop(1,'rgba(190,170,140,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,R,0,TAU);g.fill();}
   const sh=g.createLinearGradient(0,40,0,128);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(60,30,20,0.45)');g.globalCompositeOperation='source-atop';g.fillStyle=sh;g.fillRect(0,0,128,128);   // shadowed underneath
   const t=new THREE.CanvasTexture(cv);return t;}
 function stormWall3(){const S=G.storm;let W=V3.stormWall;
-  if(!W){const grp=new THREE.Group(),r=rng(777),texs=[puffTex3(11),puffTex3(23),puffTex3(37)],shades=[0xc8968a,0xb88478,0xa87468,0x96645a],mats=[];
+  if(!W){const grp=new THREE.Group(),r=rng(777),texs=[puffTex3(11),puffTex3(23),puffTex3(37)],shades=[0xe6c8a0,0xdcb890,0xcca880,0xbc9872]   /* light sandy browns, like the country round it */,mats=[];
     for(const t of texs)for(const s of shades)mats.push(new THREE.SpriteMaterial({map:t,color:s,transparent:true,depthWrite:false,fog:false}));
     const puffs=[],N=40;   // columns along the front, from one end to the other
     for(let i=0;i<N;i++){const u=i/(N-1)*2-1,edge=Math.pow(Math.abs(u),2.2),H=(0.6+0.4*Math.sin(i*0.37+1)*Math.cos(i*0.13))*(1-edge*0.7)*1900+250;   /* a towering wall */   // tall in the middle, lower toward the ends, lumpy all along
@@ -6293,9 +6295,9 @@ function stormWall3(){const S=G.storm;let W=V3.stormWall;
       for(let k=0;k<2;k++){const s=new THREE.Sprite(mats[shades.length*Math.floor(r()*texs.length)+3]);s.userData={u:u+(r()-0.5)*0.03,y:60+r()*60,z:150+r()*100,sz:420+r()*200,ph:r()*TAU,sp:0.25+r()*0.2};grp.add(s);puffs.push(s);}}   // the low rolling skirt at its foot, out in front
     grp.renderOrder=5;V3.scene.add(grp);W=V3.stormWall={grp,puffs};}
   if(!S||S.phase!=='coming'||S.d<200){W.grp.visible=false;return;}
-  const b=body(),far=Math.min(S.d,V3.cam.far*0.9),ux=Math.cos(S.a),uy=Math.sin(S.a),cx=b.x-ux*far,cy=b.y-uy*far,gy=groundY3(b.x,b.y),t=G.time||0,span=far*1.7,k=far/3500;   // scaled with distance so it fills the horizon at any range
+  const b=body(),far=Math.max(260,Math.min(S.d,V3.cam.far*0.9*Math.min(1,S.d/5200+0.25))),ux=Math.cos(S.a),uy=Math.sin(S.a),cx=b.x-ux*far,cy=b.y-uy*far,gy=groundY3(b.x,b.y),t=G.time||0,span=far*1.7,k=far/3500;   // scaled with distance so it fills the horizon at any range
   W.grp.visible=true;W.grp.position.set(cx,gy-20,cy);W.grp.rotation.set(0,-Math.atan2(uy,ux)+Math.PI/2,0);
-  const op=clamp(1.5-far/7000,0.8,1);
+  const op=clamp(1.5-far/7000,0.8,1)*clamp((S.d-200)/600,0,1);   /* fading into the dust that's already pouring past as it arrives */
   for(const s of W.puffs){const d=s.userData,a=d.u*0.9,bend=(1-Math.cos(a))*far*0.6,sw=1+0.06*Math.sin(t*d.sp+d.ph);   // the front curves round toward you at its ends; the puffs swell and churn
     s.position.set(Math.sin(a)*span*0.62,d.y*k+Math.sin(t*d.sp*0.7+d.ph)*6*k,d.z*k+bend);s.scale.set(d.sz*k*sw,d.sz*k*sw,1);s.material.opacity=op;}}
 function arrow3D(wx,wy,label,col){if(!V3P.v)V3P.v=new THREE.Vector3();const v=V3P.v.set(wx,groundY3(wx,wy)+20,wy).project(V3.cam);
