@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -239,24 +238,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=9.9"></script>
-<script src="models/84-hero-model.js?v=9.9"></script>
-<script src="models/84b-hero-body.js?v=9.9"></script>
-<script src="models/84c-buggy-model.js?v=9.9"></script>
-<script src="models/84d-tarona-model.js?v=9.9"></script>
-<script src="models/84e-wall-model.js?v=9.9"></script>
-<script src="models/84f-plant-models.js?v=9.9"></script>
-<script src="models/84g-kestrel-model.js?v=9.9"></script>
-<script src="models/84h-building-models.js?v=9.9"></script>
-<script src="models/84i-building-models2.js?v=9.9"></script>
-<script src="models/84j-f100-model.js?v=9.9"></script>
-<script src="models/84l-kingsford-model.js?v=9.9"></script>
-<script src="models/84m-wagon-model.js?v=9.9"></script>
+<script src="models/21b-mesa-models.js?v=10.0"></script>
+<script src="models/84-hero-model.js?v=10.0"></script>
+<script src="models/84b-hero-body.js?v=10.0"></script>
+<script src="models/84c-buggy-model.js?v=10.0"></script>
+<script src="models/84d-tarona-model.js?v=10.0"></script>
+<script src="models/84e-wall-model.js?v=10.0"></script>
+<script src="models/84f-plant-models.js?v=10.0"></script>
+<script src="models/84g-kestrel-model.js?v=10.0"></script>
+<script src="models/84h-building-models.js?v=10.0"></script>
+<script src="models/84i-building-models2.js?v=10.0"></script>
+<script src="models/84j-f100-model.js?v=10.0"></script>
+<script src="models/84l-kingsford-model.js?v=10.0"></script>
+<script src="models/84m-wagon-model.js?v=10.0"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='9.9';
+const VERSION='10.0';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -5082,9 +5081,11 @@ function wallSection3(gb,x,y,ang,r,base,flip){const W=wallGeo3(),S=WALLS3.S,P=W.
    downpipe, a flue on the roof, an aerial; all of it rusted, faded, dirty ---- */
 const DIRT3={rust:'#8a4a24',rustD:'#5a3420',iron:'#7a7266',ironD:'#5a554e',timber:'#5a4430',timberL:'#7a6248',canvas:['#8a7a5a','#7a6a50','#6a6a52','#9a8a6a','#7a5a40']};
 function dcol3(r,hexes,k){const h=hexes[Math.floor(r()*hexes.length)];let c=col3(h);if(r()<0.3)c=mix3(c,col3(DIRT3.rust),0.4+r()*0.3);return c.map(v=>v*(0.82+r()*0.24)*(k||1));}
+const ironF3=(gb,c)=>{if(gb.cap)gb.force=c[0]-c[2]>0.15?'corr_rusty':'corrugated';};   // sheets of iron: corrugated (v10.0), not mistaken for timber by their colour
+function quad2i(gb,a,b,c,d,col){const f=gb.force;ironF3(gb,col);quad2(gb,a,b,c,d,col);if(gb.cap)gb.force=f;}   // a sheet of iron, both faces
 function quad2(gb,a,b,c,d,col){gb.quad(a,b,c,d,col,[(a[0]+c[0])/2,(a[1]+c[1])/2+50,(a[2]+c[2])/2]);gb.quad(a,d,c,b,col.map(v=>v*0.85),[(a[0]+c[0])/2,(a[1]+c[1])/2-50,(a[2]+c[2])/2]);}   // a thin sheet, both faces
 function leanAgainst3(gb,L,y,r,lx,lz,nx,nz,WH){const q=r();   // something leant against a wall at (lx,lz), the wall facing (nx,nz)
-  if(q<0.3){const w=8+r()*6,h=16+r()*10,out=4+r()*3,tx=-nz,tz=nx;quad2(gb,L(lx+nx*out-tx*w/2,y,lz+nz*out-tz*w/2),L(lx+nx*out+tx*w/2,y,lz+nz*out+tz*w/2),L(lx+nx*0.8+tx*w/2,y+h,lz+nz*0.8+tz*w/2),L(lx+nx*0.8-tx*w/2,y+h,lz+nz*0.8-tz*w/2),dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.ironD]));}   // a sheet of iron
+  if(q<0.3){const w=8+r()*6,h=16+r()*10,out=4+r()*3,tx=-nz,tz=nx;quad2i(gb,L(lx+nx*out-tx*w/2,y,lz+nz*out-tz*w/2),L(lx+nx*out+tx*w/2,y,lz+nz*out+tz*w/2),L(lx+nx*0.8+tx*w/2,y+h,lz+nz*0.8+tz*w/2),L(lx+nx*0.8-tx*w/2,y+h,lz+nz*0.8-tz*w/2),dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.ironD]));}   // a sheet of iron
   else if(q<0.55){for(let k=0;k<2+Math.floor(r()*3);k++){const o=(k-1)*2.2;gb.beam(L(lx+nx*(5+r()*2)-nz*o,y,lz+nz*(5+r()*2)+nx*o),L(lx+nx*0.8-nz*o,y+14+r()*10,lz+nz*0.8+nx*o),1+r()*0.5,dcol3(r,[DIRT3.timber,DIRT3.timberL]));}}   // planks
   else if(q<0.72){const p=L(lx+nx*4,y,lz+nz*4);for(let k=0;k<1+Math.floor(r()*3);k++)gb.cyl(p[0],p[1]+k*2.6,p[2],4.6,2.6,10,col3('#1e1a17'),col3('#2a2622'));}   // a stack of tyres
   else if(q<0.86){const p=L(lx+nx*5,y,lz+nz*5);gb.cyl(p[0],p[1],p[2],3.6,9,9,dcol3(r,['#3f5a6a','#6a3a2a','#5a5a4a',DIRT3.rust]),col3('#3a332c'));}   // a drum
@@ -5094,7 +5095,7 @@ function leanAgainst3(gb,L,y,r,lx,lz,nx,nz,WH){const q=r();   // something leant
 // snapped fence posts, and rags of canvas caught on what still stands
 function ruinDebris3(gb,b,y,WH,r){const hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],around=(m)=>{const a=r()*TAU,ex=Math.cos(a),ez=Math.sin(a),k=1/Math.max(Math.abs(ex)/hw,Math.abs(ez)/hh);return [ex*(k+m),ez*(k+m)];};
   for(let k=0;k<5;k++){const [lx,lz]=around(4+r()*30),a=r()*TAU,w=10+r()*8,d=7+r()*5,p=L(lx,y,lz),gy=heightAt(p[0],p[2])+0.3,tilt=r()<0.4?3+r()*6:0.3;   // roof sheets lying about, some propped on rubble
-    const ca=Math.cos(a),sa=Math.sin(a),c=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]].map(([u,v],i)=>[p[0]+u*ca-v*sa,gy+(i>=2?tilt:0),p[2]+u*sa+v*ca]);quad2(gb,c[0],c[1],c[2],c[3],dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.rustD,DIRT3.ironD]));}
+    const ca=Math.cos(a),sa=Math.sin(a),c=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]].map(([u,v],i)=>[p[0]+u*ca-v*sa,gy+(i>=2?tilt:0),p[2]+u*sa+v*ca]);quad2i(gb,c[0],c[1],c[2],c[3],dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.rustD,DIRT3.ironD]));}
   for(let k=0;k<3;k++){const [lx,lz]=around(r()*14),p=L(lx,y,lz);gb.lump(p[0],heightAt(p[0],p[2])-0.5,p[2],8+r()*8,3+r()*4,r()*TAU,dcol3(r,['#7a6a58','#8a7a66','#6a5a48','#9a7a5a']));   // rubble heaps, with broken boards sticking out
     for(let j=0;j<3;j++){const a=r()*TAU,l=8+r()*10,gy=heightAt(p[0],p[2]);gb.beam([p[0]+Math.cos(a)*2,gy+1,p[2]+Math.sin(a)*2],[p[0]+Math.cos(a)*l,gy+2+r()*5,p[2]+Math.sin(a)*l],1.1,dcol3(r,[DIRT3.timber,DIRT3.timberL,'#3a2a1c']));}}
   {const [lx,lz]=around(10+r()*16),p=L(lx,y,lz),gy=heightAt(p[0],p[2]),a=r()*TAU;gb.box(p[0],gy-0.5,p[2],7,15,6,a,dcol3(r,['#c8c0b0','#b8b0a0']).map(v=>v*0.85),col3('#a8a090'));if(r()<0.5)gb.box(p[0]+Math.cos(a)*9,gy,p[2]+Math.sin(a)*9,7,8,6,a+0.3,dcol3(r,['#5a554e','#7a7266']));}   // a fridge, maybe a stove
@@ -5102,7 +5103,7 @@ function ruinDebris3(gb,b,y,WH,r){const hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=
   if(r()<0.7){const [lx,lz]=around(6+r()*20),p=L(lx,y,lz),gy=heightAt(p[0],p[2]),a=r()*TAU,tc=dcol3(r,['#8a8478','#7a7266']);gb.wheel(p[0],gy+9,p[2],9,18,a,12,tc,mix3(tc,col3(DIRT3.rust),0.5));}   // a rain tank, fallen on its side
   for(let k=0;k<3+Math.floor(r()*4);k++){const [lx,lz]=around(r()*35),p=L(lx,y,lz),gy=heightAt(p[0],p[2]);if(r()<0.5)gb.wheel(p[0],gy+0.8,p[2],4.6,2.6,0,10,col3('#1e1a17'),col3('#2a2622'));else gb.cyl(p[0],gy,p[2],3.6,r()<0.4?3:9,9,dcol3(r,['#3f5a6a','#6a3a2a',DIRT3.rust]),col3('#3a332c'));}   // tyres lying flat, drums (some crushed)
   {const [lx,lz]=around(14+r()*10),p=L(lx,y,lz),gy=heightAt(p[0],p[2])+0.2,R0=8+r()*6,N=8,pts=[];for(let k=0;k<N;k++){const a=k/N*TAU;pts.push([p[0]+Math.cos(a)*R0*(0.7+r()*0.5),gy,p[2]+Math.sin(a)*R0*(0.7+r()*0.5)]);}for(let k=0;k<N;k++)gb.tri([p[0],gy,p[2]],pts[k],pts[(k+1)%N],col3('#2a2420'),0,1,0);}   // an old fire's black patch
-  if(r()<0.6){const side=r()<0.5?1:-1,x0=side*hw,x1=side*(hw+20),z0=(r()-0.5)*hh,len=b.h*0.45;quad2(gb,L(x0,y+WH*0.45,z0-len/2),L(x0,y+WH*0.45,z0+len/2),L(x1,heightAt(...L(x1,0,z0).filter((_,i)=>i!==1))+1,z0+len/2),L(x1,heightAt(...L(x1,0,z0).filter((_,i)=>i!==1))+1,z0-len/2),dcol3(r,[DIRT3.rust,DIRT3.iron]));   // a lean-to come down, one edge on the ground
+  if(r()<0.6){const side=r()<0.5?1:-1,x0=side*hw,x1=side*(hw+20),z0=(r()-0.5)*hh,len=b.h*0.45;quad2i(gb,L(x0,y+WH*0.45,z0-len/2),L(x0,y+WH*0.45,z0+len/2),L(x1,heightAt(...L(x1,0,z0).filter((_,i)=>i!==1))+1,z0+len/2),L(x1,heightAt(...L(x1,0,z0).filter((_,i)=>i!==1))+1,z0-len/2),dcol3(r,[DIRT3.rust,DIRT3.iron]));   // a lean-to come down, one edge on the ground
     gb.beam(L(x1-side*2,y,z0+len/2-2),L(x1+side*4,y+6,z0+len/2+4),1.4,dcol3(r,[DIRT3.timber]));}
   {const [lx,lz]=around(16+r()*8),a=r()*TAU;for(let k=0;k<5;k++){if(r()<0.35)continue;const p=L(lx+Math.cos(a)*k*12,y,lz+Math.sin(a)*k*12),gy=heightAt(p[0],p[2]),h=r()<0.5?3+r()*3:8+r()*2;gb.beam([p[0],gy-1,p[2]],[p[0]+(r()-0.5)*3,gy+h,p[2]+(r()-0.5)*3],1.4,dcol3(r,['#8f8a80','#6e6a62',DIRT3.timber]));}}   // snapped fence posts
   for(let k=0;k<2;k++){if(r()<0.4)continue;const sd=r()<0.5?1:-1,lz=(r()-0.5)*b.h*0.6,A=L(sd*(hw+1),y+WH*(0.4+r()*0.2),lz-6),B2=L(sd*(hw+1),y+WH*0.45,lz+6);gb.cloth(A,B2,[sd*cs*0.2,-1,sd*sn*0.2],WH*0.3,dcol3(r,DIRT3.canvas),r,{rows:3,cols:2});}}   // rags of canvas caught on the walls
@@ -5110,7 +5111,7 @@ function bldExtras3(gb,b,y,WH,r,rui){if(b.tank||b.struct)return;if(rui)ruinDebri
   const side=r()<0.5?1:-1,top=y+WH*0.8;
   // a lean-to off one side: a skillion of iron on rough posts, things kept under it
   if(!rui&&r()<0.6&&!big){const dep=22+r()*8,len=b.h*(0.55+r()*0.3),z0=(r()-0.5)*(b.h-len),x0=side*hw,x1=side*(hw+dep),hi=y+WH*0.72,lo=y+WH*0.5,ic=dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.ironD]);
-    quad2(gb,L(x0,hi,z0-len/2),L(x0,hi,z0+len/2),L(x1,lo,z0+len/2),L(x1,lo,z0-len/2),ic);
+    quad2i(gb,L(x0,hi,z0-len/2),L(x0,hi,z0+len/2),L(x1,lo,z0+len/2),L(x1,lo,z0-len/2),ic);
     for(const zz of [z0-len/2+2,z0+len/2-2])gb.beam(L(x1-side*1.5,y,zz),L(x1-side*1.5,lo,zz),1.6,dcol3(r,[DIRT3.timber]));
     for(let k=0;k<2+Math.floor(r()*3);k++){const p=L(side*(hw+6+r()*(dep-10)),y,z0+(r()-0.5)*len*0.8);if(r()<0.5)gb.cyl(p[0],y,p[2],3.6,9,9,dcol3(r,['#3f5a6a','#6a3a2a',DIRT3.rust]),col3('#3a332c'));else gb.box(p[0],y,p[2],10,5+r()*4,6,b.rot+r()*0.3,dcol3(r,[DIRT3.timber,DIRT3.timberL]));}   // drums, firewood
     if(r()<0.6)gb.cloth(L(x1,lo-0.5,z0-len*0.3),L(x1,lo-0.5,z0+len*0.1),[side*cs*0.2,-1,side*sn*0.2],10+r()*6,dcol3(r,DIRT3.canvas),r,{rows:3,cols:2});}   // a canvas hung off its edge, flapping
@@ -5120,7 +5121,7 @@ function bldExtras3(gb,b,y,WH,r,rui){if(b.tank||b.struct)return;if(rui)ruinDebri
     for(let k=1;k<4;k++)gb.cyl(p[0],y+8+k*H0/4,p[2],R0+0.4,0.8,12,mix3(tc,col3(DIRT3.rust),0.6));gb.beam(L(tx,y+8+H0,tz),L(-side*(hw-4),y+WH*0.8,tz),0.8,col3(DIRT3.ironD));}
   // a side room off the back
   if(!rui&&!big&&r()<0.3){const w=b.w*0.35,d=22,p=L((r()-0.5)*(b.w-w),y,-hh-d/2),wc=dcol3(r,[DIRT3.iron,DIRT3.timberL,'#6a6052']);gb.box(p[0],y,p[2],w,WH*0.62,d,b.rot,wc,wc.map(v=>v*0.9));
-    quad2(gb,L((r()-0.5)*4-w/2+p[0]*0,y+WH*0.66,-hh),L(w/2,y+WH*0.66,-hh),L(w/2,y+WH*0.55,-hh-d-3),L(-w/2,y+WH*0.55,-hh-d-3),dcol3(r,[DIRT3.rust,DIRT3.iron]));}
+    quad2i(gb,L((r()-0.5)*4-w/2+p[0]*0,y+WH*0.66,-hh),L(w/2,y+WH*0.66,-hh),L(w/2,y+WH*0.55,-hh-d-3),L(-w/2,y+WH*0.55,-hh-d-3),dcol3(r,[DIRT3.rust,DIRT3.iron]));}
   // gutter along the front, a downpipe at a corner
   if(!rui){gb.lbox(b,0,hh+1.5,y+WH*0.86,b.w*0.96,1.6,2,dcol3(r,[DIRT3.iron,DIRT3.rust]));const dp=L(hw-2,0,hh+1.5);gb.beam([dp[0],y,dp[2]],[dp[0],y+WH*0.86,dp[2]],0.9,dcol3(r,[DIRT3.ironD,DIRT3.rust]));}
   // a flue through the roof, smoke-blackened at the top
@@ -5132,6 +5133,32 @@ function bldExtras3(gb,b,y,WH,r,rui){if(b.tank||b.struct)return;if(rui)ruinDebri
   // a torn canvas over a window
   if(r()<0.35){const sd=r()<0.5?1:-1,lz=(r()-0.5)*b.h*0.5,A=L(sd*(hw+1),y+WH*0.62,lz-7),B2=L(sd*(hw+1),y+WH*0.62,lz+7);gb.cloth(A,B2,[sd*cs*0.15,-1,sd*sn*0.15],WH*0.35,dcol3(r,DIRT3.canvas),r,{rows:3,cols:2});}}
 // ---- the new kinds of structure: tin sheds, greenhouses, a works shed, a chimney ----
+/* ---- round the foot of every building (v10.0): tufts of dry grass along the walls, thicker in the corners where the wind can't get
+   at them, and a little debris (stones and broken masonry, bits of brick, a split plank, a scrap of iron, a tin) lying in the dirt.
+   Never across a doorway: the ground in front of a door is kept clear. The grass keeps its own colours; the debris is textured. ---- */
+const TUFT3=['#9a8e58','#a89a5c','#8a8450','#b4a468','#7e7c4c','#a49464'];
+function tuft3(gb,x,z,s,r){const gy=heightAt(x,z),f=gb.force;gb.force='none';
+  if(r()<0.08){const c0=col3(TUFT3[Math.floor(r()*TUFT3.length)],0.95+r()*0.15),tip=col3('#cbbb7c');plant3(gb,'Grass01',x,z,gy,r()*TAU,(20+r()*14)*s,(m,k)=>(k%3===2?tip:c0),r);gb.force=f;return;}   // a clump like the spinifex out bush
+  const base=col3(TUFT3[Math.floor(r()*TUFT3.length)],0.62+r()*0.12),tip=col3(TUFT3[Math.floor(r()*TUFT3.length)],1.05+r()*0.18).map(v=>Math.min(1,v)),n=5+Math.floor(r()*5);
+  for(let i=0;i<n;i++){const a=r()*TAU,rr=r()*2.2*s,bx=x+Math.cos(a)*rr,bz=z+Math.sin(a)*rr,l=(5+r()*8)*s,lean=0.25+r()*0.55,px=-Math.sin(a)*0.7*s,pz=Math.cos(a)*0.7*s;   // blades, bending out from the middle
+    const A=[bx-px,gy-0.3,bz-pz],B=[bx+px,gy-0.3,bz+pz],C=[bx+Math.cos(a)*l*lean,gy+l*(1-lean*0.45),bz+Math.sin(a)*l*lean],k=0.85+r()*0.3;
+    for(const [q,c] of [[A,base],[B,base],[C,tip],[A,base],[C,tip],[B,base]])gb.pushV(q[0],q[1],q[2],c[0]*k,c[1]*k,c[2]*k,0);}   // (both faces)
+  gb.force=f;}
+function bits3(gb,x,z,r){const gy=heightAt(x,z),q=r(),a=r()*TAU;
+  if(q<0.3)gb.lump(x,gy-0.6,z,2+r()*3,1.2+r()*1.6,a,dcol3(r,['#8a7a66','#9a8a74','#7a6a58','#a89c8a']));   // a stone, a lump of masonry
+  else if(q<0.5){for(let k=0;k<1+Math.floor(r()*3);k++)gb.box(x+(r()-0.5)*5,gy-0.3,z+(r()-0.5)*5,3.4,1.6,1.8,r()*TAU,dcol3(r,['#8a4a32','#7a4030','#94563a','#a8a296']));}   // bits of brick
+  else if(q<0.72)gb.box(x,gy-0.2,z,8+r()*10,0.9,1.6+r()*1.4,a,dcol3(r,[DIRT3.timber,DIRT3.timberL,'#6a5a48']));   // a split plank
+  else if(q<0.88){const w=4+r()*5,d=3+r()*4,ca=Math.cos(a),sa=Math.sin(a),c=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]].map(([u,v],i)=>[x+u*ca-v*sa,gy+0.25+(i>=2?r()*0.8:0),z+u*sa+v*ca]);quad2i(gb,c[0],c[1],c[2],c[3],dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.rustD]));}   // a scrap of iron
+  else{const f=gb.force;gb.force='none';if(r()<0.5)gb.cyl(x,gy,z,0.9,2.2,6,dcol3(r,['#8a8476',DIRT3.rust,'#6a5a48']));else gb.box(x,gy,z,1.6,1.6,4.2,a,dcol3(r,['#4a5a3a','#5a3a1e','#7a7a6a']));gb.force=f;}}   // a tin, a bottle on its side
+// round a building's footprint (centre x,z; w by h; turned rot); 'door': the half-width of the gap left clear in the middle of the front
+// (+h side), and of the back too when 'both'
+function baseDress3(gb,b,door,both,dens){const cs=Math.cos(b.rot),sn=Math.sin(b.rot),hw=b.w/2,hh=b.h/2,r=rng(hash2(Math.round(b.x*3)+11,Math.round(b.y*7)+5)),D=dens||1;
+  const W=(lx,lz)=>[b.x+lx*cs-lz*sn,b.y+lx*sn+lz*cs],clear=(lx,lz)=>door!=null&&Math.abs(lx)<door+9&&(lz>hh-3||(both&&lz<-hh+3));
+  const sides=[[-hw,hh,hw,hh,0,1],[hw,-hh,-hw,-hh,0,-1],[-hw,-hh,-hw,hh,-1,0],[hw,hh,hw,-hh,1,0]];
+  for(const [x0,z0,x1,z1,nx,nz] of sides){const len=Math.hypot(x1-x0,z1-z0);for(let u=2+r()*8;u<len-1;u+=(10+r()*12)/D){if(r()<0.25)continue;const t=u/len;
+      for(let j=0;j<1+Math.floor(r()*3);j++){const out=0.8+r()*r()*9,lx=x0+(x1-x0)*t+nz*(r()-0.5)*6+nx*out,lz=z0+(z1-z0)*t-nx*(r()-0.5)*6+nz*out;if(clear(lx,lz))continue;const p=W(lx,lz);tuft3(gb,p[0],p[1],0.7+r()*0.6,r);}}}
+  for(const [cx,cz] of [[-1,-1],[1,-1],[-1,1],[1,1]])for(let j=0;j<1+Math.floor(r()*3);j++){const lx=cx*(hw+1+r()*6),lz=cz*(hh+1+r()*6);if(clear(lx,lz))continue;const p=W(lx,lz);tuft3(gb,p[0],p[1],0.8+r()*0.7,r);}   // thicker in the corners
+  for(let k=0;k<Math.round((4+r()*5)*D);k++){const sd=sides[Math.floor(r()*4)],t=r(),out=1.5+r()*10,lx=sd[0]+(sd[2]-sd[0])*t+sd[4]*out,lz=sd[1]+(sd[3]-sd[1])*t+sd[5]*out;if(clear(lx,lz))continue;const p=W(lx,lz);bits3(gb,p[0],p[1],r);}}
 // the townhouse (David's model): a narrow three-storey house of rendered brick with a garage beside it, weathered like everything
 // else: render faded and stained, darker and dusty near the ground and streaked under the sills, a rusty tin roof, peeling timber,
 // a dented roller door going to rust, dusty glass, doors with the paint worn off; every face its own shade
@@ -5194,7 +5221,7 @@ function chimney3(gb,b){const y=heightAt(b.x,b.y),bc=col3('#7a4a34');gb.cyl(b.x,
 function yard3(gb,q){const r=rng(q.seed||13),y=heightAt(q.x,q.y),hw=q.w/2,hh=q.h/2,cs=Math.cos(q.rot),sn=Math.sin(q.rot),L=(lx,ly,lz)=>[q.x+lx*cs-lz*sn,ly,q.y+lx*sn+lz*cs];
   if(q.kind==='workshop'){gb.box(q.x,y-1.5,q.y,q.w,2.2,q.h,q.rot,col3('#6a665e'),col3('#76726a'));   // a cracked, oil-stained slab
     const rw=q.w*0.7,rd=q.h*0.6,rz=-hh+rd/2+4;for(const lx of [-rw/2,rw/2])for(const lz of [rz-rd/2,rz+rd/2])gb.beam(L(lx,y,lz),L(lx,y+(lz<rz?30:24),lz),1.6,dcol3(r,[DIRT3.timber,DIRT3.ironD]));
-    quad2(gb,L(-rw/2-4,y+30,rz-rd/2-4),L(rw/2+4,y+30,rz-rd/2-4),L(rw/2+4,y+24,rz+rd/2+4),L(-rw/2-4,y+24,rz+rd/2+4),dcol3(r,[DIRT3.rust,DIRT3.iron]));   // its roof
+    quad2i(gb,L(-rw/2-4,y+30,rz-rd/2-4),L(rw/2+4,y+30,rz-rd/2-4),L(rw/2+4,y+24,rz+rd/2+4),L(-rw/2-4,y+24,rz+rd/2+4),dcol3(r,[DIRT3.rust,DIRT3.iron]));   // its roof
     wreck3(gb,{x:L(0,0,rz)[0],y:L(0,0,rz)[2],rot:q.rot,w:44,h:22,burnt:false});   // a car up on blocks, half stripped
     {const p=L(rw/2-8,0,rz-rd/2+6);gb.beam([p[0]-6,y,p[2]],[p[0],y+28,p[2]],1.2,col3('#5a554e'));gb.beam([p[0]+6,y,p[2]],[p[0],y+28,p[2]],1.2,col3('#5a554e'));gb.beam([p[0],y+28,p[2]],[p[0],y+16,p[2]],0.4,col3('#2a2622'));gb.box(p[0],y+10,p[2],8,6,6,q.rot,col3('#4a4640'));}   // an engine on the hoist
     gb.box(...L(-rw/2+6,0,rz-rd/2+3),18,6,5,q.rot,dcol3(r,[DIRT3.timber]));gb.box(...L(-rw/2+6,6,rz-rd/2+3).map((v,i)=>i===1?y+6:v),18,0.8,6,q.rot,col3('#5a554e'));   // a bench
@@ -5250,7 +5277,10 @@ function texCap3(gb,dest,ox,oz){const w=Object.create(gb),buf=[],OX=Math.round(o
   const take=T=>{const col=[0,1,2].map(i=>(T[0][3+i]+T[1][3+i]+T[2][3+i])/3),k=w.force==='none'?null:w.force||triTex3(col);
     if(!k||!TEX3.tile[k]){for(const v of T)gb.pushV(v[0],v[1],v[2],v[3],v[4],v[5],0);return;}
     const ux=T[1][0]-T[0][0],uy=T[1][1]-T[0][1],uz=T[1][2]-T[0][2],vx=T[2][0]-T[0][0],vy=T[2][1]-T[0][1],vz=T[2][2]-T[0][2],nx=Math.abs(uy*vz-uz*vy),ny=Math.abs(uz*vx-ux*vz),nz=Math.abs(ux*vy-uy*vx);
-    const t=TEX3.tile[k],uv=v=>ny>=nx&&ny>=nz?[(v[0]-OX)/t[0],(v[2]-OZ)/t[1]]:nx>=nz?[(v[2]-OZ)/t[0],v[1]/t[1]]:[(v[0]-OX)/t[0],v[1]/t[1]];   // laid on from the side it faces most
+    const t=TEX3.tile[k];let uv=v=>nx>=nz?[(v[2]-OZ)/t[0],v[1]/t[1]]:[(v[0]-OX)/t[0],v[1]/t[1]];   // laid on from the side it faces most
+    if(ny>=nx&&ny>=nz){const sx=uy*vz-uz*vy,sz=ux*vy-uy*vx,hl=Math.hypot(sx,sz),nl=Math.hypot(sx,ny,sz)||1;let dx=0,dz=1,ca=1;   /* faces up: the grain (the corrugations of iron) runs down the slope (v10.0) */
+      if(hl>0.1*nl){dx=sx/hl;dz=sz/hl;ca=Math.max(0.35,ny/nl);}else if(w.dir){dx=w.dir[0];dz=w.dir[1];}   /* flat: the way it's told, or north-south */
+      uv=v=>{const X=v[0]-OX,Z=v[2]-OZ;return [(Z*dx-X*dz)/t[0],(X*dx+Z*dz)/ca/t[1]];};}
     const d=TEX3.dest;TEX3.dest=dest;const q=tqBucket3(k);TEX3.dest=d;
     for(const v of T){q.p.push(v[0],v[1],v[2]);q.uv.push(...uv(v));q.c.push(...shade3([v[3],v[4],v[5]],1,k));}};
   w.pushV=function(x,y,z,r,g,b,f){if(f>0)return gb.pushV(x,y,z,r,g,b,f);buf.push([x,y,z,r,g,b]);if(buf.length===3)take(buf.splice(0,3));};   // pieces made a corner at a time
@@ -5324,7 +5354,7 @@ function building3(gb,rb,b){const THM=!b.ruined&&TEXTHEME3[b.kind];if(THM){TEX3.
   // a lean-to awning over the door on poles, from a sheet of iron
   if(!rui&&['house','pub','store','servo','garage','clinic','office'].includes(b.kind)&&r()<0.75){const aw=Math.min(b.door+26,b.w-8),out=18+r()*8,hi=Math.min(WH-2,30),lo=hi-6,ac=col3(RUST3[Math.floor(r()*RUST3.length)]);
     if(TX){tq3('corr_rusty',L(-aw/2,y+hi,hh+0.5),L(aw/2,y+hi,hh+0.5),L(aw/2,y+lo,hh+out),L(-aw/2,y+lo,hh+out),0,0,[0,1,0]);tq3('corr_rusty',L(-aw/2,y+hi-0.6,hh+0.5),L(aw/2,y+hi-0.6,hh+0.5),L(aw/2,y+lo-0.6,hh+out),L(-aw/2,y+lo-0.6,hh+out),0,0,[0,-1,0],[[.55,.55,.55],[.55,.55,.55],[.55,.55,.55],[.55,.55,.55]]);}
-    else gb.quad(L(-aw/2,y+hi,hh+0.5),L(aw/2,y+hi,hh+0.5),L(aw/2,y+lo,hh+out),L(-aw/2,y+lo,hh+out),ac,L(0,y,hh+out/2));if(!TX)gb.quad(L(-aw/2,y+hi-0.6,hh+0.5),L(aw/2,y+hi-0.6,hh+0.5),L(aw/2,y+lo-0.6,hh+out),L(-aw/2,y+lo-0.6,hh+out),ac.map(v=>v*0.7),L(0,y+60,hh+out/2));
+    else{ironF3(gb,ac);gb.quad(L(-aw/2,y+hi,hh+0.5),L(aw/2,y+hi,hh+0.5),L(aw/2,y+lo,hh+out),L(-aw/2,y+lo,hh+out),ac,L(0,y,hh+out/2));if(!TX)gb.quad(L(-aw/2,y+hi-0.6,hh+0.5),L(aw/2,y+hi-0.6,hh+0.5),L(aw/2,y+lo-0.6,hh+out),L(-aw/2,y+lo-0.6,hh+out),ac.map(v=>v*0.7),L(0,y+60,hh+out/2));if(!TX&&gb.cap)gb.force=null;}
     for(const sx of [-1,1])gb.beam(L(sx*(aw/2-2),y,hh+out-2),L(sx*(aw/2-2),y+lo,hh+out-2),2,wood);}
   // junk against the outside walls: drums, a stack of tyres, sheets leaning
   for(let k=0;k<2;k++)if(r()<0.6){const side=r()<0.5?-1:1,lz=(r()-0.5)*(b.h-30),p=L(side*(hw+7),y,lz);
@@ -5353,9 +5383,9 @@ function building3(gb,rb,b){const THM=!b.ruined&&TEXTHEME3[b.kind];if(THM){TEX3.
     if(!TX)for(let k=0;k<2;k++){const u=(r()-0.5)*S*1.4,sg=r()<0.5?-1:1,w=8+r()*8;slope(u-w/2,u+w/2,sg,0.8,col3(RUST3[Math.floor(r()*RUST3.length)],0.8));}   // patches
     const gc=col3(MAT3[mix[0]][1]);if(rb.cap)rb.force=kindTex3(mix[0],gc,b);if(!TX)for(const sg of [-1,1]){if(along){rb.tri(L(sg*hw,ey,hh),L(sg*hw,ey,-hh),L(sg*hw,ey+rh,0),gc,sg*cs,0,sg*sn);}else{rb.tri(L(hw,ey,sg*hh),L(-hw,ey,sg*hh),L(0,ey+rh,sg*hh),gc,-sg*sn,0,sg*cs);}}
     if(rb.cap)rb.force=null;if(b.kind!=='barn'){const p=L(along?hw*0.45:hw*0.3,0,along?-hh*0.3:hh*0.45);rb.cyl(p[0],ey+rh*0.5,p[2],2.2,rh*0.6+12,8,col3('#5a544c'),col3('#2a2622'));rb.cyl(p[0],ey+rh*1.1+11,p[2],3.6,1.2,8,col3('#5a544c'));}}   // a flue pipe
-  else{for(let k=0;k<sheets;k++){const along=b.w>=b.h,a0=-(along?hw:hh)-ov+(2*(along?hw:hh)+2*ov)*k/sheets,a1=a0+(2*(along?hw:hh)+2*ov)/sheets+1.2,m=(a0+a1)/2,c=rc(k);if(TX||rb.cap)rb.force=k%3===1||r()<0.15?'corr_rusty':'corrugated';
+  else{for(let k=0;k<sheets;k++){const along=b.w>=b.h,a0=-(along?hw:hh)-ov+(2*(along?hw:hh)+2*ov)*k/sheets,a1=a0+(2*(along?hw:hh)+2*ov)/sheets+1.2,m=(a0+a1)/2,c=rc(k);if(TX||rb.cap)rb.force=k%3===1||r()<0.15?'corr_rusty':'corrugated';rb.dir=along?[-sn,cs]:[cs,sn];
       if(along)rb.lbox(b,m,0,ey+(k%2)*0.4,a1-a0,3.2,b.h+2*ov,c);else rb.lbox(b,0,m,ey+(k%2)*0.4,b.w+2*ov,3.2,a1-a0,c);}
-    rb.force=TX||rb.cap?'none':null;for(let k=0;k<3+Math.floor(r()*3);k++){const p=L((r()-0.5)*b.w*0.8,0,(r()-0.5)*b.h*0.8);if(r()<0.5)rb.cyl(p[0],ey+3.6,p[2],6.5,3.2,10,col3('#1e1a17'),col3('#2a2622'));else rb.box(p[0],ey+3.6,p[2],10,4,6,r()*TAU,col3('#8a7a5a'),col3('#9a8a68'));}   // tyres and sandbags
+    rb.dir=null;rb.force=TX||rb.cap?'none':null;for(let k=0;k<3+Math.floor(r()*3);k++){const p=L((r()-0.5)*b.w*0.8,0,(r()-0.5)*b.h*0.8);if(r()<0.5)rb.cyl(p[0],ey+3.6,p[2],6.5,3.2,10,col3('#1e1a17'),col3('#2a2622'));else rb.box(p[0],ey+3.6,p[2],10,4,6,r()*TAU,col3('#8a7a5a'),col3('#9a8a68'));}   // tyres and sandbags
     rb.force=null;if(b.kind==='warehouse')for(let x=-hw+20;x<hw-10;x+=40)rb.lbox(b,x,0,ey+3.6,14,9,b.h,col3('#9a978e'),col3('#b8b5ac'));
     else if(b.kind!=='garage')rb.lbox(b,0,hh+ov-2,ey,b.w+2*ov,10,4,col3(MAT3[mix[0]][2]||MAT3[mix[0]][0]),col3('#5a4a3a'));
     if(r()<0.5){const p=L(-hw*0.6,0,-hh*0.5);rb.beam([p[0],ey+3,p[2]],[p[0],ey+34,p[2]],1.2,col3('#5a544c'));rb.beam([p[0]-6,ey+30,p[2]],[p[0]+6,ey+30,p[2]],0.8,col3('#5a544c'));}}
@@ -5401,6 +5431,8 @@ function buildShell3(s){const gb0=new GB(),gb=texCap3(gb0,'body',s.x,s.y),y=heig
     gb.force='corr_rusty';gb.quad(Q(4,-12,y+3),Q(4,12,y+3),Q(30,12,y+0.5),Q(30,-12,y+0.5),cc,Q(17,0,y-40));gb.force=null;gb.quad(Q(4,-12,y+3.4),Q(4,12,y+3.4),Q(30,12,y+0.9),Q(30,-12,y+0.9),cc.map(v=>v*0.7),Q(17,0,y+60));}
   for(const q of s.rub)gb.lump(q.x,heightAt(q.x,q.y)-1,q.y,q.s*0.7,q.s*0.5,q.rot,col3(q.col));
   for(let k=0;k<4;k++){const a=r()*TAU,d=20+r()*40,x=s.x+Math.cos(a)*d,z=s.y+Math.sin(a)*d;gb.box(x,heightAt(x,z)-0.5,z,18+r()*12,1.5,3,r()*TAU,col3('#5a4430'));}   // loose planks
+  for(const w of s.walls){const len=Math.hypot(w.x2-w.x1,w.y2-w.y1),ux=(w.x2-w.x1)/len,uy=(w.y2-w.y1)/len;for(let u=r()*8;u<len;u+=8+r()*10){if(r()<0.3)continue;   // grass along the foot of the walls, both sides, and a few stones (v10.0)
+      const sd=r()<0.5?1:-1,o2=SHELL_T*0.6+0.5+r()*r()*7,x=w.x1+ux*u-uy*sd*o2,z=w.y1+uy*u+ux*sd*o2;tuft3(gb,x,z,0.7+r()*0.6,r);if(r()<0.25)bits3(gb,x+(r()-0.5)*8,z+(r()-0.5)*8,r);}}
   const g=new THREE.Group(),m=gb0.mesh(V3.mats.vc,s.x,s.y);if(m)g.add(m);texFlush3(g,s.x,s.y);return g;}   // (a plain group holds both: the textured pieces are placed in the world already)
 
 /* ---- towns, cities and ruins: buildings, the town wall, streets, the square, paddocks, tanks and towers ---- */
@@ -5469,7 +5501,8 @@ function buildLoc3(o){let gb=new GB(),rb=new GB();const wr=o.rad-40,gb0=gb,rb0=r
   {const rW=rng(o.id*131+7),half=wallGeo3().len*WALLS3.S*0.5;for(const w of o.wall){const ang=w.a+Math.PI/2,cx=o.x+Math.cos(w.a)*(wr+w.j),cy=o.y+Math.sin(w.a)*(wr+w.j);   // each wall run: two of David's wall sections side by side
     for(const sg of [-1,1]){const x=cx+Math.cos(ang)*sg*half*0.98,y=cy+Math.sin(ang)*sg*half*0.98;wallSection3(gb,x,y,ang,rW,col3(w.c),rW()<0.5);}}}
   for(const q of o.yards||[])yard3(gb,q);(o.fences||[]).forEach((f,i)=>fence3(gb,f,o.id*53+i*7));   // workshops, scrap yards, fences
-  for(const b of o.bld){if(b.struct)struct3(gb,b);else if(b.tank){const y=heightAt(b.x,b.y);gb.cyl(b.x,y-2,b.y,29,34,14,col3('#9c958a'),col3('#7d766c'));}else building3(gb,rb,b);}
+  for(const b of o.bld){if(b.struct)struct3(gb,b);else if(b.tank){const y=heightAt(b.x,b.y);gb.cyl(b.x,y-2,b.y,29,34,14,col3('#9c958a'),col3('#7d766c'));}else building3(gb,rb,b);
+    if(!b.struct&&!b.tank)baseDress3(gb,b,b.door/2,false,b.ruined?1.2:1);else if(b.kind==='townhouse'||b.kind==='warehouse2')baseDress3(gb,b,b.w*0.18,true);}   // grass and debris round the foot (v10.0)
   clutter3(gb,o);
   // barricades across the gates, shown while the town is shut to you
   let barr=null;if(o.wall.length&&o.gates&&o.gates.length&&o.faction&&FACTIONS[o.faction]&&FACTIONS[o.faction].kind!=='raider'){const bb=new GB(),r=rng(o.id*77+5);
@@ -6684,5 +6717,3 @@ if(!window.__TEST)requestAnimationFrame(frame);
 </script>
 </body>
 </html>
-
-</body></html>
