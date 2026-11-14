@@ -238,24 +238,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=10.0"></script>
-<script src="models/84-hero-model.js?v=10.0"></script>
-<script src="models/84b-hero-body.js?v=10.0"></script>
-<script src="models/84c-buggy-model.js?v=10.0"></script>
-<script src="models/84d-tarona-model.js?v=10.0"></script>
-<script src="models/84e-wall-model.js?v=10.0"></script>
-<script src="models/84f-plant-models.js?v=10.0"></script>
-<script src="models/84g-kestrel-model.js?v=10.0"></script>
-<script src="models/84h-building-models.js?v=10.0"></script>
-<script src="models/84i-building-models2.js?v=10.0"></script>
-<script src="models/84j-f100-model.js?v=10.0"></script>
-<script src="models/84l-kingsford-model.js?v=10.0"></script>
-<script src="models/84m-wagon-model.js?v=10.0"></script>
+<script src="models/21b-mesa-models.js?v=10.1"></script>
+<script src="models/84-hero-model.js?v=10.1"></script>
+<script src="models/84b-hero-body.js?v=10.1"></script>
+<script src="models/84c-buggy-model.js?v=10.1"></script>
+<script src="models/84d-tarona-model.js?v=10.1"></script>
+<script src="models/84e-wall-model.js?v=10.1"></script>
+<script src="models/84f-plant-models.js?v=10.1"></script>
+<script src="models/84g-kestrel-model.js?v=10.1"></script>
+<script src="models/84h-building-models.js?v=10.1"></script>
+<script src="models/84i-building-models2.js?v=10.1"></script>
+<script src="models/84j-f100-model.js?v=10.1"></script>
+<script src="models/84l-kingsford-model.js?v=10.1"></script>
+<script src="models/84m-wagon-model.js?v=10.1"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='10.0';
+const VERSION='10.1';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1789,8 +1789,8 @@ function windWeather(dt){const W=G.wind;if(!W||state!=='play')return;const b=bod
 // the wind howls, dust pours past; raiders and others lose sight of you beyond a short way. It lasts a few minutes, then blows through.
 function stormStep(dt){const S=G.storm||(G.storm={phase:'none',t:rand(300,700),k:0,d:0});const b=body();
   if(S.phase==='none'){S.t-=dt;S.k=0;if(S.t<=0&&state==='play'){const W=G.wind||{a:0};S.phase='coming';S.a=W.a;S.d=5200;S.speed=rand(45,70);S.len=rand(140,260);showMsg('A dust storm is coming. You can see it on the horizon',3);}}
-  else if(S.phase==='coming'){S.d-=S.speed*dt;S.k=clamp(1-(S.d+250)/500,0,1);if(S.d<=-250){S.phase='in';S.t=S.len;}}   // the front sweeps over you
-  else if(S.phase==='in'){S.t-=dt;S.k=1;if(S.t<=0){S.phase='going';S.t=30;}}
+  else if(S.phase==='coming'){S.d-=S.speed*dt;if(S.px!=null){const mx=b.x-S.px,my=b.y-S.py;if(Math.hypot(mx,my)<500)S.d+=mx*Math.cos(S.a)+my*Math.sin(S.a);}S.px=b.x;S.py=b.y;   /* the front stands in the world (v10.0): drive at it and it's on you sooner, run from it and you gain ground */S.k=clamp(1-(S.d+250)/500,0,1);if(S.d<=-250){S.phase='in';S.t=S.len;}}   // the front sweeps over you
+  else if(S.phase==='in'){S.px=null;S.t-=dt;S.k=1;if(S.t<=0){S.phase='going';S.t=30;}}
   else if(S.phase==='going'){S.t-=dt;S.k=clamp(S.t/30,0,1);if(S.t<=0){S.phase='none';S.t=rand(500,1000);S.k=0;}}
   if(S.phase!=='none'&&G.wind){G.wind.a+=angDiff(S.a,G.wind.a)*Math.min(1,dt*0.5);if(S.k>0.1||S.phase==='coming')G.wind.gTarget=Math.max(G.wind.gTarget||0,0.9);}   // the wind swings round behind it and blows hard
   const pre=S.phase==='coming'?clamp(1-S.d/1100,0,1)*0.7:0,kk=Math.max(S.k,pre);   // the dust starts streaming past while the wall is still a way off
@@ -6427,10 +6427,10 @@ function stormWall3(){const S=G.storm;let W=V3.stormWall;
       for(let k=0;k<2;k++){const s=new THREE.Sprite(mats[shades.length*Math.floor(r()*texs.length)+3]);s.userData={u:u+(r()-0.5)*0.03,y:60+r()*60,z:150+r()*100,sz:420+r()*200,ph:r()*TAU,sp:0.25+r()*0.2};grp.add(s);puffs.push(s);}}   // the low rolling skirt at its foot, out in front
     grp.renderOrder=5;V3.scene.add(grp);W=V3.stormWall={grp,puffs};}
   if(!S||S.phase!=='coming'||S.d<200){W.grp.visible=false;return;}
-  const b=body(),far=Math.max(260,Math.min(S.d,V3.cam.far*0.9*Math.min(1,S.d/5200+0.25))),ux=Math.cos(S.a),uy=Math.sin(S.a),cx=b.x-ux*far,cy=b.y-uy*far,gy=groundY3(b.x,b.y),t=G.time||0,span=far*1.7,k=far/3500;   // scaled with distance so it fills the horizon at any range
+  const b=body(),far=Math.max(260,Math.min(S.d,V3.cam.far*0.9*Math.min(1,S.d/5200+0.25))),ux=Math.cos(S.a),uy=Math.sin(S.a),cx=b.x-ux*far,cy=b.y-uy*far,gy=groundY3(b.x,b.y),t=G.time||0,k=1.5*far/Math.max(far,S.d),span=12000*k/1.5;   /* a fixed, real size (v10.0): as it comes on it looms larger and larger, till it fills the sky (only shrunk to fit if it's beyond the far edge of sight) */
   W.grp.visible=true;W.grp.position.set(cx,gy-20,cy);W.grp.rotation.set(0,-Math.atan2(uy,ux)+Math.PI/2,0);
   const op=clamp(1.5-far/7000,0.8,1)*clamp((S.d-200)/600,0,1);   /* fading into the dust that's already pouring past as it arrives */
-  for(const s of W.puffs){const d=s.userData,a=d.u*0.9,bend=(1-Math.cos(a))*far*0.6,sw=1+0.06*Math.sin(t*d.sp+d.ph);   // the front curves round toward you at its ends; the puffs swell and churn
+  for(const s of W.puffs){const d=s.userData,a=d.u*0.9,bend=(1-Math.cos(a))*far*0.5,sw=1+0.06*Math.sin(t*d.sp+d.ph);   // the front curves round toward you at its ends; the puffs swell and churn
     s.position.set(Math.sin(a)*span*0.62,d.y*k+Math.sin(t*d.sp*0.7+d.ph)*6*k,d.z*k+bend);s.scale.set(d.sz*k*sw,d.sz*k*sw,1);s.material.opacity=op;}}
 function arrow3D(wx,wy,label,col){if(!V3P.v)V3P.v=new THREE.Vector3();const v=V3P.v.set(wx,groundY3(wx,wy)+20,wy).project(V3.cam);
   let sx=(v.x+1)/2*W,sy=(1-v.y)/2*H;const behind=v.z>1;
