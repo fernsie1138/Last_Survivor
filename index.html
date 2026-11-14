@@ -1,3 +1,4 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -238,24 +239,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=9.7"></script>
-<script src="models/84-hero-model.js?v=9.7"></script>
-<script src="models/84b-hero-body.js?v=9.7"></script>
-<script src="models/84c-buggy-model.js?v=9.7"></script>
-<script src="models/84d-tarona-model.js?v=9.7"></script>
-<script src="models/84e-wall-model.js?v=9.7"></script>
-<script src="models/84f-plant-models.js?v=9.7"></script>
-<script src="models/84g-kestrel-model.js?v=9.7"></script>
-<script src="models/84h-building-models.js?v=9.7"></script>
-<script src="models/84i-building-models2.js?v=9.7"></script>
-<script src="models/84j-f100-model.js?v=9.7"></script>
-<script src="models/84l-kingsford-model.js?v=9.7"></script>
-<script src="models/84m-wagon-model.js?v=9.7"></script>
+<script src="models/21b-mesa-models.js?v=9.9"></script>
+<script src="models/84-hero-model.js?v=9.9"></script>
+<script src="models/84b-hero-body.js?v=9.9"></script>
+<script src="models/84c-buggy-model.js?v=9.9"></script>
+<script src="models/84d-tarona-model.js?v=9.9"></script>
+<script src="models/84e-wall-model.js?v=9.9"></script>
+<script src="models/84f-plant-models.js?v=9.9"></script>
+<script src="models/84g-kestrel-model.js?v=9.9"></script>
+<script src="models/84h-building-models.js?v=9.9"></script>
+<script src="models/84i-building-models2.js?v=9.9"></script>
+<script src="models/84j-f100-model.js?v=9.9"></script>
+<script src="models/84l-kingsford-model.js?v=9.9"></script>
+<script src="models/84m-wagon-model.js?v=9.9"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='9.7';
+const VERSION='9.9';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -5048,9 +5049,9 @@ function wallRun3(gb,b,o,x0,z0,x1,z1,nx,nz,doorSide){const {r,y,WH,t,rui,mix}=o,
     if(rui&&r()<0.22)continue;   // a gap where a panel fell off
     const kind=mix[r()<0.62?0:r()<0.7?1:2],cl=col3(MAT3[kind][Math.floor(r()*MAT3[kind].length)],0.92+r()*0.14),h=rui?WH*(0.18+r()*0.62):WH+(kind==='iron'?r()*3.5:0)-(r()<0.12?4:0),off=(r()-0.5)*0.9;
     const P=(along,out,yy,sa,sh,so,col)=>gb.lbox(b,alongX?cx+along:cx+nx*out,alongX?cz+nz*out:cz+along,yy,alongX?sa:so,sh,alongX?so:sa,col);
-    P(0,off,y-3,pw+0.5,h+3,t,cl);
+    if(gb.cap)gb.force=kindTex3(kind,cl,b);P(0,off,y-3,pw+0.5,h+3,t,cl);if(gb.cap)gb.force=null;
     const face=t/2+0.35+off;
-    if(kind==='iron')for(let k=-1;k<=1;k++)P(k*pw/3.2,face,y,0.9,h-0.5,0.7,col3('#000000').map((_,i)=>cl[i]*0.8));   // corrugation ridges
+    if(gb.cap){}else if(kind==='iron')for(let k=-1;k<=1;k++)P(k*pw/3.2,face,y,0.9,h-0.5,0.7,col3('#000000').map((_,i)=>cl[i]*0.8));   // corrugation ridges
     else if(kind==='board'){for(let yy=5;yy<h-1;yy+=5)P(0,face,y+yy,pw,0.6,0.5,cl.map(v=>v*0.82));}   // overlapping weatherboards
     else if(kind==='brick'){for(let k=0;k<3;k++){const by=4+r()*(h-8);P((r()-0.5)*(pw-6),face,y+by,5,2.4,0.5,cl.map(v=>v*(r()<0.5?0.8:1.15)));}}
     else if(kind==='sheet'&&r()<0.6)for(const yy of [h*0.3,h*0.75])P(0,face,y+yy,pw,0.6,0.4,col3('#3a3430'));   // a rivet seam
@@ -5066,16 +5067,16 @@ function wallGeo3(){if(WALLS3.geo)return WALLS3.geo;const P=WALL_MODEL;let mn=[1
   WALLS3.geo={P,mn,mx,cx:(mn[0]+mx[0])/2,cz:(mn[2]+mx[2])/2,len:mx[2]-mn[2],h:mx[1]-mn[1]};return WALLS3.geo;}
 function wallSection3(gb,x,y,ang,r,base,flip){const W=wallGeo3(),S=WALLS3.S,P=W.P,ca=Math.cos(ang),sa=Math.sin(ang),gy=heightAt(x,y)-3,lean=(r()-0.5)*0.06,tw=(r()-0.5)*0.05,fl=flip?-1:1;
   const pal=[base,col3('#7a5a3c'),col3('#5f4b3b'),col3('#6e5a48'),col3('#4e3a2c')],rust=col3('#8a4a24'),rustD=col3('#5a3420'),dust=col3('#b39470'),bleach=col3('#a39886'),grime=col3('#3e3228');
-  const band=new Map(),bandCol=z=>{const k=Math.round(z*9);if(!band.has(k))band.set(k,{c:pal[Math.floor(r()*pal.length)].map(v=>v*(0.88+r()*0.2)),rust:r(),streak:r()<0.35});return band.get(k);};
+  const band=new Map(),bandCol=z=>{const k=Math.round(z*9);if(!band.has(k)){const pi=Math.floor(r()*pal.length),rr=r();band.set(k,{c:pal[pi].map(v=>v*(0.88+r()*0.2)),rust:rr,streak:r()<0.35,tx:pi===0?(rr<0.4?'corr_rusty':'corrugated'):['boards','el_timber','corr_rusty','weatherboard'][(pi+Math.floor(rr*4))%4]});}return band.get(k);};   // (textured: each sheet or plank its own material)
   for(let i=0;i<P.length;i+=9){const mx=(P[i]+P[i+3]+P[i+6])/3,my=(P[i+1]+P[i+4]+P[i+7])/3,mz=(P[i+2]+P[i+5]+P[i+8])/3,hy=(my-W.mn[1])/W.h,B=bandCol(mz);
-    let c=B.c;const n1=Math.sin(mz*23+my*7+B.rust*9)*0.5+0.5,n2=Math.sin(mz*41-my*13+B.rust*5)*0.5+0.5;
+    if(gb.cap)gb.force=B.tx;let c=B.c;const n1=Math.sin(mz*23+my*7+B.rust*9)*0.5+0.5,n2=Math.sin(mz*41-my*13+B.rust*5)*0.5+0.5;
     if(B.rust<0.35&&n1>0.55)c=mix3(c,rust,0.55+0.3*n2);else if(n1*n2>0.62)c=mix3(c,rustD,0.5);   // rust breaking out in patches
     if(B.streak&&hy>0.25)c=mix3(c,rust,0.45*hy*(0.6+0.4*n2));   // rust running down from the top
     if(hy>0.8)c=mix3(c,bleach,0.3*(hy-0.8)/0.2);   // sun-bleached tops
     if(hy<0.35)c=mix3(c,dust,0.55*(0.35-hy)/0.35);if(hy<0.12)c=mix3(c,grime,0.3);   // dust and dirt caked up from the ground
     const v=B.v||(B.v=0.84+r()*0.22);c=c.map(q=>q*v);   // one shade per sheet (so its two triangles match), not per triangle
     for(let j=0;j<3;j++){const lx=(P[i+j*3+2]-W.cz)*S*fl,ly=(P[i+j*3+1]-W.mn[1])*S,lz=(P[i+j*3]-W.cx)*S*fl,lx2=lx+ly*tw,lz2=lz+ly*lean;   // along the wall, up, across it; leaning a touch
-      gb.pushV(x+lx2*ca-lz2*sa,gy+ly,y+lx2*sa+lz2*ca,c[0],c[1],c[2],0);}}}
+      gb.pushV(x+lx2*ca-lz2*sa,gy+ly,y+lx2*sa+lz2*ca,c[0],c[1],c[2],0);}}if(gb.cap)gb.force=null;}
 /* ---- the clutter round every building (v7.4): a lean-to on one side with drums or firewood under it, a rain tank on a stand at a back
    corner, sometimes a side room, a torn canvas flapping, sheets of iron and planks and tyres leaning on the walls, gutters and a
    downpipe, a flue on the roof, an aerial; all of it rusted, faded, dirty ---- */
@@ -5155,6 +5156,7 @@ function warehouse23(gb,b){const M=BLD_MODELS.warehouse2,P=M.P,r=rng(b.seed||9),
   const brick=r()<0.6,wallC=col3(brick?['#8a5a42','#7e5440','#94664c'][Math.floor(r()*3)]:['#8a8478','#7a7266','#9a948a'][Math.floor(r()*3)]),roofC=col3('#4e4a44'),plant=col3('#8a8478'),rust=col3('#8a4a24'),dirt=col3('#6a5642'),iron=col3('#7a7266');
   for(let i=0;i<P.length;i+=9){const ax=P[i],ay=P[i+1],az=P[i+2],bx=P[i+3],by=P[i+4],bz=P[i+5],qx=P[i+6],qy=P[i+7],qz=P[i+8];const ux=bx-ax,uy=by-ay,uz=bz-az,vx=qx-ax,vy=qy-ay,vz=qz-az;
     let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;const nl=Math.hypot(nx,ny,nz)||1;ny/=nl;const my=((ay+by+qy)/3-mn[1])/H;let c;
+    if(gb.cap)gb.force=ny<-0.5?'none':ny>0.6&&my>0.9?'st_grime':my>0.97||(ny>0.6&&my>0.75)?'st_plate':ny>0.6?'corr_rusty':brick?'masonry_brick':'masonry_render';   // (textured: its parts)
     if(ny<-0.5)c=col3('#2e2a26');   // undersides
     else if(ny>0.6&&my>0.9)c=r()<0.35?mix3(roofC,rust,0.4+r()*0.4):roofC;   // the flat roof
     else if(my>0.97||(ny>0.6&&my>0.75))c=r()<0.3?mix3(plant,rust,0.5):plant;   // plant on the roof, the parapet top
@@ -5162,7 +5164,7 @@ function warehouse23(gb,b){const M=BLD_MODELS.warehouse2,P=M.P,r=rng(b.seed||9),
     else{c=wallC;if(my<0.14)c=mix3(c,dirt,0.55*(1-my/0.14));if(r()<0.1)c=mix3(c,dirt,0.3);if(r()<0.05)c=mix3(c,rust,0.35);}   // the walls, stained
     const v=0.84+r()*0.24;c=c.map(q=>q*v);
     for(let j=0;j<3;j++){const lx=(P[i+j*3]-cx)*S,ly=(P[i+j*3+1]-mn[1])*S,lz=(P[i+j*3+2]-cz)*S;gb.pushV(b.x+lx*cs-lz*sn,y+ly-0.5,b.y+lx*sn+lz*cs,c[0],c[1],c[2],0);}}
-  const L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs];for(let k=0;k<5+Math.floor(r()*4);k++){const wall=Math.floor(r()*4);if(wall<2)leanAgainst3(gb,L,y,r,(r()-0.5)*b.w*0.85,(wall?1:-1)*b.h/2,0,wall?1:-1,40);else leanAgainst3(gb,L,y,r,(wall===2?1:-1)*b.w/2,(r()-0.5)*b.h*0.7,wall===2?1:-1,0,40);}   // junk along its walls
+  if(gb.cap)gb.force=null;const L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs];for(let k=0;k<5+Math.floor(r()*4);k++){const wall=Math.floor(r()*4);if(wall<2)leanAgainst3(gb,L,y,r,(r()-0.5)*b.w*0.85,(wall?1:-1)*b.h/2,0,wall?1:-1,40);else leanAgainst3(gb,L,y,r,(wall===2?1:-1)*b.w/2,(r()-0.5)*b.h*0.7,wall===2?1:-1,0,40);}   // junk along its walls
   if(r()<0.6)gb.cloth(L(-b.w*0.2,y+38,b.h/2+1),L(-b.w*0.05,y+38,b.h/2+1),[-sn*0.2,-1,cs*0.2],18,dcol3(r,DIRT3.canvas),r,{rows:3,cols:2});}
 function shedx3(gb,b){const r=rng(b.seed||7),y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],H=[20,26,38][b.size||0];
   const base=dcol3(r,[DIRT3.iron,'#8a8478','#6a6052',DIRT3.ironD]);gb.lbox(b,0,0,y-2,b.w,H*0.62+2,b.h,base,base);   // corrugated walls
@@ -5220,11 +5222,11 @@ function texMat3(k){let m=TEX3.mats[k];if(m)return m;m=TEX3.mats[k]=new THREE.Me
 // a textured four-cornered face (world points, corners in order round it); u along A→B, v along A→D, in world units from (u0,v0);
 // 'out' is which way it should face: the corners are turned round if needed
 function tq3(k,A,B,C,D,u0,v0,out,tint){const q=tqBucket3(k),T=TEX3.tile[k],ab=Math.hypot(B[0]-A[0],B[1]-A[1],B[2]-A[2]),ad=Math.hypot(D[0]-A[0],D[1]-A[1],D[2]-A[2]);
-  const UV=[[u0,v0],[u0+ab,v0],[u0+ab,v0+ad],[u0,v0+ad]].map(([u,v])=>[u/T[0],v/T[1]]);let P=[A,B,C,D],tc=tint||[[1,1,1],[1,1,1],[1,1,1],[1,1,1]];
+  u0=u0%(T[0]*8);v0=v0%(T[1]*8);/* (offsets kept small: sharp on a phone) */const UV=[[u0,v0],[u0+ab,v0],[u0+ab,v0+ad],[u0,v0+ad]].map(([u,v])=>[u/T[0],v/T[1]]);let P=[A,B,C,D],tc=tint||[[1,1,1],[1,1,1],[1,1,1],[1,1,1]];
   const ux=B[0]-A[0],uy=B[1]-A[1],uz=B[2]-A[2],vx=D[0]-A[0],vy=D[1]-A[1],vz=D[2]-A[2],n=[uy*vz-uz*vy,uz*vx-ux*vz,ux*vy-uy*vx];
   let idx=[0,1,2,0,2,3];if(out&&n[0]*out[0]+n[1]*out[1]+n[2]*out[2]<0)idx=[0,2,1,0,3,2];
   for(const i of idx){q.p.push(...P[i]);q.uv.push(...UV[i]);q.c.push(...tc[i]);}}
-function tqTri3(k,A,B,C,uvA,uvB,uvC,out,tint){const q=tqBucket3(k),T=TEX3.tile[k];let P=[A,B,C],U=[uvA,uvB,uvC].map(([u,v])=>[u/T[0],v/T[1]]);
+function tqTri3(k,A,B,C,uvA,uvB,uvC,out,tint){const q=tqBucket3(k),T=TEX3.tile[k],su=Math.floor(uvA[0]/(T[0]*8))*T[0]*8,sv=Math.floor(uvA[1]/(T[1]*8))*T[1]*8;let P=[A,B,C],U=[uvA,uvB,uvC].map(([u,v])=>[(u-su)/T[0],(v-sv)/T[1]]);
   const ux=B[0]-A[0],uy=B[1]-A[1],uz=B[2]-A[2],vx=C[0]-A[0],vy=C[1]-A[1],vz=C[2]-A[2],n=[uy*vz-uz*vy,uz*vx-ux*vz,ux*vy-uy*vx];let idx=[0,1,2];if(out&&n[0]*out[0]+n[1]*out[1]+n[2]*out[2]<0)idx=[0,2,1];
   for(const i of idx){q.p.push(...P[i]);q.uv.push(...U[i]);q.c.push(...(tint||[1,1,1]));}}
 // turn everything gathered into meshes (one per texture): the building's own go into the place's group, the roof's into the roof group
@@ -5235,6 +5237,33 @@ function texMeshes3(Q,ox,oz){const out=[];for(const k in Q){const q=Q[k];if(!q.p
 function texFlush3(grp,ox,oz){for(const m of texMeshes3(TEX3.qb,ox,oz))grp.add(m);const rm=texMeshes3(TEX3.qr,ox,oz);
   if(rm.length){const RG=new THREE.Group(),old=grp.userData.roofs;if(old){grp.remove(old);RG.add(old);}for(const m of rm){m.userData.roof=true;RG.add(m);}grp.add(RG);grp.userData.roofs=RG;}
   TEX3.qb={};TEX3.qr={};TEX3.dest='body';}
+/* ---- texturing anything (v9.8): stands in for a geometry builder and catches every triangle as it's made. Each one gets a texture
+   from what it's made of: a hint where the code knows (a wall panel's material, rubble, a roof sheet, a model's parts), otherwise its
+   colour (timber, rusty iron, grey steel, concrete); its texture is laid on from the side it faces most (world units, so it matches
+   across pieces). Flapping cloth, very dark and brightly coloured things keep their plain colours. Used for the ruins and roadside
+   hamlets, everything in and around them. ---- */
+function triTex3(col){const [r,g,b]=col,lum=(r+g+b)/3,sat=Math.max(r,g,b)-Math.min(r,g,b),warm=r>=g&&g>=b-0.02;if(lum<0.12||lum>0.82||sat>(warm&&g/r>=0.66?0.46:0.36))return null;   // (crates and timber can be quite yellow-brown)
+  if(sat<0.06)return lum>0.46?'concrete':'st_grime';
+  if(r>=g&&g>=b-0.02){if(sat>0.2&&g/r<0.66)return 'corr_rusty';return lum>0.5?'boards':'el_wood';}   // rust-red: rusty iron; browns: timber
+  return sat<0.16?'st_grime':null;}
+function texCap3(gb,dest,ox,oz){const w=Object.create(gb),buf=[],OX=Math.round(ox||0),OZ=Math.round(oz||0);w.cap=true;w.force=null;   // (texture positions measured from the place's centre: small numbers, so they stay sharp on a phone's graphics chip)
+  const take=T=>{const col=[0,1,2].map(i=>(T[0][3+i]+T[1][3+i]+T[2][3+i])/3),k=w.force==='none'?null:w.force||triTex3(col);
+    if(!k||!TEX3.tile[k]){for(const v of T)gb.pushV(v[0],v[1],v[2],v[3],v[4],v[5],0);return;}
+    const ux=T[1][0]-T[0][0],uy=T[1][1]-T[0][1],uz=T[1][2]-T[0][2],vx=T[2][0]-T[0][0],vy=T[2][1]-T[0][1],vz=T[2][2]-T[0][2],nx=Math.abs(uy*vz-uz*vy),ny=Math.abs(uz*vx-ux*vz),nz=Math.abs(ux*vy-uy*vx);
+    const t=TEX3.tile[k],uv=v=>ny>=nx&&ny>=nz?[(v[0]-OX)/t[0],(v[2]-OZ)/t[1]]:nx>=nz?[(v[2]-OZ)/t[0],v[1]/t[1]]:[(v[0]-OX)/t[0],v[1]/t[1]];   // laid on from the side it faces most
+    const d=TEX3.dest;TEX3.dest=dest;const q=tqBucket3(k);TEX3.dest=d;
+    for(const v of T){q.p.push(v[0],v[1],v[2]);q.uv.push(...uv(v));q.c.push(...shade3([v[3],v[4],v[5]],1,k));}};
+  w.pushV=function(x,y,z,r,g,b,f){if(f>0)return gb.pushV(x,y,z,r,g,b,f);buf.push([x,y,z,r,g,b]);if(buf.length===3)take(buf.splice(0,3));};   // pieces made a corner at a time
+  w.tri=function(a,b,c,col,hx,hy,hz){if(a[3]||b[3]||c[3])return gb.tri(a,b,c,col,hx,hy,hz);   // most shapes come through here; cloth that flaps stays plain
+    const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];if((uy*vz-uz*vy)*hx+(uz*vx-ux*vz)*hy+(ux*vy-uy*vx)*hz<0){const t=b;b=c;c=t;}
+    take([a,b,c].map(p=>[p[0],p[1],p[2],col[0],col[1],col[2]]));};
+  w.lump=function(){const f=w.force;if(!f)w.force=['masonry_render','masonry_stone','concrete'][Math.abs(Math.round(arguments[0]+arguments[2]))%3];GB.prototype.lump.apply(w,arguments);w.force=f;};   // rubble: broken masonry
+  return w;}
+// a ruined wall panel's material, as a texture
+function kindTex3(kind,cl,b){const rusty=cl&&cl[0]-cl[2]>0.18;return kind==='iron'?(rusty?'corr_rusty':'corrugated'):kind==='board'?'weatherboard':kind==='ply'?'wood_panel':kind==='sheet'?'st_grime':
+  kind==='brick'?['masonry_brick','masonry_stone','masonry_render'][hash2(Math.round(b.x),Math.round(b.y))%3]:null;}
+// which places get it: every one: towns, cities, outposts and camps (v9.9), the ruins and roadside hamlets (v9.8)
+const ruinTex3=o=>!!o;
 // the buildings with textures, and what each is made of (v9.6 pub, v9.7 garage): the walls, the floor, and the metal; a garage is a
 // workshop, so anything that isn't timber is steel (painted parts keep their paint under the grime)
 const TEXTHEME3={pub:b=>({wall:'weatherboard',floor:'el_floor',metal:'el_metal'}),
@@ -5281,7 +5310,7 @@ function texWall3(gb,b,o,L,x0,z0,x1,z1,nx,nz,win){const {y,WH,t,r}=o,len=Math.hy
 function building3(gb,rb,b){const THM=!b.ruined&&TEXTHEME3[b.kind];if(THM){TEX3.th=THM(b);gb=texGB3(gb,'body');rb=texGB3(rb,'roof');}   // textured buildings: the pub (v9.6), the garage (v9.7)
   const y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,t=5,g=b.door/2,r=rng(hash2(Math.round(b.x),Math.round(b.y))),rui=b.ruined,WH=WALLH3[b.kind]||34;
   const mix=MIX3[b.kind]||['iron','board','sheet'],o={r,y,WH,t,rui,mix},cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],wood=col3('#4e3a2c');
-  if(THM)gb.force=TEX3.th.floor;gb.lbox(b,0,0,y-4,b.w,6.5,b.h,col3(rui?'#5e4c3c':FLOOR[b.kind]||'#7a6a58'));gb.force=null;
+  if(THM)gb.force=TEX3.th.floor;else if(gb.cap)gb.force=['store','servo'].includes(b.kind)?'concrete':'el_floor';gb.lbox(b,0,0,y-4,b.w,6.5,b.h,col3(rui?'#5e4c3c':FLOOR[b.kind]||'#7a6a58'));gb.force=null;
   if(rui&&r()<0.55){const sd=r()<0.5?1:-1,lx=(r()-0.5)*b.w*0.5,lz=sd*(hh+1),top=y+WH*(0.45+r()*0.3),A=L(lx-9,top,lz),B2=L(lx+9,top-2,lz);   // a torn canvas sheet hanging off a broken wall
     gb.cloth(A,B2,[-sn*sd*0.25,-1,cs*sd*0.25],WH*0.4+r()*8,col3(['#8a7a5a','#7a6a50','#6a6a52','#9a8a6a'][Math.floor(r()*4)]),r,{rows:3,cols:3});}
   const TX=!!THM&&!rui;   // walls and roof in real textures (v9.5)
@@ -5303,13 +5332,13 @@ function building3(gb,rb,b){const THM=!b.ruined&&TEXTHEME3[b.kind];if(THM){TEX3.
   furn3(gb,b,y+2.5,r);
   if(rui){   // fallen-in roof sheets, frame posts with nothing left to hold up
     for(let k=0;k<3;k++){const lx=(r()-0.5)*b.w*0.6,lz=(r()-0.5)*b.h*0.5,w=18+r()*16,l=26+r()*20,a=r()*TAU,hi=WH*(0.3+r()*0.4),ac=col3(RUST3[Math.floor(r()*RUST3.length)]);
-      const ca=Math.cos(a),sa=Math.sin(a),Q=(u,v,yy)=>L(lx+u*ca-v*sa,yy,lz+u*sa+v*ca);gb.quad(Q(-w/2,0,y+2.6),Q(w/2,0,y+2.6),Q(w/2,l,y+hi),Q(-w/2,l,y+hi),ac,Q(0,l/2,y-30));gb.quad(Q(-w/2,0,y+2.4),Q(w/2,0,y+2.4),Q(w/2,l,y+hi-0.6),Q(-w/2,l,y+hi-0.6),ac.map(v=>v*0.7),Q(0,l/2,y+90));}
+      const ca=Math.cos(a),sa=Math.sin(a),Q=(u,v,yy)=>L(lx+u*ca-v*sa,yy,lz+u*sa+v*ca);if(gb.cap)gb.force=r()<0.6?'corr_rusty':'corrugated';gb.quad(Q(-w/2,0,y+2.6),Q(w/2,0,y+2.6),Q(w/2,l,y+hi),Q(-w/2,l,y+hi),ac,Q(0,l/2,y-30));gb.quad(Q(-w/2,0,y+2.4),Q(w/2,0,y+2.4),Q(w/2,l,y+hi-0.6),Q(-w/2,l,y+hi-0.6),ac.map(v=>v*0.7),Q(0,l/2,y+90));if(gb.cap)gb.force=null;}
     bldExtras3(gb,b,y,WH,r,rui);return;}   /* a ruin's clutter too (v7.5) */
   // the roof: a patchwork of sheets, edges overlapping, a few rusted patches; on flat roofs, tyres and sandbags to hold it down
   const ey=y+WH,ov=5,pitched=['house','shed','pub','barn'].includes(b.kind),sheets=Math.max(3,Math.round(Math.max(b.w,b.h)/24));
   const rc=k=>col3(k%3===0?ROOF[b.kind]||'#8f8a80':RUST3[Math.floor(r()*RUST3.length)],0.9+r()*0.15);
   if(pitched){const along=b.w>=b.h,X=hw+ov,Z=hh+ov,rh=Math.min(b.w,b.h)*(b.kind==='pub'?0.24:0.3),ref=L(0,ey,0);
-    const slope=(u0,u1,sg,lift,col)=>{const A=along?[L(u0,ey+lift,sg*Z),L(u1,ey+lift,sg*Z),L(u1,ey+rh+lift,0),L(u0,ey+rh+lift,0)]:[L(sg*X,ey+lift,u0),L(sg*X,ey+lift,u1),L(0,ey+rh+lift,u1),L(0,ey+rh+lift,u0)];rb.quad(A[0],A[1],A[2],A[3],col,ref);};
+    const slope=(u0,u1,sg,lift,col)=>{if(rb.cap)rb.force=col[0]-col[2]>0.15?'corr_rusty':'corrugated';const A=along?[L(u0,ey+lift,sg*Z),L(u1,ey+lift,sg*Z),L(u1,ey+rh+lift,0),L(u0,ey+rh+lift,0)]:[L(sg*X,ey+lift,u0),L(sg*X,ey+lift,u1),L(0,ey+rh+lift,u1),L(0,ey+rh+lift,u0)];rb.quad(A[0],A[1],A[2],A[3],col,ref);if(rb.cap)rb.force=null;};
     const S=along?X:Z;
     if(TX){TEX3.dest='roof';const up=(sg)=>{const cs0=Math.cos(b.rot),sn0=Math.sin(b.rot),lx=along?0:sg,lz=along?sg:0;return [(lx*cs0-lz*sn0)*0.6,0.8,(lx*sn0+lz*cs0)*0.6];};   // which way each slope faces
       const sl=(u0,u1,sg,lift,k,shade)=>{const A=along?[L(u0,ey+lift,sg*Z),L(u1,ey+lift,sg*Z),L(u1,ey+rh+lift,0),L(u0,ey+rh+lift,0)]:[L(sg*X,ey+lift,u0),L(sg*X,ey+lift,u1),L(0,ey+rh+lift,u1),L(0,ey+rh+lift,u0)];
@@ -5322,11 +5351,11 @@ function building3(gb,rb,b){const THM=!b.ruined&&TEXTHEME3[b.kind];if(THM){TEX3.
       rb.lbox(b,0,0,ey+rh-0.6,along?2*X+1:3,2.2,along?3:2*Z+1,col3('#6a5040'));TEX3.dest='body';}   // a capping strip along the ridge
     else for(const sg of [-1,1])for(let k=0;k<sheets;k++){const u0=-S+2*S*k/sheets-0.6,u1=-S+2*S*(k+1)/sheets+0.6,c=rc(k);slope(u0,u1,sg,(k%2)*0.35,sg<0?c.map(v=>v*0.82):c);}
     if(!TX)for(let k=0;k<2;k++){const u=(r()-0.5)*S*1.4,sg=r()<0.5?-1:1,w=8+r()*8;slope(u-w/2,u+w/2,sg,0.8,col3(RUST3[Math.floor(r()*RUST3.length)],0.8));}   // patches
-    const gc=col3(MAT3[mix[0]][1]);if(!TX)for(const sg of [-1,1]){if(along){rb.tri(L(sg*hw,ey,hh),L(sg*hw,ey,-hh),L(sg*hw,ey+rh,0),gc,sg*cs,0,sg*sn);}else{rb.tri(L(hw,ey,sg*hh),L(-hw,ey,sg*hh),L(0,ey+rh,sg*hh),gc,-sg*sn,0,sg*cs);}}
-    if(b.kind!=='barn'){const p=L(along?hw*0.45:hw*0.3,0,along?-hh*0.3:hh*0.45);rb.cyl(p[0],ey+rh*0.5,p[2],2.2,rh*0.6+12,8,col3('#5a544c'),col3('#2a2622'));rb.cyl(p[0],ey+rh*1.1+11,p[2],3.6,1.2,8,col3('#5a544c'));}}   // a flue pipe
-  else{for(let k=0;k<sheets;k++){const along=b.w>=b.h,a0=-(along?hw:hh)-ov+(2*(along?hw:hh)+2*ov)*k/sheets,a1=a0+(2*(along?hw:hh)+2*ov)/sheets+1.2,m=(a0+a1)/2,c=rc(k);if(TX)rb.force=k%3===1||r()<0.15?'corr_rusty':'corrugated';
+    const gc=col3(MAT3[mix[0]][1]);if(rb.cap)rb.force=kindTex3(mix[0],gc,b);if(!TX)for(const sg of [-1,1]){if(along){rb.tri(L(sg*hw,ey,hh),L(sg*hw,ey,-hh),L(sg*hw,ey+rh,0),gc,sg*cs,0,sg*sn);}else{rb.tri(L(hw,ey,sg*hh),L(-hw,ey,sg*hh),L(0,ey+rh,sg*hh),gc,-sg*sn,0,sg*cs);}}
+    if(rb.cap)rb.force=null;if(b.kind!=='barn'){const p=L(along?hw*0.45:hw*0.3,0,along?-hh*0.3:hh*0.45);rb.cyl(p[0],ey+rh*0.5,p[2],2.2,rh*0.6+12,8,col3('#5a544c'),col3('#2a2622'));rb.cyl(p[0],ey+rh*1.1+11,p[2],3.6,1.2,8,col3('#5a544c'));}}   // a flue pipe
+  else{for(let k=0;k<sheets;k++){const along=b.w>=b.h,a0=-(along?hw:hh)-ov+(2*(along?hw:hh)+2*ov)*k/sheets,a1=a0+(2*(along?hw:hh)+2*ov)/sheets+1.2,m=(a0+a1)/2,c=rc(k);if(TX||rb.cap)rb.force=k%3===1||r()<0.15?'corr_rusty':'corrugated';
       if(along)rb.lbox(b,m,0,ey+(k%2)*0.4,a1-a0,3.2,b.h+2*ov,c);else rb.lbox(b,0,m,ey+(k%2)*0.4,b.w+2*ov,3.2,a1-a0,c);}
-    rb.force=TX?'none':null;for(let k=0;k<3+Math.floor(r()*3);k++){const p=L((r()-0.5)*b.w*0.8,0,(r()-0.5)*b.h*0.8);if(r()<0.5)rb.cyl(p[0],ey+3.6,p[2],6.5,3.2,10,col3('#1e1a17'),col3('#2a2622'));else rb.box(p[0],ey+3.6,p[2],10,4,6,r()*TAU,col3('#8a7a5a'),col3('#9a8a68'));}   // tyres and sandbags
+    rb.force=TX||rb.cap?'none':null;for(let k=0;k<3+Math.floor(r()*3);k++){const p=L((r()-0.5)*b.w*0.8,0,(r()-0.5)*b.h*0.8);if(r()<0.5)rb.cyl(p[0],ey+3.6,p[2],6.5,3.2,10,col3('#1e1a17'),col3('#2a2622'));else rb.box(p[0],ey+3.6,p[2],10,4,6,r()*TAU,col3('#8a7a5a'),col3('#9a8a68'));}   // tyres and sandbags
     rb.force=null;if(b.kind==='warehouse')for(let x=-hw+20;x<hw-10;x+=40)rb.lbox(b,x,0,ey+3.6,14,9,b.h,col3('#9a978e'),col3('#b8b5ac'));
     else if(b.kind!=='garage')rb.lbox(b,0,hh+ov-2,ey,b.w+2*ov,10,4,col3(MAT3[mix[0]][2]||MAT3[mix[0]][0]),col3('#5a4a3a'));
     if(r()<0.5){const p=L(-hw*0.6,0,-hh*0.5);rb.beam([p[0],ey+3,p[2]],[p[0],ey+34,p[2]],1.2,col3('#5a544c'));rb.beam([p[0]-6,ey+30,p[2]],[p[0]+6,ey+30,p[2]],0.8,col3('#5a544c'));}}
@@ -5357,21 +5386,22 @@ function furn3(gb,b,fy,r){const B=(lx,lz,yy,sx,sy,sz,col,top)=>gb.lbox(b,lx,lz,y
   if(!b.ruined&&['house','pub','clinic','office','store'].includes(b.kind)&&r()<0.6)B((r()-0.5)*b.w*0.3,(r()-0.5)*b.h*0.2+6,fy-0.3,Math.min(40,b.w*0.35),0.5,Math.min(30,b.h*0.3),col3(['#7c3a2a','#5f6655','#8a6a48','#4e5149'][Math.floor(r()*4)]));}
 
 /* ---- the outback's lone ruins: broken walls of stacked stone or weatherboard on a frame, a chimney, fallen roof iron ---- */
-function buildShell3(s){const gb=new GB(),y=heightAt(s.x,s.y)-3,r=rng(hash2(Math.round(s.x),Math.round(s.y))),stone=s.mat==='stone';
+function buildShell3(s){const gb0=new GB(),gb=texCap3(gb0,'body',s.x,s.y),y=heightAt(s.x,s.y)-3,   /* textured (v9.9) */r=rng(hash2(Math.round(s.x),Math.round(s.y))),stone=s.mat==='stone';
   const base=stone?['#8a7a66','#9a8a74','#7a6a58','#a09078']:['#7a5a3c','#8a6a48','#6a4e34','#94744e'];
-  for(const w of s.walls){const len=Math.hypot(w.x2-w.x1,w.y2-w.y1),a=Math.atan2(w.y2-w.y1,w.x2-w.x1),ux=(w.x2-w.x1)/len,uy=(w.y2-w.y1)/len;let u=0;
+  gb.force=stone?'masonry_stone':'weatherboard';for(const w of s.walls){const len=Math.hypot(w.x2-w.x1,w.y2-w.y1),a=Math.atan2(w.y2-w.y1,w.x2-w.x1),ux=(w.x2-w.x1)/len,uy=(w.y2-w.y1)/len;let u=0;
     while(u<len){const pw=Math.min(len-u,stone?6+r()*6:8+r()*10),m=u+pw/2;u+=pw;const px=w.x1+ux*m,py=w.y1+uy*m,h=10+r()*34;
       if(stone){let yy=0;while(yy<h){const bh=4+r()*3,c=col3(base[Math.floor(r()*base.length)],0.9+r()*0.15);gb.box(px+(r()-0.5)*1.2,y+yy,py+(r()-0.5)*1.2,pw+0.4,Math.min(bh,h-yy),SHELL_T-r()*1.5,a,c);yy+=bh;}}   // stacked stones, each its own shade
       else{gb.box(px,y,py,pw+0.4,h,SHELL_T*0.6,a,col3(base[Math.floor(r()*base.length)],0.9+r()*0.15));for(let yy=5;yy<h-1;yy+=5)gb.box(px-uy*SHELL_T*0.32,y+yy,py+ux*SHELL_T*0.32,pw,0.6,0.5,a,col3('#4e3a2c'));   // weatherboards...
-        if(r()<0.35)gb.box(px,y,py,3.5,h+8+r()*10,3.5,a,col3('#3e2e22'));}}}   // ...and frame posts standing higher
-  if(s.chimney){const cx=s.chimney.x,cz=s.chimney.y,H=48+r()*16;let yy=0;while(yy<H){const bh=5+r()*2.5;gb.box(cx+(r()-0.5),y+yy,cz+(r()-0.5),22-yy*0.06,bh,22-yy*0.06,s.rot+(r()-0.5)*0.06,col3(['#8a4a32','#7a4030','#94563a'][Math.floor(r()*3)]));yy+=bh;}
-    gb.box(cx,y+H,cz,14,1.5,14,s.rot,col3('#2a1a10'));}
+        if(r()<0.35){gb.force='el_timber';gb.box(px,y,py,3.5,h+8+r()*10,3.5,a,col3('#3e2e22'));gb.force='weatherboard';}}}}
+  gb.force=null;   // ...and frame posts standing higher
+  if(s.chimney){gb.force='masonry_brick';const cx=s.chimney.x,cz=s.chimney.y,H=48+r()*16;let yy=0;while(yy<H){const bh=5+r()*2.5;gb.box(cx+(r()-0.5),y+yy,cz+(r()-0.5),22-yy*0.06,bh,22-yy*0.06,s.rot+(r()-0.5)*0.06,col3(['#8a4a32','#7a4030','#94563a'][Math.floor(r()*3)]));yy+=bh;}
+    gb.force=null;gb.box(cx,y+H,cz,14,1.5,14,s.rot,col3('#2a1a10'));}
   for(let k=0;k<2;k++){const w=s.walls[Math.floor(r()*s.walls.length)];if(!w)break;const t=0.3+r()*0.4,px=w.x1+(w.x2-w.x1)*t,py=w.y1+(w.y2-w.y1)*t,a=Math.atan2(w.y2-w.y1,w.x2-w.x1)+Math.PI/2*(r()<0.5?1:-1);
     const ca=Math.cos(a),sa=Math.sin(a),cc=col3(RUST3[Math.floor(r()*RUST3.length)]),Q=(u,v,yy)=>[px+ca*u-sa*v,yy,py+sa*u+ca*v];   // a sheet of roof iron leaning against a wall
-    gb.quad(Q(4,-12,y+3),Q(4,12,y+3),Q(30,12,y+0.5),Q(30,-12,y+0.5),cc,Q(17,0,y-40));gb.quad(Q(4,-12,y+3.4),Q(4,12,y+3.4),Q(30,12,y+0.9),Q(30,-12,y+0.9),cc.map(v=>v*0.7),Q(17,0,y+60));}
+    gb.force='corr_rusty';gb.quad(Q(4,-12,y+3),Q(4,12,y+3),Q(30,12,y+0.5),Q(30,-12,y+0.5),cc,Q(17,0,y-40));gb.force=null;gb.quad(Q(4,-12,y+3.4),Q(4,12,y+3.4),Q(30,12,y+0.9),Q(30,-12,y+0.9),cc.map(v=>v*0.7),Q(17,0,y+60));}
   for(const q of s.rub)gb.lump(q.x,heightAt(q.x,q.y)-1,q.y,q.s*0.7,q.s*0.5,q.rot,col3(q.col));
   for(let k=0;k<4;k++){const a=r()*TAU,d=20+r()*40,x=s.x+Math.cos(a)*d,z=s.y+Math.sin(a)*d;gb.box(x,heightAt(x,z)-0.5,z,18+r()*12,1.5,3,r()*TAU,col3('#5a4430'));}   // loose planks
-  return gb.mesh(V3.mats.vc,s.x,s.y);}
+  const g=new THREE.Group(),m=gb0.mesh(V3.mats.vc,s.x,s.y);if(m)g.add(m);texFlush3(g,s.x,s.y);return g;}   // (a plain group holds both: the textured pieces are placed in the world already)
 
 /* ---- towns, cities and ruins: buildings, the town wall, streets, the square, paddocks, tanks and towers ---- */
 const WALLH3={house:34,shed:30,pub:46,garage:40,clinic:34,servo:32,store:36,warehouse:56,barn:58,office:42};
@@ -5426,9 +5456,9 @@ function dirtStrip3(gb,x1,y1,x2,y2,w,seed){const len=Math.hypot(x2-x1,y2-y1);if(
     gb.quadUp(P(t0,off0-cw0,1.0),P(t0,off0+cw0,1.0),P(t1,off1+cw1,1.0),P(t1,off1-cw1,1.0),mix3(base,crown,0.6));   // the worn middle
     for(const [eA,eB,sg] of [[e0L,e1L,-1],[e0R,e1R,1]]){const f0=3+12*Math.pow(nz(t0,6+sg),1.6),f1=3+12*Math.pow(nz(t1,6+sg),1.6);gb.quadUp(P(t0,eA,0.85),P(t0,eA+sg*f0,0.6),P(t1,eB+sg*f1,0.6),P(t1,eB,0.85),mix3(base,gc,0.5));}   // loose dirt at the edges
     if(r()<0.06){const pc=P((t0+t1)/2,(r()-0.5)*w*0.5,1.05),rr=3+r()*4,N=7,pts=[];for(let k=0;k<N;k++){const a=k/N*TAU;pts.push([pc[0]+Math.cos(a)*rr*(0.7+r()*0.5),pc[1],pc[2]+Math.sin(a)*rr*(0.7+r()*0.5)]);}for(let k=0;k<N;k++)gb.tri(pc,pts[k],pts[(k+1)%N],col3('#5a4632'),0,1,0);}}}   // a pothole
-function buildLoc3(o){const gb=new GB(),rb=new GB(),wr=o.rad-40;
+function buildLoc3(o){let gb=new GB(),rb=new GB();const wr=o.rad-40,gb0=gb,rb0=rb;if(ruinTex3(o)){gb=texCap3(gb,'body',o.x,o.y);rb=texCap3(rb,'roof',o.x,o.y);}   // ruins and roadside hamlets: everything textured (v9.8)
   if(o.paddocks)for(const p of o.paddocks){const c=Math.cos(p.rot),s=Math.sin(p.rot),hw=p.w/2,hh=p.h/2,Q=(u,v)=>[p.x+u*c-v*s,p.y+u*s+v*c];
-    gb.drape([Q(-hw,-hh),Q(hw,-hh),Q(hw,hh),Q(-hw,hh)],1.4,col3(p.crop==='wheat'?'#c4a054':'#7a5030'),6);
+    if(gb.cap)gb.force='none';gb.drape([Q(-hw,-hh),Q(hw,-hh),Q(hw,hh),Q(-hw,hh)],1.4,col3(p.crop==='wheat'?'#c4a054':'#7a5030'),6);if(gb.cap)gb.force=null;
     for(let u=-hw;u<=hw+1;u+=30)for(const v of [-hh,hh]){const q=Q(u,v);gb.box(q[0],heightAt(q[0],q[1])-1,q[1],3,11,3,p.rot,col3('#4e3a2c'));}
     for(let v=-hh+30;v<hh;v+=30)for(const u of [-hw,hw]){const q=Q(u,v);gb.box(q[0],heightAt(q[0],q[1])-1,q[1],3,11,3,p.rot,col3('#4e3a2c'));}}
   const sgb=new GB();   // the town's streets and yard: dirt, like the roads outside
@@ -5450,7 +5480,7 @@ function buildLoc3(o){const gb=new GB(),rb=new GB(),wr=o.rad-40;
       const a0=g.a-g.half,a1=g.a+g.half,p0=[o.x+Math.cos(a0)*R,landY3(o.x+Math.cos(a0)*R,o.y+Math.sin(a0)*R)+16,o.y+Math.sin(a0)*R],p1=[o.x+Math.cos(a1)*R,landY3(o.x+Math.cos(a1)*R,o.y+Math.sin(a1)*R)+16,o.y+Math.sin(a1)*R];
       bb.beam(p0,p1,3,col3('#6a4a30'));}
     barr=bb.mesh(V3.mats.vc,o.x,o.y);}
-  const grp=new THREE.Group();if(barr){grp.add(barr);grp.userData.barr=barr;barr.visible=townClosed(o);}const m=gb.mesh(V3.mats.vc,o.x,o.y),roofs=rb.mesh(V3.mats.vc,o.x,o.y),sm=sgb.mesh(V3.mats.road,o.x,o.y);if(m)grp.add(m);if(sm)grp.add(sm);if(roofs){grp.add(roofs);grp.userData.roofs=roofs;}
+  const grp=new THREE.Group();if(barr){grp.add(barr);grp.userData.barr=barr;barr.visible=townClosed(o);}const m=gb0.mesh(V3.mats.vc,o.x,o.y),roofs=rb0.mesh(V3.mats.vc,o.x,o.y),sm=sgb.mesh(V3.mats.road,o.x,o.y);if(m)grp.add(m);if(sm)grp.add(sm);if(roofs){grp.add(roofs);grp.userData.roofs=roofs;}
   texFlush3(grp,o.x,o.y);grp.matrixAutoUpdate=false;return grp;}
 
 /* ---- vehicles and people: models built once each, moved every frame ---- */
@@ -5993,7 +6023,7 @@ function personModel3(look,kind){const gb=new GB(),shirt=col3(look&&look.shirt||
 /* ---- loot containers (crates, lockers, eskies, rubble piles, bags): drawn as they are, opened ones looking emptied,
    a faint pulsing ring on the ground round any that still hold something, as in 2D ---- */
 function lootFloor3(x,y){for(const o of LOCS){if(Math.abs(o.x-x)>o.rad||Math.abs(o.y-y)>o.rad)continue;for(const b of o.bld)if(!b.tank&&bInside(b,x,y,0))return heightAt(b.x,b.y)+2.5;}return landY3(x,y);}
-function lootModel3(bx,empty){const gb=new GB(),r=rng(hash2(Math.round(bx.x*3),Math.round(bx.y*7))),a=r()*TAU,y=lootFloor3(bx.x,bx.y),X=bx.x,Z=bx.y,ca=Math.cos(a),sa=Math.sin(a),P=(u,v)=>[X+u*ca-v*sa,Z+u*sa+v*ca];
+function lootModel3(bx,empty){const gb0=new GB(),gb=ruinTex3(nearLoc(bx.x,bx.y,150))?texCap3(gb0,'body',bx.x,bx.y):gb0,r=rng(hash2(Math.round(bx.x*3),Math.round(bx.y*7))),a=r()*TAU,y=lootFloor3(bx.x,bx.y),X=bx.x,Z=bx.y,ca=Math.cos(a),sa=Math.sin(a),P=(u,v)=>[X+u*ca-v*sa,Z+u*sa+v*ca];
   const k=bx.kind;
   if(k==='crate'){const w=empty?col3('#7d6a56'):col3('#a8793f'),dk=col3('#5c3f1e');gb.box(X,y,Z,30,empty?16:18,22,a,w,col3(empty?'#6e5c4a':'#b48a50'));
     for(const yy of [0.5,8.5,16.5])if(yy<17)gb.box(X,y+yy,Z,30.6,1.2,22.6,a,dk);for(const u of [-14,14])for(const v of [-10,10]){const p=P(u,v);gb.box(p[0],y,p[1],2,empty?16:18.6,2,a,dk);}
@@ -6006,7 +6036,7 @@ function lootModel3(bx,empty){const gb=new GB(),r=rng(hash2(Math.round(bx.x*3),M
   else if(k==='rubble'){for(const [u,v,s0,c] of [[-6,-2,10,'#6b5a48'],[3,3,12,empty?'#5a4c3e':'#7a6a56'],[7,-5,8,'#5a4a3a'],[-2,6,7,'#4e4034'],[0,-6,6,'#7d6a56']]){const p=P(u,v);gb.lump(p[0],y-0.5,p[1],s0,s0*0.8,r()*TAU,col3(c));}
     const p=P(-8,4);gb.box(p[0],y,p[1],20,1.4,3,a+0.6,col3('#5a4430'));}
   else{const c=empty?col3('#5e5141'):col3('#7f6a48');gb.lump(X,y-0.5,Z,12,9,a,c,[1.2,0.9,0.8,1.1,1.25,0.9,0.85],c.map(v=>v*1.1));const p=P(-5,-4);gb.cyl(p[0],y+6,p[1],3.4,3,8,col3('#4a3b2c'));}   // a swag bag, its neck tied off
-  const m=gb.mesh(V3.mats.vc,X,Z);return m;}
+  const m=gb0.mesh(V3.mats.vc,X,Z);if(gb===gb0)return m;const g=new THREE.Group();if(m)g.add(m);texFlush3(g,X,Z);return g;}
 function syncLoot3(b){const sc=V3.scene,seen=new Set();if(!V3.loot){V3.loot=new Map();V3.ringGeo=new THREE.RingGeometry(20,23.5,28);V3.ringGeo.rotateX(-Math.PI/2);V3.ringMat=new THREE.MeshBasicMaterial({color:0xf2a03d,transparent:true,opacity:0.35,depthWrite:false});}
   for(const bx of G.boxes){if(Math.abs(bx.x-b.x)>V3_FOG_FAR||Math.abs(bx.y-b.y)>V3_FOG_FAR)continue;const empty=!!(bx.items&&invCount(bx.items)===0);seen.add(bx.id);let e=V3.loot.get(bx.id);
     if(!e||e.empty!==empty){if(e){drop3(e.m);if(e.ring)sc.remove(e.ring);}const m=lootModel3(bx,empty);sc.add(m);let ring=null;if(!empty){ring=new THREE.Mesh(V3.ringGeo,V3.ringMat);ring.position.set(bx.x,lootFloor3(bx.x,bx.y)+1.2,bx.y);sc.add(ring);}e={m,empty,ring};V3.loot.set(bx.id,e);}}
@@ -6654,3 +6684,5 @@ if(!window.__TEST)requestAnimationFrame(frame);
 </script>
 </body>
 </html>
+
+</body></html>
