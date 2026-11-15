@@ -238,24 +238,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=10.4"></script>
-<script src="models/84-hero-model.js?v=10.4"></script>
-<script src="models/84b-hero-body.js?v=10.4"></script>
-<script src="models/84c-buggy-model.js?v=10.4"></script>
-<script src="models/84d-tarona-model.js?v=10.4"></script>
-<script src="models/84e-wall-model.js?v=10.4"></script>
-<script src="models/84f-plant-models.js?v=10.4"></script>
-<script src="models/84g-kestrel-model.js?v=10.4"></script>
-<script src="models/84h-building-models.js?v=10.4"></script>
-<script src="models/84i-building-models2.js?v=10.4"></script>
-<script src="models/84j-f100-model.js?v=10.4"></script>
-<script src="models/84l-kingsford-model.js?v=10.4"></script>
-<script src="models/84m-wagon-model.js?v=10.4"></script>
+<script src="models/21b-mesa-models.js?v=10.5"></script>
+<script src="models/84-hero-model.js?v=10.5"></script>
+<script src="models/84b-hero-body.js?v=10.5"></script>
+<script src="models/84c-buggy-model.js?v=10.5"></script>
+<script src="models/84d-tarona-model.js?v=10.5"></script>
+<script src="models/84e-wall-model.js?v=10.5"></script>
+<script src="models/84f-plant-models.js?v=10.5"></script>
+<script src="models/84g-kestrel-model.js?v=10.5"></script>
+<script src="models/84h-building-models.js?v=10.5"></script>
+<script src="models/84i-building-models2.js?v=10.5"></script>
+<script src="models/84j-f100-model.js?v=10.5"></script>
+<script src="models/84l-kingsford-model.js?v=10.5"></script>
+<script src="models/84m-wagon-model.js?v=10.5"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='10.4';
+const VERSION='10.5';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1220,7 +1220,7 @@ function burnOut(c){const raider=c.driver==='raider'||c.wasRaider||!!c.fac&&!c.c
   for(let i=0;i<(c.burn>0?(raider?5:12):0);i++){const a=Math.random()*TAU,s=rand(20,90);part({kind:'fire',x:c.x,y:c.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.4,.9),max:.9,size:rand(8,14),grow:-6,drag:3,col:'#ffb347'});}   // the fire takes hold
   SFX.hit(0.5);}
 function wreckCar(c){
-  if(c.wrecked)return;if(c.driver==='raider'&&!c.skDone){c.skDone=true;skillPoints(1,'enemy vehicle');}burnOut(c);G.removed.add(c.id);if(c.convoy&&invCount(c.items)){G.boxes.push({id:'cg'+c.id,kind:'crate',x:c.x+rand(-20,20),y:c.y+rand(-20,20),items:c.items,persist:false,transient:true});c.items={};}   // the cargo, spilt
+  if(c.wrecked)return;if(c.driver==='raider'&&!c.skDone){c.skDone=true;skillPoints(1,c.lastBy==='comp'&&G.comp?G.comp.def.name+' stopped a car':'enemy vehicle');}burnOut(c);G.removed.add(c.id);if(c.convoy&&invCount(c.items)){G.boxes.push({id:'cg'+c.id,kind:'crate',x:c.x+rand(-20,20),y:c.y+rand(-20,20),items:c.items,persist:false,transient:true});c.items={};}   // the cargo, spilt
   if(c.driver==='hero'){exitCar(true);hurtHero(25,'wreck');showMsg('Thrown clear of the wreck',2.4);}
   c.driver=null;
 }
@@ -1359,7 +1359,7 @@ const UPGRADES={
   armour:{name:'Armour plating',slot:'body',desc:'Body takes 30% less damage and the car is heavier to shove, but a little slower'},
   spikes:{name:'Spiked hubs',slot:'hubs',desc:'Side-swipes rattle raiders 40% more'}};
 function hasUp(c,u){return !!(c&&c.ups&&c.ups[u]);}
-function fitUpgrade(c,u){c.ups=c.ups||{};if(UPGRADES[u].slot==='carb'&&c.ups[u]===1){c.ups[u]=2;c.touched=true;return;}   // twin carbs
+function fitUpgrade(c,u){c.ups=c.ups||{};{const S=skState();S.mods=S.mods||{};if(!S.mods[u]){S.mods[u]=1;skillPoints(3,'first '+(UPGRADES[u]?UPGRADES[u].name:'modification'));}}   /* each kind of modification: 3 points, the first time only (v10.5) */if(UPGRADES[u].slot==='carb'&&c.ups[u]===1){c.ups[u]=2;c.touched=true;return;}   // twin carbs
   for(const k in c.ups)if(UPGRADES[k]&&UPGRADES[k].slot===UPGRADES[u].slot)delete c.ups[k];c.ups[u]=UPGRADES[u].slot==='carb'?1:true;c.touched=true;}
 // combined effect of a car's upgrades on its handling numbers
 function upMods(c){const m={max:1,acc:1,burn:1,off:0,tyreWear:1,suspWear:1,armor:1,mass:0,ram:1,swipe:1,frontCrash:1,hwy:1};if(!c||!c.ups)return m;
@@ -1394,7 +1394,7 @@ function myStores(nearX,nearY){const out=[G.hero.inv];const c=heroCar()||carById
 function countIn(stores,k){return stores.reduce((s,inv)=>s+(inv[k]||0),0);}
 function takeFrom(stores,k,n){for(const inv of stores){while(n>0&&inv[k]){invTake(inv,k,1);n--;}}return n===0;}
 function canCraft(r){const st=myStores();for(const k in r.needs)if(countIn(st,k)<r.needs[k])return false;return !r.bench||!!atWorkbench();}
-function craft(r){if(!canCraft(r))return false;const st=myStores();for(const k in r.needs)takeFrom(st,k,r.needs[k]);giveItem(r.make,r.qty);SFX.clank();return true;}
+function craft(r){if(!canCraft(r))return false;const st=myStores();for(const k in r.needs)takeFrom(st,k,r.needs[k]);giveItem(r.make,r.qty);SFX.clank();skillPoints(1,'crafted');return true;}
 // put items in your pockets, then the car boot, then on the ground at your feet
 function giveItem(k,n){const h=G.hero,c=heroCar()||carById(G.lastCar);
   for(let i=0;i<n;i++){if(invWeight(h.inv)+ITEMS[k].kg<=heroCap()+1e-6)invAdd(h.inv,k,1);
@@ -1438,7 +1438,7 @@ function servicesFor(n,car){const role=n.def.role,out=[];
   if(role==='mechanic'&&canSpace(G.hero.inv)>1)out.push({k:'svc_cans',name:'Fill your jerry cans (+'+Math.round(canSpace(G.hero.inv))+'%)',val:Math.ceil(canSpace(G.hero.inv)*0.8)});
   if(role==='publican'){if(G.hero.water<95||G.hero.food<95)out.push({k:'svc_meal',name:'A hot meal and a jug of water',val:8});out.push({k:'svc_bunk',name:'A bunk for the night',val:12});}
   if(role==='doctor'&&G.hero.hp<heroHpCap()-1)out.push({k:'svc_heal',name:'Patch you up ('+Math.round(G.hero.hp)+'% → '+heroHpCap()+'%)',val:Math.max(5,Math.ceil((heroHpCap()-G.hero.hp)*0.25))});
-  if(role==='doctor'&&n.loc&&n.loc.type==='city'&&(heroInj().length||heroCapLoss()>0))out.push({k:'svc_injury',name:'Treat your injuries ('+(heroInj().map(i=>INJURIES[i.type].name.toLowerCase()).join(', ')||'mending')+'), then rest here to mend: a day per injury',val:30+heroCapLoss()*4});   // a city doctor's care
+  if(role==='doctor'&&n.loc&&n.loc.type==='city'&&(heroInj().length||heroCapLoss()>0))out.push({k:'svc_injury',name:'Treat your injuries ('+(heroInj().map(i=>INJURIES[i.type].name.toLowerCase()).join(', ')||'mending')+'), then rest here to mend: half a day per injury',val:30+heroCapLoss()*4});   // a city doctor's care
   return out;}
 function applyService(k,car){const h=G.hero;
   if(k==='svc_strip'){car.ups=car.ups||{};car.ups.stripped=true;SFX.clank();showMsg('The back seats are out. Room for 100 kg in the back now',2.6);}
@@ -1742,7 +1742,8 @@ function injure(src,type){const h=G.hero;type=type||Object.keys(INJURIES)[Math.f
 // a hit you take: in a fight or a heavy crash, one in ten leaves an injury
 const INJ_NOT=['thirst','hunger','exhaustion','starv','test','fire','burn','cold','heat'];   // what can't break a bone: going without, and the elements
 function maybeInjure(n,src){if(n<=0||G.god)return;const s=String(src||'');if(INJ_NOT.some(k=>s.includes(k)))return;if(Math.random()<0.1)injure(s);}   // fights, being run down, crashes, animals
-// a doctor's care: injuries cleared now; the ceiling climbs back a day per injury while you stay
+// a doctor's care: injuries cleared now; the ceiling climbs back half a day per injury while you stay
+const CLINIC_FAST=2;
 function startClinic(n){const h=G.hero,nInj=heroInj().length;if(!nInj&&!heroCapLoss())return;const o=n.loc,b=o&&o.bld&&o.bld[n.def.work]||null,bx=b?b.x:n.x,by=b?b.y:n.y;
   G.clinic={days:Math.max(1,nInj),rate:heroCapLoss()/Math.max(1,nInj),loc:o?o.id:null,t:0,b};if(b)b.roofA=0;   /* the clinic's roof off, so you can see yourself in bed */h.injuries=[];
   h.lying={x:bx+(b?Math.cos(b.rot)*6:0),y:by+(b?Math.sin(b.rot)*6:0),head:b?b.rot-Math.PI/2:0,fromX:h.x,fromY:h.y,len:14};h.inCar=null;h.x=h.lying.x;h.y=h.lying.y;G.cam.x=h.x;G.cam.y=h.y;   // inside, so the roof lifts off to show you
@@ -1751,8 +1752,8 @@ function showClinic(){const h=G.hero,C=G.clinic;let el=document.getElementById('
     el.innerHTML='<div id="clinicTxt"></div><button id="clinicLeave" style="margin-top:8px;font:inherit;padding:6px 16px">Leave the clinic</button>';document.body.appendChild(el);document.getElementById('clinicLeave').addEventListener('click',e=>{e.stopPropagation();leaveClinic();});}
   el.style.display='block';}
 function clinicTick(dt){const C=G.clinic,h=G.hero;if(!C)return;if(C.b)C.b.roofA=0;const mins=dt*CLOCK_RATE/60*10;G.clock+=mins;   // time runs ten times its usual pace while you mend
-  h.capLoss=Math.max(0,(h.capLoss||0)-C.rate*mins/DAY);h.hp=Math.min(heroHpCap(),h.hp+mins/DAY*60);h.rest=Math.min(100,h.rest+mins/60*4);h.food=Math.max(20,h.food-mins/60*0.4);h.water=Math.max(20,h.water-mins/60*0.6);
-  const t=document.getElementById('clinicTxt');if(t)t.textContent='Resting in the doctor’s care. Health '+Math.round(h.hp)+'%, your ceiling back to '+heroHpCap()+'%'+(h.capLoss>0.5?' (about '+(h.capLoss/C.rate).toFixed(1)+' days to go)':'. You’re mended.');
+  h.capLoss=Math.max(0,(h.capLoss||0)-C.rate*CLINIC_FAST*mins/DAY);h.hp=Math.min(heroHpCap(),h.hp+mins/DAY*60*CLINIC_FAST);   /* twice as quick as it was (v10.5): half a day per injury */h.rest=Math.min(100,h.rest+mins/60*4);h.food=Math.max(20,h.food-mins/60*0.4);h.water=Math.max(20,h.water-mins/60*0.6);
+  const t=document.getElementById('clinicTxt');if(t)t.textContent='Resting in the doctor’s care. Health '+Math.round(h.hp)+'%, your ceiling back to '+heroHpCap()+'%'+(h.capLoss>0.5?' (about '+(h.capLoss/C.rate/CLINIC_FAST).toFixed(1)+' days to go)':'. You’re mended.');
   if(h.capLoss<=0.01){h.capLoss=0;}if(typeof updateHud==='function')updateHud();}
 function leaveClinic(){const h=G.hero;if(!G.clinic)return;G.clinic=null;h.capLoss=Math.max(0,Math.round((h.capLoss||0)*10)/10);if(h.lying)getUp();state='play';const el=document.getElementById('clinicBox');if(el)el.style.display='none';
   showMsg(h.capLoss>0?'You leave the clinic. Your health can reach '+heroHpCap()+'% now':'You leave the clinic fully mended',2.6);}
@@ -1823,7 +1824,7 @@ function makeRaider2(type,x,y,a,v,d){
 function startWipe(e){if(e.wipe>0||e.dead||e.driver!=='raider')return;if(window.__stats){const k='wipe_'+(e.ri&&e.ri.d>e.ri.w/2+18?'offroad':'')+(e.lastHit||'');window.__stats[k]=(window.__stats[k]||0)+1;}e.wipe=1.2;e.spin=(Math.random()<0.5?-1:1)*rand(5,9);e.stab=0;
   popText(e.x,e.y-26,'Wiped out','#f2a03d');SFX.screech();}
 // after the spin: half the time it burns, half the time the driver legs it and leaves the car
-function finishWipe(e){G.wiped++;if(!e.convoy&&!e.skDone){e.skDone=true;skillPoints(1,'enemy vehicle');}e.wasRaider=true;if(e.convoy)changeRep(e.fac,-5);else raiderDown(e.fac);if(e.jobBoss)jobBossDown(e.jobBoss);
+function finishWipe(e){G.wiped++;if(!e.convoy&&!e.skDone){e.skDone=true;skillPoints(1,e.lastBy==='comp'&&G.comp?G.comp.def.name+' stopped a car':'enemy vehicle');}e.wasRaider=true;if(e.convoy)changeRep(e.fac,-5);else raiderDown(e.fac);if(e.jobBoss)jobBossDown(e.jobBoss);
   const bag=(x,y)=>G.boxes.push({id:'rb'+(raiderSeq++),kind:'bag',x,y,table:'raider',rolls:e.type==='brute'?3:2,seed:(Math.random()*1e9)|0,persist:false,transient:true});
   if(Math.random()<0.5){e.driver=null;e.wipe=0;burnOut(e);e.vx*=0.3;e.vy*=0.3;e.speed=0;if(Math.random()<0.75)bag(e.x+rand(-30,30),e.y+rand(-30,30));}   // burnt out where it stopped (no explosion)
   else{const lf=spawnLooseFoe(e.x+rand(-30,30),e.y+rand(-30,30),Math.random()<0.6);if(lf)lf.fac=e.fac;  // the driver climbs out, dazed: some fight, some run
@@ -2377,7 +2378,7 @@ let talk=null;
 function startNodeFor(n){const svc=['publican','mechanic','doctor','trader','settler','wanderer','drifter'].includes(n.def.role)&&!n.def.comp;return svc&&n.loc&&townRefuses(n.loc)?'refuse':n.def.role+'_start';}
 function priceText(p){return Object.keys(p).map(k=>p[k]+' '+(p[k]>1?ITEMS[k].name.toLowerCase()+'s':ITEMS[k].name.toLowerCase()).replace('rounds s','rounds').replace('ammos','ammo')).join(' and ');}
 function startTalk(n){talk={npc:n};n.talking=true;state='talk';endStick();SFX.engine(0,0,false,false);$('ctx').innerHTML='';ctxKey='';$('talk').classList.remove('hidden');
-  goNode(startNodeFor(n));G.flags['met_'+n.def.id]=true;}
+  goNode(startNodeFor(n));if(!G.flags['met_'+n.def.id])skillPoints(1,'met '+n.def.name);G.flags['met_'+n.def.id]=true;}
 function goNode(id){if(id==='__start')id=startNodeFor(talk.npc);if(!id||!DLG[id])return endTalk();const N=DLG[id],c=dctx();talk.node=id;
   talk.text=typeof N.text==='function'?N.text(c):N.text;talk.opts=N.opts.filter(o=>!o.if||o.if(c));renderTalk();}
 function chooseOpt(i){const o=talk&&talk.opts[i];if(!o)return;let next=o.go;
@@ -2476,7 +2477,7 @@ function fireWeapon(src,W,a,extraSpread,dist,tr){const sx=src.x+Math.cos(a)*14,s
     // a single bullet at a known distance: decide hit or miss, and a miss goes clear of the target
     if(W.pellets===1&&dist>0){if(Math.random()<missChance(W,dist)*msM)aa=a+(Math.random()<0.5?-1:1)*(Math.asin(Math.min(1,((tr||10)+10)/dist))+Math.random()*0.08);
       else aa=a+(Math.random()-0.5)*Math.min(W.spread*spM,Math.atan2((tr||10)*0.6,dist))*2;}
-    G.bullets.push({x:sx,y:sy,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,life:W.range/sp,dmg:W.dmg*(src===G.hero||src.driver==='hero'?injFx().weapon:1),arrow:!!W.bow,owner:src.kind==='foe'||src.driver==='raider'?'foe':'hero'});}
+    G.bullets.push({x:sx,y:sy,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,life:W.range/sp,dmg:W.dmg*(src===G.hero||src.driver==='hero'?injFx().weapon:1),arrow:!!W.bow,by:heroSrc(src)?'hero':src.kind==='comp'?'comp':null,owner:src.kind==='foe'||src.driver==='raider'?'foe':'hero'});}
   if(W.bow){addNoise(src.x,src.y,W.noise);SFX.swing();return;}
   part({kind:'fire',x:sx,y:sy,vx:0,vy:0,life:.07,max:.07,size:9,drag:0,col:'#ffe08a'});addNoise(src.x,src.y,W.noise);SFX.gun(W);}
 function autoAim(range,arc){const h=G.hero;let best=null,bs=1e9;
@@ -2516,7 +2517,7 @@ function heroAttack(){const h=G.hero;if(h.inCar||h.atkCd>0||state!=='play')retur
     if(d>W.range+f.r+h.r||Math.abs(angDiff(Math.atan2(dy,dx),h.a))>W.arc/2)continue;
     const unaware=f.state!=='alert'&&!canSee(f,h);
     if(unaware){hitFoe(f,f.hp+1,dx/d,dy/d,W.knock*0.3);popText(f.x,f.y-24,'Takedown','#f2a03d');quiet=true;}
-    else hitFoe(f,W.dmg*injFx().weapon*skMelee(skill('melee')),dx/d,dy/d,W.knock);hit=true;}
+    else{f.lastBy='hero';hitFoe(f,W.dmg*injFx().weapon*skMelee(skill('melee')),dx/d,dy/d,W.knock);}hit=true;}
   // hitting townsfolk is assault: the town remembers, and its guards come for you
   for(const n of G.npcs){const dx=n.x-h.x,dy=n.y-h.y,d=Math.hypot(dx,dy);if(d<W.range+n.r+h.r&&Math.abs(angDiff(Math.atan2(dy,dx),h.a))<W.arc/2){assault(n);hit=true;}}
   for(const a of G.animals){if(a.state==='dead')continue;const dx=a.x-h.x,dy=a.y-h.y,d=Math.hypot(dx,dy);
@@ -2524,7 +2525,7 @@ function heroAttack(){const h=G.hero;if(h.inCar||h.atkCd>0||state!=='play')retur
   if(hit){SFX.punch();addNoise(h.x,h.y,quiet?40:W.noise);}}
 function hitFoe(f,dmg,kx,ky,knock){if(f.dead)return;f.hp-=dmg;f.flash=1;f.stun=f.wind>0?0.05:0.1;f.vx=kx*knock*0.22;f.vy=ky*knock*0.22;sparks(f.x,f.y,3);   // half the shove now raiders move at half pace
   if(f.hp<=0){foeDie(f);return;}if(f.state!=='flee')becomeAlert(f,body());}
-function foeDie(f){f.dead=true;f.deadT=40;G.kills++;if(!f.townGuard)skillPoints(1,'enemy down');if(f.jobBoss)jobBossDown(f.jobBoss);if(!f.loose)G.removed.add(f.id);if(!f.townGuard)raiderDown(f.fac||(f.loc&&f.loc.faction)||territory(f.x,f.y));
+function foeDie(f){f.dead=true;f.deadT=40;G.kills++;if(!f.townGuard)skillPoints(1,f.lastBy==='comp'&&G.comp?G.comp.def.name+' got one':'enemy down');   /* yours or your companion's (v10.5) */if(f.jobBoss)jobBossDown(f.jobBoss);if(!f.loose)G.removed.add(f.id);if(!f.townGuard)raiderDown(f.fac||(f.loc&&f.loc.faction)||territory(f.x,f.y));
   // they drop what they carried: their weapon sometimes, ammo, odds and ends
   const items=genLoot('raider',(Math.random()*1e9)|0,1);const wi=Object.keys(ITEMS).find(k=>ITEMS[k].weapon===f.weapon);
   if(wi&&Math.random()<0.6)invAdd(items,wi,1);const W=WEAPONS[f.weapon];if(W.gun)invAdd(items,W.ammo,2+Math.floor(Math.random()*5));
@@ -2537,11 +2538,11 @@ function stepBullets(dt){const h=G.hero,hc=heroCar();
       const o=nearLoc(b.x,b.y,50);if(o)for(const bd of o.bld)if(Math.abs(bd.x-b.x)<bd.w&&Math.abs(bd.y-b.y)<bd.w){const [lx,ly]=bLocal(bd,b.x,b.y);
         if(Math.abs(lx)<bd.w/2+3&&Math.abs(ly)<bd.h/2+3&&!(Math.abs(lx)<bd.w/2-4&&Math.abs(ly)<bd.h/2-4)&&!(Math.abs(lx)<bd.door/2&&ly>0)){b.dead=true;sparks(b.x,b.y,3);break;}}
       if(b.dead)break;const rk=obstacleAt(b.x,b.y,0);if(rk){b.dead=true;sparks(b.x,b.y,3);break;}
-      if(b.owner==='hero'){for(const f of G.foes){if(f.dead||Math.hypot(f.x-b.x,f.y-b.y)>f.r+3)continue;const l=Math.hypot(b.vx,b.vy);hitFoe(f,b.dmg,b.vx/l,b.vy/l,60);b.dead=true;break;}
+      if(b.owner==='hero'){for(const f of G.foes){if(f.dead||Math.hypot(f.x-b.x,f.y-b.y)>f.r+3)continue;const l=Math.hypot(b.vx,b.vy);f.lastBy=b.by;hitFoe(f,b.dmg,b.vx/l,b.vy/l,60);b.dead=true;break;}
         if(!b.dead)for(const n of G.npcs){if(Math.hypot(n.x-b.x,n.y-b.y)<n.r+3){assault(n);b.dead=true;break;}}
         if(!b.dead)for(const a of G.animals){if(a.state==='dead'||Math.hypot(a.x-b.x,a.y-b.y)>a.r+3)continue;const l=Math.hypot(b.vx,b.vy);hitAnimal(a,b.dmg,b.vx/l,b.vy/l);b.dead=true;break;}
         if(!b.dead)for(const c of G.cars){if(c.driver==='convoy'&&!c.wrecked&&carCircles(c).some(([x,y])=>Math.hypot(x-b.x,y-b.y)<c.r+2)){b.dead=true;sparks(b.x,b.y,4);c.flash=1;c.cond-=b.dmg*0.1/c.def.armor;if(c.cond<=0)wreckCar(c);convoyProvoked(c);break;}   // a shot at a convoy truck
-          if(c.driver!=='raider'||Math.hypot(c.x-b.x,c.y-b.y)>c.r+2)continue;b.dead=true;sparks(b.x,b.y,4);c.flash=1;
+          if(c.driver!=='raider'||Math.hypot(c.x-b.x,c.y-b.y)>c.r+2)continue;b.dead=true;c.lastBy=b.by;sparks(b.x,b.y,4);c.flash=1;
           c.engaged=true;c.stab-=b.dmg*0.9;if(Math.random()<0.25){c.stab-=40;popText(c.x,c.y-24,'Tyre shot out','#f2a03d');}break;}}
       else{const cp=compOnFoot()?G.comp:null;if(cp&&Math.hypot(cp.x-b.x,cp.y-b.y)<cp.r+3){hurtComp(b.dmg*0.55);b.dead=true;sparks(b.x,b.y,4);}
         else if(!hc&&Math.hypot(h.x-b.x,h.y-b.y)<h.r+3){hurtHero(b.dmg*0.55,'shot');b.dead=true;sparks(b.x,b.y,4);}
@@ -3010,7 +3011,7 @@ function discovered(id){if(G.visited.has(id))return;G.visited.add(id);skillPoint
 const heroSrc=s=>s===G.hero||(s&&s.driver==='hero');
 // the Skills page (opened from the Skills button, or K)
 function renderSkills(){const S=skState();let html='<div class="stats" style="font-size:19px">Skill points: <b style="color:var(--ember)">'+S.sp+'</b><small style="opacity:.75"> &nbsp;('+S.earned+' earned in all)</small></div>';
-  html+='<div class="stats" style="opacity:.8">1 point for each enemy vehicle or enemy on foot you defeat. 3 for each place you reach for the first time, and for each job you finish. Each level costs more: 10, 15, 20, 25, 30, then 40.</div>';
+  html+='<div class="stats" style="opacity:.8">1 point for each enemy on foot or enemy vehicle you or your companion defeat, each new person you talk to, and each thing you craft. 3 for each place you reach for the first time, each job you finish, and the first time you fit each kind of modification to a car. Each level costs more: 10, 15, 20, 25, 30, then 40.</div>';
   for(const s of SKILLS){const l=skill(s.id),c=skillCost(s.id);let pips='';for(let i=1;i<=6;i++)pips+='<i style="display:inline-block;width:14px;height:10px;margin-right:3px;background:'+(i<=l?'var(--ember)':'rgba(239,226,196,.15)')+'"></i>';
     html+='<h3>'+s.name+'<small>'+(l?'Level '+l:'Untrained')+'</small></h3><div class="irow" style="border:0;padding:2px 0"><span class="nm">'+pips+'<br><small style="margin:0">'+s.desc+'</small><br><small style="margin:0;opacity:.85">'+(l?'Now: '+s.fx(l)+'.':'')+(c!=null?' Next: '+s.fx(l+1)+'.':' Mastered.')+'</small></span>'+
       (c!=null?'<button data-a="skill" data-k="'+s.id+'"'+(S.sp>=c?' class="go"':' disabled')+'>Raise · '+c+'</button>':'')+'</div>';}
@@ -3076,7 +3077,7 @@ function updateComp(dt){const c=G.comp;if(!c)return;const h=G.hero,car=heroCar()
   if(tg){const dx=tg.x-c.x,dy=tg.y-c.y,d=Math.hypot(dx,dy);
     if(W.gun){c.wind=0;if(d>W.range*0.5)foeMove(c,tg.x,tg.y,FOE_SPEED.run,dt);else{c.speed=0;c.a=Math.atan2(dy,dx);}
       if(c.cd<=0&&d<W.range){c.a=Math.atan2(dy,dx);invTake(c.inv,W.ammo,1);c.wind=0.01;fireWeapon(c,W,c.a,0.06,d,tg.r);c.cd=Math.max(1.1,W.cd*1.2)+rand(0,0.4);}}
-    else if(c.wind>0){c.wind-=dt;c.speed=0;c.a=Math.atan2(dy,dx);if(c.wind<=0){c.cd=Math.max(0.7,W.cd*1.4);if(d<W.range+tg.r+10){hitFoe(tg,W.dmg*0.9,dx/d,dy/d,W.knock||90);SFX.punch();}}}
+    else if(c.wind>0){c.wind-=dt;c.speed=0;c.a=Math.atan2(dy,dx);if(c.wind<=0){c.cd=Math.max(0.7,W.cd*1.4);if(d<W.range+tg.r+10){tg.lastBy='comp';hitFoe(tg,W.dmg*0.9,dx/d,dy/d,W.knock||90);SFX.punch();}}}
     else if(d>W.range+tg.r-2)foeMove(c,tg.x,tg.y,FOE_SPEED.run,dt);else{c.speed=0;if(c.cd<=0)c.wind=0.28;}
     return;}
   if(c.state==='wait'){c.speed=0;return;}
@@ -6771,7 +6772,7 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
       // someone about to be run down dives out of the way, four times in five (decided once per car coming at them)
       if(f.dodgeFor!==c||G.time>(f.dodgeT||0)){f.dodgeFor=c;f.dodgeOk=Math.random()<(c===car?skDodge(skill('warrior')):0.8);}f.dodgeT=G.time+1.2;   // one roll of the dice per car coming at them
       if(f.dodgeOk){const fx=Math.cos(c.a),fy=Math.sin(c.a),side=((f.x-c.x)*-fy+(f.y-c.y)*fx)>=0?1:-1,push=c.def.wid/2+f.r+14;f.x+=-fy*side*push*0.6;f.y+=fx*side*push*0.6;f.vx=-fy*side*220;f.vy=fx*side*220;f.stun=0.7;f.dodged=(f.dodged||0)+1;popText(f.x,f.y-24,'Dodged!','#efe2c4');continue;}
-      const l=d||1;hitFoe(f,(rel-80)*0.35*(c===car?1+skill('warrior')*SK_SHOVE:1),(f.x-c.x)/l,(f.y-c.y)/l,rel*0.8);if(c===car){c.cond-=2;SFX.hit(0.4);}}}}}
+      const l=d||1;if(c===car)f.lastBy='hero';hitFoe(f,(rel-80)*0.35*(c===car?1+skill('warrior')*SK_SHOVE:1),(f.x-c.x)/l,(f.y-c.y)/l,rel*0.8);if(c===car){c.cond-=2;SFX.hit(0.4);}}}}}
   G.foes=G.foes.filter(f=>!(f.dead&&f.deadT<=0)&&!f.gone);G.noises=[];
   for(const c of G.cars){if(c.dead||c.wrecked)continue;
     if(c.driver==='raider'){if(c.wipe<=0&&(c.stab<=0||c.cond<=0))startWipe(c);}
