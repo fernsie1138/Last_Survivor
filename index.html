@@ -234,28 +234,28 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
     <p id="sSub"></p>
     <div id="sStats"></div>
     <div id="sBtns"></div>
-    <p class="controls" id="sCtl">On foot: arrows or WASD to walk, Shift to run, E to get in a car.<br>Driving: arrows or WASD, B to brake, Down to reverse, G to shoot if you have a gun, Down plus a turn to slide, Shift to boost, E to get out.<br>F searches crates and car boots, R pours a jerrycan into a car, T patches it with scrap, Q drinks, C eats, Z sleeps in a stopped car, X talks to people, I opens your gear, K your skills.<br>Combat: Space attacks, V sneaks. Equip weapons in your gear. Hit an unaware raider from behind for a takedown. Pinch with two fingers (or + and −) to zoom the view, and tap Reset zoom to go back. M opens the map (drag to pan, pinch or +/− to zoom, tap a place to plan a route), P pauses.<br>Touch: drag anywhere on the right side to move or steer; all action buttons are on the left.</p>
+    <p class="controls" id="sCtl">On foot: arrows or WASD to walk, Shift to run, E to get in a car.<br>Driving: arrows or WASD, B to brake, Down to reverse, G to shoot if you have a gun, Down plus a turn to slide, Shift to boost, E to get out.<br>F searches crates and car boots, R pours a jerrycan into a car, T patches it with scrap, Q drinks, C eats, Z sleeps in a stopped car, X talks to people, I opens your gear, L your skills, O your storage at home.<br>Combat: Space attacks, V sneaks. Equip weapons in your gear. Hit an unaware raider from behind for a takedown. Pinch with two fingers (or + and −) to zoom the view, and tap Reset zoom to go back. M opens the map (drag to pan, pinch or +/− to zoom, tap a place to plan a route), P pauses.<br>Touch: drag anywhere on the right side to move or steer; all action buttons are on the left.</p>
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=10.5"></script>
-<script src="models/84-hero-model.js?v=10.5"></script>
-<script src="models/84b-hero-body.js?v=10.5"></script>
-<script src="models/84c-buggy-model.js?v=10.5"></script>
-<script src="models/84d-tarona-model.js?v=10.5"></script>
-<script src="models/84e-wall-model.js?v=10.5"></script>
-<script src="models/84f-plant-models.js?v=10.5"></script>
-<script src="models/84g-kestrel-model.js?v=10.5"></script>
-<script src="models/84h-building-models.js?v=10.5"></script>
-<script src="models/84i-building-models2.js?v=10.5"></script>
-<script src="models/84j-f100-model.js?v=10.5"></script>
-<script src="models/84l-kingsford-model.js?v=10.5"></script>
-<script src="models/84m-wagon-model.js?v=10.5"></script>
+<script src="models/21b-mesa-models.js?v=10.6"></script>
+<script src="models/84-hero-model.js?v=10.6"></script>
+<script src="models/84b-hero-body.js?v=10.6"></script>
+<script src="models/84c-buggy-model.js?v=10.6"></script>
+<script src="models/84d-tarona-model.js?v=10.6"></script>
+<script src="models/84e-wall-model.js?v=10.6"></script>
+<script src="models/84f-plant-models.js?v=10.6"></script>
+<script src="models/84g-kestrel-model.js?v=10.6"></script>
+<script src="models/84h-building-models.js?v=10.6"></script>
+<script src="models/84i-building-models2.js?v=10.6"></script>
+<script src="models/84j-f100-model.js?v=10.6"></script>
+<script src="models/84l-kingsford-model.js?v=10.6"></script>
+<script src="models/84m-wagon-model.js?v=10.6"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='10.5';
+const VERSION='10.6';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -627,6 +627,13 @@ LOCS.forEach(o=>{
     if(o.id===START){const spare=NPC_NAMES.filter(n=>n!=='Dot'&&n!=='Col'&&!o.npcs.some(p=>p.name===n));let si=0;
       for(const p of o.npcs)if(p.name==='Dot'||p.name==='Col')p.name=spare[si++];
       const dot=o.npcs.find(n=>n.role==='settler');if(dot)dot.name='Dot';}}
+  // a town also has one empty house, for sale (v10.6): placed last, with its own dice, so nothing else in the town moves
+  if(o.type==='outpost'){const rv=rng(hash2(o.id*17+3,o.id+911)),K=BKINDS.house,diag=Math.hypot(K.w,K.h)/2;
+    for(let t=0;t<900;t++){const a=rv()*TAU,d=130+rv()*(o.rad-40-diag-12-130),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(!fits(x,y,K))continue;
+      if(o.paddocks.some(p=>Math.hypot(p.x-x,p.y-y)<Math.hypot(p.w,p.h)/2+diag+10)||o.carSpawns.some(c=>Math.hypot(c.x-x,c.y-y)<diag+40)||(o.square&&Math.hypot(o.square.x-x,o.square.y-y)<o.square.size/2+diag))continue;
+      const b=makeBuilding(o,'house',x,y,a+Math.PI/2,rv);b.vacant=true;o.bld.push(b);break;}
+    if(!o.bld.some(b=>b.vacant)){const hs=o.bld.map((b,i)=>i).filter(i=>o.bld[i].kind==='house'&&!o.bld[i].ruined),v=hs[hs.length-1],to=hs.find(i=>i!==v)??o.bld.findIndex(b=>b.kind==='shed');   // no room for another: one family moves in with the neighbours
+      if(v!=null&&to>=0){o.bld[v].vacant=true;for(const d of o.npcs){if(d.home===v)d.home=to;if(d.work===v)d.work=to;}}}}
 });
 // ---- test range extras: a car yard with every vehicle, supply crates with every item, a hidden stash ----
 if(TEST_MODE){const town=LOCS[0],ruins=LOCS[1],camp=LOCS[2];camp.carSpawns=[];
@@ -1267,6 +1274,11 @@ const ITEMS={
   rifle:{name:'.303 rifle',kg:4,weapon:'rifle',icon:'#6b4a32'},
   bow:{name:'Bow',kg:1,weapon:'bow',icon:'#7a5a3c'},
   crossbow:{name:'Crossbow',kg:2.5,weapon:'crossbow',icon:'#5a4a3a'},
+  molotov:{name:'Molotov cocktail',kg:0.6,weapon:'molotov',icon:'#c2381f'},
+  pipebomb:{name:'Pipe bomb',kg:0.9,weapon:'pipebomb',icon:'#5a5650'},
+  glassbottle:{name:'Glass bottle',kg:0.3,icon:'#5a7a4a'},
+  pipe:{name:'Metal pipe',kg:0.8,icon:'#8a8478'},
+  fuse:{name:'Fuse',kg:0.02,icon:'#c9a35a'},
   arrows:{name:'Arrows',kg:0.04,ammo:true,icon:'#8a7056'},
   bolts:{name:'Crossbow bolts',kg:0.05,ammo:true,icon:'#6a5a48'},
   bullets:{name:'Revolver rounds',kg:0.02,ammo:true,icon:'#b8862f'},
@@ -1284,17 +1296,20 @@ const WEAPONS={
   rifle:{name:'.303 rifle',gun:true,dmg:75,range:950,cd:1.5,ammo:'rounds',spread:0.012,pellets:1,noise:1300},
   // bows: ranged and nearly silent, slower to loose than a gun; arrows and bolts fly slower than bullets
   bow:{name:'Bow',gun:true,bow:true,dmg:28,range:430,cd:1.0,ammo:'arrows',spread:0.035,pellets:1,noise:110},
-  crossbow:{name:'Crossbow',gun:true,bow:true,dmg:46,range:500,cd:1.7,ammo:'bolts',spread:0.022,pellets:1,noise:150}};
+  crossbow:{name:'Crossbow',gun:true,bow:true,dmg:46,range:500,cd:1.7,ammo:'bolts',spread:0.022,pellets:1,noise:150},
+  // thrown (v10.6): each one is used up; it bursts where it lands (see 57b-thrown)
+  molotov:{name:'Molotov cocktail',gun:true,thrown:true,dmg:0,range:300,cd:1.1,ammo:'molotov',spread:0.1,pellets:1,noise:90},
+  pipebomb:{name:'Pipe bomb',gun:true,thrown:true,dmg:0,range:280,cd:1.3,ammo:'pipebomb',spread:0.1,pellets:1,noise:90}};
 const PARTS={engine:'Engine',tyres:'Tyres',susp:'Suspension',cond:'Body'};
 const HERO_CAP=25;
 // loot tables: [item, weight, min, max]
 const LOOT={
-  ruin:[['compass',0.5,1,1],['tyreiron',3,1,1],['bat',2,1,1],['machete',1.5,1,1],['knife',2.5,1,1],['bow',1.2,1,1],['crossbow',0.5,1,1],['arrows',3,4,10],['bolts',1.5,3,8],['revolver',0.12,1,1],['bullets',0.5,2,6],['shells',0.3,2,4],['water',5.5,1,2],['beans',8,1,3],['jerky',6,1,3],['bandage',5,1,2],['medkit',2,1,1],['jerrycan',1.8,1,1],['scrap',8,1,3],['tyre',2,1,1],['parts',3,1,1],['springs',2,1,1],['toolkit',1,1,1]],
-  boot:[['compass',0.4,1,1],['tyreiron',3,1,1],['knife',1,1,1],['arrows',1,3,8],['rounds',0.15,2,5],['water',3.3,1,2],['beans',4,1,2],['jerky',3,1,2],['scrap',5,1,2],['tyre',4,1,1],['jerrycan',0.9,1,1],['parts',2,1,1],['toolkit',1,1,1],['bandage',2,1,1]],
-  camp:[['compass',0.5,1,1],['arrows',4,5,12],['bolts',3,4,10],['bow',1.5,1,1],['crossbow',1,1,1],['machete',2,1,1],['knife',2,1,1],['bat',1.2,1,1],['bullets',1.4,3,8],['shells',1,2,6],['rounds',0.5,3,6],['revolver',0.35,1,1],['shotgun',0.2,1,1],['rifle',0.1,1,1],
+  ruin:[['glassbottle',4,1,2],['pipe',1.6,1,1],['fuse',0.5,1,1],['compass',0.5,1,1],['tyreiron',3,1,1],['bat',2,1,1],['machete',1.5,1,1],['knife',2.5,1,1],['bow',1.2,1,1],['crossbow',0.5,1,1],['arrows',3,4,10],['bolts',1.5,3,8],['revolver',0.12,1,1],['bullets',0.5,2,6],['shells',0.3,2,4],['water',5.5,1,2],['beans',8,1,3],['jerky',6,1,3],['bandage',5,1,2],['medkit',2,1,1],['jerrycan',1.8,1,1],['scrap',8,1,3],['tyre',2,1,1],['parts',3,1,1],['springs',2,1,1],['toolkit',1,1,1]],
+  boot:[['glassbottle',1.2,1,1],['compass',0.4,1,1],['tyreiron',3,1,1],['knife',1,1,1],['arrows',1,3,8],['rounds',0.15,2,5],['water',3.3,1,2],['beans',4,1,2],['jerky',3,1,2],['scrap',5,1,2],['tyre',4,1,1],['jerrycan',0.9,1,1],['parts',2,1,1],['toolkit',1,1,1],['bandage',2,1,1]],
+  camp:[['molotov',1.2,1,2],['pipebomb',0.3,1,1],['fuse',0.8,1,2],['glassbottle',1.5,1,2],['compass',0.5,1,1],['arrows',4,5,12],['bolts',3,4,10],['bow',1.5,1,1],['crossbow',1,1,1],['machete',2,1,1],['knife',2,1,1],['bat',1.2,1,1],['bullets',1.4,3,8],['shells',1,2,6],['rounds',0.5,3,6],['revolver',0.35,1,1],['shotgun',0.2,1,1],['rifle',0.1,1,1],
     ['water',3.3,1,3],['beans',5,1,3],['jerrycan',1.8,1,1],['medkit',3,1,1],['parts',2,1,1]],
   stash:[['water',4.4,2,4],['beans',6,2,4],['jerrycan',2.25,1,2],['medkit',3,1,1],['parts',2,1,2],['jerky',4,2,4]],
-  raider:[['arrows',2,3,8],['bolts',1,2,6],['bullets',0.5,2,5],['shells',0.3,2,4],['scrap',8,1,2],['jerky',5,1,2],['water',2.75,1,1],['jerrycan',1.35,1,1],['bandage',2,1,1],['parts',1,1,1]]};
+  raider:[['molotov',0.5,1,1],['glassbottle',1,1,1],['arrows',2,3,8],['bolts',1,2,6],['bullets',0.5,2,5],['shells',0.3,2,4],['scrap',8,1,2],['jerky',5,1,2],['water',2.75,1,1],['jerrycan',1.35,1,1],['bandage',2,1,1],['parts',1,1,1]]};
 // zones tilt the odds: mining country has parts, the salt is dry, the coast has food
 const ZONE_LOOT={ranges:{parts:2.5,springs:2,toolkit:2,water:0.7},salt:{water:0.4,jerky:1.5},coast:{beans:1.8,water:1.3},mallee:{water:1.2},red:{water:0.8}};
 function genLoot(table,seed,rolls,biome){const r=rng(seed),T=LOOT[table],mod=(biome&&ZONE_LOOT[biome])||{},inv={};
@@ -1339,7 +1354,7 @@ Object.assign(ITEMS,{
 Object.assign(WEAPONS,{
   pipeclub:{name:'Pipe club',melee:true,dmg:16,range:34,arc:1.3,cd:0.6,knock:120,noise:120},
   spikedbat:{name:'Spiked bat',melee:true,dmg:21,range:38,arc:1.6,cd:0.58,knock:170,noise:120}});
-const VALUE={bottle:1,water:16,beans:8,jerky:4,bandage:6,medkit:30,jerrycan:18,scrap:4,tyre:35,parts:45,springs:40,toolkit:40,
+const VALUE={glassbottle:2,pipe:5,fuse:4,molotov:14,pipebomb:32,bottle:1,water:16,beans:8,jerky:4,bandage:6,medkit:30,jerrycan:18,scrap:4,tyre:35,parts:45,springs:40,toolkit:40,
   compass:30,billy:18,billy_full:18,knife:10,tyreiron:12,bat:18,machete:30,bow:45,crossbow:80,arrows:1,bolts:2,revolver:160,shotgun:210,rifle:280,bullets:4,shells:5,rounds:6,
   cloth:3,wire:5,powder:8,durries:15,watch:45,pipeclub:14,spikedbat:28,
   kit_roobar:120,kit_longtank:140,kit_offroad:110,kit_heavysusp:110,kit_blower:220,kit_armour:180,kit_spikes:90};
@@ -1384,17 +1399,22 @@ const RECIPES=[
   {make:'kit_roobar',qty:1,needs:{scrap:6,wire:1},bench:true},
   {make:'kit_spikes',qty:1,needs:{scrap:4,wire:2},bench:true},
   {make:'kit_armour',qty:1,needs:{scrap:10,wire:2},bench:true},
-  {make:'kit_heavysusp',qty:1,needs:{springs:2,scrap:2},bench:true}];
+  {make:'kit_heavysusp',qty:1,needs:{springs:2,scrap:2},bench:true},
+  {make:'molotov',qty:1,needs:{glassbottle:1,cloth:1},fuel:4,bench:false},   // a splash of petrol: 4% of a tank, from a jerry can or the car (v10.6)
+  {make:'pipebomb',qty:1,needs:{pipe:1,powder:1,fuse:1},bench:false}];
 // standing inside a garage, shed, servo or store, you can use its workbench
 function atWorkbench(){const h=G.hero;if(h.inCar)return null;const o=nearLoc(h.x,h.y,0);if(!o)return null;
   return o.bld.find(b=>['garage','shed','servo','store'].includes(b.kind)&&bInside(b,h.x,h.y,0))||null;}
 // your goods: your pockets plus the boot of your car if it's parked close by
-function myStores(nearX,nearY){const out=[G.hero.inv];const c=heroCar()||carById(G.lastCar);
+function myStores(nearX,nearY){const out=[G.hero.inv];const c=heroCar()||carById(G.lastCar);{const P=propHere();if(P)out.push(P.items);}   /* at home: what's in your store too */
   if(c&&!c.wrecked&&Math.hypot(c.x-(nearX??G.hero.x),c.y-(nearY??G.hero.y))<700)out.push(c.items);return out;}
 function countIn(stores,k){return stores.reduce((s,inv)=>s+(inv[k]||0),0);}
 function takeFrom(stores,k,n){for(const inv of stores){while(n>0&&inv[k]){invTake(inv,k,1);n--;}}return n===0;}
-function canCraft(r){const st=myStores();for(const k in r.needs)if(countIn(st,k)<r.needs[k])return false;return !r.bench||!!atWorkbench();}
-function craft(r){if(!canCraft(r))return false;const st=myStores();for(const k in r.needs)takeFrom(st,k,r.needs[k]);giveItem(r.make,r.qty);SFX.clank();skillPoints(1,'crafted');return true;}
+function canCraft(r){const st=myStores();for(const k in r.needs)if(countIn(st,k)<r.needs[k])return false;if(r.fuel&&craftFuel()<r.fuel)return false;return !r.bench||!!atWorkbench();}
+// petrol to hand for crafting: in your jerry cans (pockets, boot, store at home), or the tank of your car if it's close
+function craftFuel(){let f=0;for(const inv of myStores())f+=canFill(inv);const c=heroCar()||carById(G.lastCar);if(c&&!c.wrecked&&Math.hypot(c.x-G.hero.x,c.y-G.hero.y)<300)f+=c.fuel;return f;}
+function takeCraftFuel(n){for(const inv of myStores()){const t=Math.min(n,canFill(inv));if(t>0){setFill(inv,canFill(inv)-t);n-=t;}}const c=heroCar()||carById(G.lastCar);if(n>0&&c)c.fuel=Math.max(0,c.fuel-n);}
+function craft(r){if(!canCraft(r))return false;const st=myStores();for(const k in r.needs)takeFrom(st,k,r.needs[k]);if(r.fuel)takeCraftFuel(r.fuel);giveItem(r.make,r.qty);SFX.clank();skillPoints(1,'crafted');return true;}
 // put items in your pockets, then the car boot, then on the ground at your feet
 function giveItem(k,n){const h=G.hero,c=heroCar()||carById(G.lastCar);
   for(let i=0;i<n;i++){if(invWeight(h.inv)+ITEMS[k].kg<=heroCap()+1e-6)invAdd(h.inv,k,1);
@@ -1405,17 +1425,18 @@ function priceMods(o){const v=rep(o&&o.faction),t=repTier(v);
   const buy={Hated:2,Disliked:1.5,Neutral:1.25,Liked:1.12,Respected:1.0,Hero:0.9}[t],sell={Hated:0.3,Disliked:0.45,Neutral:0.6,Liked:0.7,Respected:0.8,Hero:0.9}[t];
   return {buy,sell,tier:t};}
 function buyPrice(o,k,qtyVal){if(TEST_MODE)return 0;   // the test range: everything's free
+  if(typeof k==='string'&&k.startsWith('svc_prop_'))return qtyVal;   // houses and warehouses: a fixed price, whoever you are to them (v10.6)
   let p=(qtyVal??VALUE[k])*priceMods(o).buy;
   if(k==='svc_fuel'||k==='svc_cans'){if(o&&o.faction==='fuelkings')p*=rep('fuelkings')>=20?0.7:1.15;}   // the Kings sell fuel cheap to friends, dear to everyone else
   return Math.max(1,Math.round(p));}
 function sellPrice(o,k){return Math.max(1,Math.floor(VALUE[k]*priceMods(o).sell));}
 // ---- what each trader has today (restocked every morning) ----
 const STOCK_LISTS={
-  trader:[['billy',1],['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
+  trader:[['glassbottle',4],['fuse',2],['pipe',1],['molotov',2],['billy',1],['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
   mechanic:[['jerrycan',1],['hose',2],['tyre',3],['parts',2],['springs',2],['scrap',6],['wire',3],['toolkit',1],['kit_roobar',1],['kit_longtank',1],['kit_offroad',1],['kit_heavysusp',1],['kit_spikes',1]],
   publican:[['water',3],['beans',4],['jerky',4],['durries',2]],
   doctor:[['bandage',6],['medkit',2],['cloth',3]],
-  scavenger:[['scrap',3],['cloth',2],['wire',1],['durries',1],['powder',1]]};
+  scavenger:[['glassbottle',3],['pipe',2],['scrap',3],['cloth',2],['wire',1],['durries',1],['powder',1]]};
 function traderStock(n){const day=Math.floor(G.clock/DAY),id=n.def.id;G.stock=G.stock||{};
   if(!G.stock[id]||G.stock[id].day!==day){const r=rng(hash2(n.def.seed,day+11)),list=(STOCK_LISTS[n.def.role]||[]).slice(),inv={};
     if(n.def.role==='mechanic'&&n.loc.type==='city'){list.push(['kit_blower',1],['kit_armour',1],['rifle',1]);for(const k in SPEEDPARTS)if(SPEEDPARTS[k].city)list.push(['kit_'+k,1]);}
@@ -1426,7 +1447,7 @@ function traderStock(n){const day=Math.floor(G.clock/DAY),id=n.def.id;G.stock=G.
     G.stock[id]={day,inv};}
   return G.stock[id].inv;}
 // services, sold like goods: their value depends on how much work is needed
-function servicesFor(n,car){const role=n.def.role,out=[];
+function servicesFor(n,car){const role=n.def.role,out=[];out.push(...propOffers(n));   /* houses and warehouses for sale (v10.6) */
   if(role==='convoy'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill your tank from their drums ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8*3)});if(canSpace(G.hero.inv)>0.5)out.push({k:'svc_cans',name:'Fill your jerry cans',val:Math.ceil(canSpace(G.hero.inv)*0.8*3)});return out;}   // three times what a mechanic charges
   if(role==='mechanic'&&car){if(car.fuel<99)out.push({k:'svc_fuel',name:'Fill the tank ('+Math.round(car.fuel)+'% → 100%)',val:Math.ceil((100-car.fuel)*0.8)});   // a full tank is worth eight bottles' worth of goods: fuel is dear
     if(car.cond<99)out.push({k:'svc_body',name:'Panel-beat the body ('+Math.round(car.cond)+'% → 100%)',val:Math.ceil((100-car.cond)*0.5)});
@@ -1440,7 +1461,7 @@ function servicesFor(n,car){const role=n.def.role,out=[];
   if(role==='doctor'&&G.hero.hp<heroHpCap()-1)out.push({k:'svc_heal',name:'Patch you up ('+Math.round(G.hero.hp)+'% → '+heroHpCap()+'%)',val:Math.max(5,Math.ceil((heroHpCap()-G.hero.hp)*0.25))});
   if(role==='doctor'&&n.loc&&n.loc.type==='city'&&(heroInj().length||heroCapLoss()>0))out.push({k:'svc_injury',name:'Treat your injuries ('+(heroInj().map(i=>INJURIES[i.type].name.toLowerCase()).join(', ')||'mending')+'), then rest here to mend: half a day per injury',val:30+heroCapLoss()*4});   // a city doctor's care
   return out;}
-function applyService(k,car){const h=G.hero;
+function applyService(k,car){const h=G.hero;if(k.startsWith('svc_prop_')){buyProp(k);return;}
   if(k==='svc_strip'){car.ups=car.ups||{};car.ups.stripped=true;SFX.clank();showMsg('The back seats are out. Room for 100 kg in the back now',2.6);}
   if(k.startsWith('svc_motor_')){fitUpgrade(car,k.slice(10));car.engine=100;SFX.clank();showMsg('The mechanic drops in the '+MOTORS[k.slice(10)].name,2.6);}
   if(k==='svc_fuel')car.fuel=100;else if(k==='svc_body')car.cond=100;else if(k==='svc_engine')car.engine=100;else if(k==='svc_susp')car.susp=100;
@@ -1611,8 +1632,8 @@ function swapLocked(){return G.time-(G.swapT??-9)<0.5;}
 function enterCar(c){const h=G.hero;if(!c||c.wrecked||c.driver||swapLocked())return;G.swapT=G.time;if(SETTINGS.tilt&&typeof tiltCentre==='function')tiltCentre();   // tilt: however you're holding it now is straight ahead
   if(c.speed>60){showMsg('It’s still rolling',1.2);return;}
   h.inCar=c.id;h.crouch=false;c.driver='hero';c.touched=true;c.sleep=0;G.lastCar=c.id;h.vx=h.vy=0;endStick();
-  SFX.door();showMsg(c.def.name,1.6);document.body.classList.remove('onfoot');}
-function exitCar(force){const c=heroCar(),h=G.hero;if(!c)return;if(!force&&swapLocked())return;
+  SFX.door();showMsg(c.def.name,1.6);document.body.classList.remove('onfoot');claimCar(c);}   /* whose car it is (v10.6) */
+function exitCar(force){const c=heroCar(),h=G.hero;if(!c)return;if(!force&&swapLocked())return;if(G.theft&&G.theft.car===c.id)theftExit();
   if(!force&&c.speed>70){showMsg('Slow down to get out',1.2);return;}G.swapT=G.time;
   // driver's door is on the right: these are Australian cars
   const rx=-Math.sin(c.a),ry=Math.cos(c.a),off=c.def.wid/2+h.r+5;
@@ -1691,11 +1712,12 @@ function getActions(){
       if(canFill(h.inv)>0.5&&c.fuel<99)acts.push({k:'R',label:'Pour fuel ('+Math.round(canFill(h.inv))+'%)',alt:true,fn:()=>pourFuel(c)});
       if(h.inv.scrap&&c.cond<99)acts.push({k:'T',label:'Patch up',alt:true,fn:()=>patchCar(c)});}
     else if(b)acts.push({k:'F',label:boxItems(b)&&invCount(b.items)?'Search':'Search (empty)',fn:()=>openInv({kind:'box',box:b})});
+    {const P=propHere();if(P)acts.push({k:'O',label:'Storage',fn:()=>openInv({kind:'store',prop:P})});}   /* in a house or warehouse of yours */
     const cc=carcassNear(36);if(cc)acts.push({k:'U',label:'Butcher the '+cc.S.name,fn:()=>butcher(cc)});
     // a billy: fill it at a river, then boil it over a little fire (an hour) for a bottle's worth of safe water
     {const C=convoyNear(260);if(C&&!C.stopped&&(!heroCar()||heroCar().speed<60))acts.push({k:'G',label:'Flag down the convoy',fn:()=>flagConvoy(C)});}
     if(h.inv.billy&&atRiver(h.x,h.y))acts.push({k:'B',label:'Fill the billy',fn:fillBilly});
-    if(h.inv.billy_full)acts.push({k:'N',label:'Boil the billy (1 hour)',alt:true,fn:boilBilly});
+    if(h.inv.billy_full)acts.push({k:'N',label:'Boil the billy ('+(skBoilMins(skill('bush'))>=60?'1 hour':skBoilMins(skill('bush'))+' min')+')',alt:true,fn:boilBilly});
     const bed=!c?nearestBed(22):null;if(bed)acts.push({k:'Z',label:'Rest on the bed',fn:()=>bedPanel(bed)});
     const sv=salvageTarget();if(sv){acts.push({k:'J',label:'Siphon fuel',alt:true,fn:()=>siphonPanel(sv)});acts.push({k:'K',label:'Strip parts',alt:true,fn:()=>stripPanel(sv)});}
     const n=nearestNPC(46),cp=compActive()&&!G.comp.inCar?G.comp:null,cpd=cp?Math.hypot(cp.x-h.x,cp.y-h.y):1e9;
@@ -2334,7 +2356,7 @@ const DLG={
       {t:'What can you do?',do:c=>COMPANIONS[c.n.def.comp].blurb},
       {t:'Maybe later',go:null}]},
   comp_arm:{text:c=>{const p=G.comp;return p.weapon?'“I’ve got your '+ITEMS[p.weapon].name.toLowerCase()+(WEAPONS[ITEMS[p.weapon].weapon].gun?', and '+compAmmo(p)+' '+ITEMS[WEAPONS[ITEMS[p.weapon].weapon].ammo].name.toLowerCase()+' for it.”':'.”'):'“Just this club I found. Got something better?”';},
-    opts:[...Object.keys(ITEMS).filter(k=>ITEMS[k].weapon).map(k=>({t:'Take my '+ITEMS[k].name.toLowerCase(),if:c=>(c.h.inv[k]||0)>0&&G.comp.weapon!==k,do:c=>{if(!giveCompWeapon(k))return '“Can’t carry any more, boss.”';const W=WEAPONS[ITEMS[k].weapon];return '“Good. I’ll put it to use.”'+(W.gun&&!compAmmo(G.comp)?' (They’ll need '+ITEMS[W.ammo].name.toLowerCase()+' to use it.)':'');}})),
+    opts:[...Object.keys(ITEMS).filter(k=>ITEMS[k].weapon&&!WEAPONS[ITEMS[k].weapon].thrown).map(k=>({t:'Take my '+ITEMS[k].name.toLowerCase(),if:c=>(c.h.inv[k]||0)>0&&G.comp.weapon!==k,do:c=>{if(!giveCompWeapon(k))return '“Can’t carry any more, boss.”';const W=WEAPONS[ITEMS[k].weapon];return '“Good. I’ll put it to use.”'+(W.gun&&!compAmmo(G.comp)?' (They’ll need '+ITEMS[W.ammo].name.toLowerCase()+' to use it.)':'');}})),
       ...['bullets','shells','rounds','arrows','bolts'].map(a=>({t:'Here, take some '+ITEMS[a].name.toLowerCase(),if:c=>{const p=G.comp,W=p.weapon&&WEAPONS[ITEMS[p.weapon].weapon];return !!W&&W.ammo===a&&(c.h.inv[a]||0)>0;},do:c=>'They take '+giveCompAmmo(a)+'.'})),
       {t:'Give me back the weapon',if:c=>!!G.comp.weapon,do:c=>{const k=G.comp.weapon;takeCompWeapon();return 'You take back the '+ITEMS[k].name.toLowerCase()+(WEAPONS[ITEMS[k].weapon].gun?' and what’s left of the ammo':'')+'.';}},
       {t:'That’s all',go:'companion_start'}]},
@@ -2470,7 +2492,8 @@ function updateFoe(f,dt){
 }
 // ---- attacks ----
 function missChance(W,dist){return clamp(dist/W.range*0.9-0.08,0.03,0.85);}   // point blank: almost always hits; at the edge of range: mostly misses
-function fireWeapon(src,W,a,extraSpread,dist,tr){const sx=src.x+Math.cos(a)*14,sy=src.y+Math.sin(a)*14;
+function fireWeapon(src,W,a,extraSpread,dist,tr){if(W.thrown){throwBomb(src,W,a,dist,tr);return;}   /* a Molotov or a pipe bomb (v10.6) */
+  const sx=src.x+Math.cos(a)*14,sy=src.y+Math.sin(a)*14;
   const armHurt=(src===G.hero||src.driver==='hero')&&injFx().weapon<1;   // a broken arm: wilder aim
   const skl=heroSrc(src)?skill(W.bow?'bows':'guns'):0,spM=skSpreadMul(skl),msM=skAimMul(skl);   /* Firearms, Bows (v10.4) */
   for(let i=0;i<W.pellets;i++){let aa=a+(Math.random()-0.5)*(W.spread*spM+(extraSpread||0)+(armHurt?0.08:0))*2;const sp=W.bow?680:W.pellets>1?820:1100;
@@ -2549,6 +2572,65 @@ function stepBullets(dt){const h=G.hero,hc=heroCar();
         else if(hc&&Math.hypot(hc.x-b.x,hc.y-b.y)<hc.r+2){b.dead=true;sparks(b.x,b.y,4);hc.flash=1;hc.cond-=b.dmg*0.12;SFX.hit(0.25);
           if(Math.random()<0.17)hitTyre(hc,rand(35,60));}}}}
   G.bullets=G.bullets.filter(b=>!b.dead);}
+
+/* ===== thrown weapons (v10.6): the Molotov cocktail and the pipe bomb =====
+   Both are equipped like any weapon and thrown with Attack (or Shoot, from the car): each one thrown is used up.
+   They fly in an arc to where you aimed (a miss lands off to one side) and go off where they land.
+   Molotov: anyone or anything it lands on catches fire and burns for a few seconds (damage over time); a miss leaves a small pool of
+   burning petrol on the ground that sets alight anyone who walks or drives through it.
+   Pipe bomb: a blast that hurts everything around it, worst at the middle: even a miss does damage. Mind your own feet. */
+const THROWN={molotov:{splash:30,burn:4.5,poolR:30,poolT:9},pipebomb:{blast:95,dmg:150}};
+const FIRE_DPS={foe:9,animal:9,hero:6,comp:6};
+function throwBomb(src,W,a,dist,tr){const kind=W.ammo,heroIs=heroSrc(src);
+  let d=dist>0?Math.min(dist,W.range):W.range*0.7,aa=a;
+  if(dist>0&&Math.random()<missChance(W,dist))aa=a+(Math.random()<0.5?-1:1)*(Math.asin(Math.min(1,((tr||10)+18)/Math.max(dist,30)))+Math.random()*0.12);   // a miss: it lands off to the side
+  else aa=a+(Math.random()-0.5)*W.spread;d*=0.94+Math.random()*0.1;
+  const sx=src.x+Math.cos(a)*10,sy=src.y+Math.sin(a)*10;
+  G.throws.push({kind,x:sx,y:sy,x0:sx,y0:sy,tx:src.x+Math.cos(aa)*d,ty:src.y+Math.sin(aa)*d,t:0,dur:0.35+d/520,top:28+d*0.12,by:heroIs?'hero':src.kind==='comp'?'comp':null,foe:src.kind==='foe'});
+  addNoise(src.x,src.y,90);SFX.swing();}
+function stepThrows(dt){if(!G.throws)G.throws=[];if(!G.fires)G.fires=[];
+  for(const q of G.throws){q.t+=dt;const s=Math.min(1,q.t/q.dur);q.x=q.x0+(q.tx-q.x0)*s;q.y=q.y0+(q.ty-q.y0)*s;q.h=4*q.top*s*(1-s)+10*(1-s);
+    // in flight: the bottle (or the pipe), and the burning rag or the fizzing fuse
+    part({kind:'thrown',x:q.x,y:q.y,lift:q.h+6,life:0.05,max:0.05,size:q.kind==='molotov'?2:2.4,col:q.kind==='molotov'?'#4a6a3a':'#5a5650'});
+    if(q.kind==='molotov')part({kind:'fire',x:q.x,y:q.y,lift:q.h+8,life:0.25,max:0.25,size:3,grow:-4,drag:2,col:'#ffb347'});
+    else if(Math.random()<0.6)part({kind:'fire',x:q.x,y:q.y,lift:q.h+8,life:0.12,max:0.12,size:1.6,grow:-2,drag:2,col:'#ffe08a'});
+    if(s>=1){q.done=true;if(q.kind==='molotov')molotovLand(q);else pipeBlast(q);}}
+  G.throws=G.throws.filter(q=>!q.done);
+  // pools of burning petrol
+  for(const f of G.fires){f.t-=dt;f.acc=(f.acc||0)+dt*45;while(f.acc>=1){f.acc--;const a=Math.random()*TAU,r=Math.sqrt(Math.random())*f.r;part({kind:'fire',x:f.x+Math.cos(a)*r,y:f.y+Math.sin(a)*r,vx:rand(-6,6),vy:rand(-6,6),lift:1,life:rand(.35,.75),max:.75,size:rand(3.5,7)*Math.min(1,f.t/2+0.3),grow:-5,drag:2,col:Math.random()<0.3?'#ffd27a':'#ffb347'});}   /* low flames spread over the whole pool */
+    if(Math.random()<dt*3)smoke(f.x+rand(-f.r,f.r)*0.5,f.y+rand(-f.r,f.r)*0.5,9);
+    for(const e of fireTargets())if(Math.hypot(e.x-f.x,e.y-f.y)<f.r+(e.r||8)*0.6)ignite(e,1.6,f.by);}
+  G.fires=G.fires.filter(f=>f.t>0);
+  burnTick(dt);}
+// everything that can catch fire or be caught in a blast
+function fireTargets(){const h=G.hero,hc=heroCar(),out=[];for(const f of G.foes)if(!f.dead)out.push(f);for(const a of G.animals)if(a.state!=='dead')out.push(a);
+  for(const c of G.cars)if(!c.wrecked)out.push(c);if(!hc)out.push(h);if(compOnFoot())out.push(G.comp);for(const n of G.npcs)out.push(n);return out;}
+function ignite(e,secs,by){if(e.kind==='npc'){if(by==='hero'&&typeof assault==='function')assault(e);return;}   // townsfolk run for it, and call the guards on whoever did it
+  e.fireT=Math.max(e.fireT||0,secs);if(by)e.fireBy=by;if(e.kind==='foe'&&e.state!=='alert'&&by)becomeAlert(e,body(),true);}
+function molotovLand(q){const T=THROWN.molotov;let hit=false;SFX.noise&&SFX.noise(0.5,'bandpass',1800,0.25,1.5);
+  for(let i=0;i<14;i++){const a=Math.random()*TAU,s=rand(30,140);part({kind:'fire',x:q.x,y:q.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.4,.8),max:.8,size:rand(6,12),grow:-6,drag:3,col:'#ffb347'});}   // the bottle bursts
+  for(const e of fireTargets()){if(Math.hypot(e.x-q.x,e.y-q.y)<T.splash+(e.r||8)){ignite(e,T.burn+(e.kind==='car'?1.5:0),q.by);if(e!==G.hero)hit=true;}}
+  if(!hit)G.fires.push({x:q.x,y:q.y,r:T.poolR,t:T.poolT,by:q.by});   // a miss: a pool of burning petrol on the ground
+  addNoise(q.x,q.y,300);}
+function pipeBlast(q){const T=THROWN.pipebomb,R=T.blast;explode(q.x,q.y,false);addNoise(q.x,q.y,2200);
+  for(const e of fireTargets()){const dx=e.x-q.x,dy=e.y-q.y,d=Math.hypot(dx,dy),reach=R+(e.r||8)*0.5;if(d>=reach)continue;
+    const k=1-Math.max(0,d-(e.r||8)*0.5)/R,dmg=T.dmg*Math.max(0.15,k),l=d||1,kx=dx/l,ky=dy/l;
+    if(e.kind==='foe'){if(q.by)e.lastBy=q.by;hitFoe(e,dmg,kx,ky,260*k);}
+    else if(e.kind==='car'){if(q.by)e.lastBy=q.by;e.flash=1;e.vx+=kx*220*k/e.mass;e.vy+=ky*220*k/e.mass;
+      if(e.driver==='raider'){e.engaged=true;e.stab-=dmg*1.6;e.cond-=dmg*0.25;}else{e.cond-=dmg*0.3/e.def.armor;if(e.driver==='convoy'&&q.by==='hero'&&typeof convoyProvoked==='function')convoyProvoked(e);}
+      if(e.cond<=0)wreckCar(e);else if(Math.random()<k*0.6&&typeof hitTyre==='function')hitTyre(e,rand(30,70));}
+    else if(e===G.hero)hurtHero(dmg*0.7,'blast');else if(e===G.comp)hurtComp(dmg*0.6);
+    else if(e.kind==='animal')hitAnimal(e,dmg,kx,ky);
+    else if(q.by==='hero'&&typeof assault==='function')assault(e);}
+  const hc=heroCar();if(hc){const d=Math.hypot(hc.x-q.x,hc.y-q.y);if(d<R+hc.r){const k=1-d/(R+hc.r);hc.cond-=T.dmg*0.3*k/hc.def.armor;hc.flash=1;hurtHero(T.dmg*0.15*k,'blast');}}}
+// burning: a few seconds of damage, flames on whoever it is
+function burnTick(dt){const tick=(e,fn)=>{if(!(e.fireT>0))return;e.fireT-=dt;fn();if(Math.random()<dt*18)part({kind:'fire',x:e.x+rand(-6,6),y:e.y+rand(-6,6),vx:rand(-6,6),vy:rand(-6,6),lift:e.kind==='car'?10:6,life:rand(.3,.6),max:.6,size:rand(5,9),grow:-6,drag:2,col:'#ffb347'});
+    if(Math.random()<dt*3)smoke(e.x,e.y,7);};
+  for(const f of G.foes){if(f.dead){f.fireT=0;continue;}tick(f,()=>{if(f.fireBy)f.lastBy=f.fireBy;f.hp-=FIRE_DPS.foe*dt;f.flash=Math.max(f.flash,0.4);if(f.hp<=0)foeDie(f);});}
+  for(const a of G.animals){if(a.state==='dead'){a.fireT=0;continue;}tick(a,()=>{a.hp-=FIRE_DPS.animal*dt;if(a.hp<=0)hitAnimal(a,1,0,0);});}
+  for(const c of G.cars){if(c.wrecked){c.fireT=0;continue;}tick(c,()=>{if(c.fireBy)c.lastBy=c.fireBy;if(c.driver==='raider'){c.engaged=true;c.stab-=22*dt;c.cond-=3*dt;}else c.cond-=4*dt/c.def.armor;if(c.cond<=0)wreckCar(c);});}
+  const h=G.hero;if(heroCar()&&h.fireT>0)h.fireT=0;tick(h,()=>hurtHero(FIRE_DPS.hero*dt,'fire'));
+  if(G.comp&&!G.comp.inCar)tick(G.comp,()=>hurtComp(FIRE_DPS.comp*dt));}
 
 /* ===== factions and reputation =====
    Raiders: the Dust Devils (buggy gangs, west), the Rust Scourge (war-wagon clans, east), the Black Hands (the ranges; nobody deals with them).
@@ -3276,6 +3358,61 @@ for(const k of Object.keys(DLG)){if(!k.endsWith('_start')||['gatekeeper_start','
 Object.assign(DLG,{convoy_start:{text:c=>c.n.convoy.refuse?'“Keep walking. We don’t stop for strangers, and we don’t share.”':'“Fuel? Out here it’s worth more than you are. We’ll sell you some, if you can pay what it’s worth.”',
   opts:[{t:'Show me what you’ve got',if:c=>!c.n.convoy.refuse,do:c=>{const n=c.n;endTalk();n.x=body().x;n.y=body().y;openTrade(n);return null;}},{t:'Fair enough',go:null}]}});
 
+/* ===== property and cars of your own (v10.6) =====
+   Houses and warehouses for sale in towns and cities, bought from the trader (or the publican, where there's no trader) like any
+   other service. A house holds 1,000 kg; a warehouse 10,000 kg and up to eight cars. Buy as many as you like.
+   Standing inside one of yours: a Storage button, and Gear opens its store.
+   Cars: the one you started with is yours, and so is any car you find out in the open country (or a ruin) and get into.
+   A car parked in a town or city belongs to somebody: get in and you have a few seconds to get out again, or the guards come for
+   you and the town's faction thinks less of you. Drive a car of your own into any town and it's still yours. */
+const PROP={house:{name:'house',cap:1000,lo:200,hi:300},warehouse:{name:'warehouse',cap:10000,lo:500,hi:800,cars:8}};
+const THEFT_GRACE=6;   // seconds to get out of somebody else's car
+function props(){const f=G.flags;if(!f.props)f.props={};return f.props;}
+function propKey(o,bi){return 'p'+o.id+'_'+bi;}
+function propBld(P){const o=LOCS[P.loc];return o&&o.bld?o.bld[P.bi]:null;}
+function propPrice(o,bi,type){const T=PROP[type];return T.lo+hash2(o.id*131+7,bi*977+3)%(T.hi-T.lo+1);}
+const compass8=a=>['east','south-east','south','south-west','west','north-west','north','north-east'][Math.round(((a%TAU)+TAU)%TAU/(TAU/8))%8];
+// what's for sale in a town: up to three houses at a time (another comes up when you buy one) and every warehouse; never a ruin, nor
+// anywhere somebody lives or works
+function forSale(o){if(!o||!o.service||!o.bld)return [];const used=new Set();for(const d of o.npcs||[]){if(d.home!=null)used.add(d.home);if(d.work!=null)used.add(d.work);}
+  const P=props(),out=[];let houses=0;
+  const idx=o.bld.map((b,i)=>i).filter(i=>{const b=o.bld[i];return (b.kind==='house'||b.kind==='warehouse')&&!b.ruined&&!b.struct&&!used.has(i)&&!P[propKey(o,i)];});
+  idx.sort((a,b)=>hash2(o.id,a)-hash2(o.id,b));
+  for(const i of idx){const b=o.bld[i];if(b.kind==='house'){if(houses>=3)continue;houses++;}out.push({bi:i,b,type:b.kind,price:propPrice(o,i,b.kind)});}
+  return out;}
+function propOffers(n){const o=n.loc;if(!o||!o.service)return [];const hasTrader=(o.npcs||[]).some(d=>d.role==='trader');if(n.def.role!=='trader'&&!(n.def.role==='publican'&&!hasTrader))return [];
+  return forSale(o).map(s=>{const T=PROP[s.type],side=compass8(Math.atan2(s.b.y-o.y,s.b.x-o.x));
+    return {k:'svc_prop_'+o.id+'_'+s.bi,name:'Buy the '+T.name+' on the '+side+' side of '+o.name+' (stores '+T.cap.toLocaleString('en-AU')+' kg'+(T.cars?' and up to '+T.cars+' cars':'')+')',val:s.price};});}
+function buyProp(k){const m=k.match(/^svc_prop_(\d+)_(\d+)$/);if(!m)return false;const o=LOCS[+m[1]],bi=+m[2],b=o&&o.bld[bi];if(!b)return false;
+  const type=b.kind==='warehouse'?'warehouse':'house',key=propKey(o,bi);if(props()[key])return false;
+  props()[key]={type,loc:o.id,bi,items:{},cars:[]};G.markers.push({id:G.markerSeq++,x:Math.round(b.x),y:Math.round(b.y),text:'Your '+PROP[type].name});
+  SFX.pick();showMsg('The '+PROP[type].name+' is yours. It’s marked on your map. Inside: Storage ('+PROP[type].cap.toLocaleString('en-AU')+' kg)',3.2);return true;}
+function propsIn(o){return Object.values(props()).filter(P=>P.loc===o.id);}
+// standing inside one of your own places (on foot)
+function propHere(){const h=G.hero;if(h.inCar)return null;for(const k in props()){const P=props()[k],b=propBld(P);if(b&&Math.abs(b.x-h.x)<b.w&&Math.abs(b.y-h.y)<b.w&&bInside(b,h.x,h.y,0))return P;}return null;}
+function propName(P){const o=LOCS[P.loc];return 'Your '+PROP[P.type].name+' in '+(o?o.name:'town');}
+// ---- a warehouse's cars: parked in, kept safe out of the weather, driven out again ----
+function carSnap(c){return {id:c.id,type:c.type,fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items||{},canFill:canFill(c.items||{})};}
+function carFromSnap(s,x,y,a){const c=makeCar(s.type,x,y,a,{id:s.id,fuel:s.fuel,cond:s.cond,engine:s.engine,tyres:s.tyres,tw:s.tw,susp:s.susp,items:s.items||{},ups:s.ups||{},touched:true,owned:true});if(s.canFill)setFill(c.items,s.canFill);return c;}
+function carsNearProp(P){const b=propBld(P);if(!b)return [];return G.cars.filter(c=>c.owned&&!c.wrecked&&c.driver!=='hero'&&!c.driver&&Math.hypot(c.x-b.x,c.y-b.y)<Math.max(b.w,b.h)/2+260);}
+function storeCar(P,c){const T=PROP[P.type];if(!T.cars||P.cars.length>=T.cars||!c||!c.owned||c.driver)return false;P.cars.push(carSnap(c));G.cars=G.cars.filter(q=>q!==c);
+  const f=G.flags;f.carGone=f.carGone||{};f.carGone[c.id]=1;if(G.lastCar===c.id)G.lastCar=null;SFX.door();return true;}
+function takeCar(P,i){const s=P.cars[i],b=propBld(P);if(!s||!b)return null;P.cars.splice(i,1);const k=P.cars.length,p=b.L(-b.w/2+40+(k%4)*45,b.h/2+70+Math.floor(k/4)*60);
+  const c=carFromSnap(s,p.x,p.y,b.rot+Math.PI/2);G.cars.push(c);G.lastCar=c.id;SFX.door();return c;}
+// ---- whose car is it? ----
+function carTown(c){if(TEST_MODE)return null;return nearLoc(c.x,c.y,0,l=>l.service&&l.faction&&FACTIONS[l.faction]&&FACTIONS[l.faction].kind!=='raider')||null;}
+// getting in: out in the open it's yours; in a town, unless it's already yours, the clock starts
+function claimCar(c){if(c.owned)return;const o=carTown(c);if(!o){c.owned=true;if(c.id!=='hero0')showMsg(c.def.name+': yours now',2);return;}
+  G.theft={car:c.id,loc:o.id,t:THEFT_GRACE,shown:-1};}
+function theftTick(dt){const T=G.theft;if(!T)return;const c=heroCar();if(!c||c.id!==T.car){G.theft=null;return;}
+  T.t-=dt;const s=Math.ceil(T.t);if(s!==T.shown&&T.t>0){T.shown=s;showMsg('This isn’t your car. Get out in '+s+' second'+(s>1?'s':'')+' or the guards will be onto you',1.2);}
+  if(T.t<=0){G.theft=null;stealCar(c,LOCS[T.loc]);}}
+function stealCar(c,o){c.owned=true;c.stolen=o.id;const day=Math.floor(G.clock/DAY);
+  if(o.faction){changeRep(o.faction,-15);G.flags['assault_'+o.id]=day;}
+  hostileGuards(o);G.fightT=8;showMsg('Car thief! '+o.name+'’s guards are coming for you',2.8);SFX.screech&&SFX.screech();}
+// getting out in time: no harm done
+function theftExit(){if(G.theft){G.theft=null;showMsg('You got out in time. Nobody saw a thing',1.6);}}
+
 /* ===== game state, saving and loading =====
    Everything that matters lives in G. The world itself is rebuilt from fixed seeds,
    so a save only stores what the player changed. */
@@ -3295,7 +3432,7 @@ function newGame(save){
     G.atOutpost=save.at;G.lastNode=save.lastNode??save.at;G.markers=save.markers||[];G.markerSeq=save.markerSeq||G.markers.length+1;G.waypoint=save.waypoint??null;G.stock=save.stock||{};G.removed=new Set(save.removed||[]);G.lastCar=save.lastCar||null;
     G.dest=typeof save.dest==='number'?save.dest:null;
     G.clock=save.clock||8*60;G.boxDelta=save.boxDelta||{};G.flags=save.flags||{};G.rep=save.rep||{};G.townJobs=save.townJobs||{};G.townRep=save.townRep||{};
-    for(const s of save.cars||[])if(CARS[s.type])G.cars.push(makeCar(s.type,s.x,s.y,s.a,{id:s.id,fuel:s.fuel,cond:s.cond,engine:s.engine??100,tyres:s.tyres??100,tw:s.tw,susp:s.susp??100,items:s.items||{},ups:s.ups||{},touched:true}));
+    for(const s of save.cars||[])if(CARS[s.type])G.cars.push(makeCar(s.type,s.x,s.y,s.a,{id:s.id,fuel:s.fuel,cond:s.cond,engine:s.engine??100,tyres:s.tyres??100,tw:s.tw,susp:s.susp??100,items:s.items||{},ups:s.ups||{},touched:true,owned:s.owned??true}));
     for(const s of save.cars||[]){const c=carById(s.id);if(c&&s.canFill)setFill(c.items,s.canFill);}
     G.wreckState=save.wreckState||{};
     const sh=save.hero;G.inside=-1;for(const l of LOCS)if(Math.hypot(sh.x-l.x,sh.y-l.y)<l.rad+400)G.inside=l.id;   // already inside a town: don't greet you again
@@ -3306,7 +3443,7 @@ function newGame(save){
     // park the Tarona on the road into the square, pointing out of town, with you beside the driver's door
     const o=LOCS[START],R=roads[o.links[0].road],dir=o.links[0].dir,i=dir>0?4:R.n-5,j=dir>0?8:R.n-9;
     const a=Math.atan2(R.ys[j]-R.ys[i],R.xs[j]-R.xs[i]),cx=R.xs[i],cy=R.ys[i];
-    G.cars.push(makeCar('radiant',cx,cy,a,{id:'hero0',touched:true,items:{water:2,beans:2,toolkit:1,bandage:1,scrap:1,tyreiron:1,jerrycan:1,hose:1}}));G.lastCar='hero0';
+    G.cars.push(makeCar('radiant',cx,cy,a,{id:'hero0',touched:true,owned:true,items:{water:2,beans:2,toolkit:1,bandage:1,scrap:1,tyreiron:1,jerrycan:1,hose:1}}));G.lastCar='hero0';
     G.hero.x=cx-Math.sin(a)*34;G.hero.y=cy+Math.cos(a)*34;G.hero.a=a;
   }
   learnAround(LOCS[G.atOutpost]);
@@ -3319,7 +3456,7 @@ function learnAround(o){G.known.add(o.id);for(const l of o.links)G.known.add(l.t
 // bring generated cars and loot near the player into the world; drop untouched ones far away (they regenerate)
 function syncCars(){
   const b=body(),cx=Math.floor(b.x/CH),cy=Math.floor(b.y/CH),have=new Set(G.cars.map(c=>c.id));
-  const add=s=>{if(have.has(s.id)||G.removed.has(s.id))return;have.add(s.id);
+  const add=s=>{if(have.has(s.id)||G.removed.has(s.id)||(G.flags.carGone&&G.flags.carGone[s.id]))return;have.add(s.id);
     // parts wear roughly in line with the body; the boot holds whatever the last owner left
     const h=hash2(s.id.length*977,s.id.charCodeAt(1)*31+s.id.charCodeAt(s.id.length-1)),rr=rng(h^s.x|0);
     const near=v=>clamp(v+(rr()-0.5)*40,5,100);
@@ -3342,7 +3479,7 @@ function saveData(){
   return {v:5,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
     removed:[...G.removed].slice(-800),lastCar:G.lastCar,
     kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
-    cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items)}))};
+    cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items),owned:!!c.owned}))};
 }
 // ---- saving is to files only (see the save-file code in the UI). Anything the old save slots left on a device is left alone, unused. ----
 function placeLabel(){const b=body();let best=null,bd=250000;for(const l of LOCS){const d=Math.hypot(l.x-b.x,l.y-b.y);if(d<bd){bd=d;best=l;}}
@@ -3363,7 +3500,7 @@ window.addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='TEXTAREA'
   if((e.code==='KeyP'||e.code==='Escape')&&state!=='talk'){if(state==='map')closeMap();else togglePause();}
   if(e.code==='KeyM'){if(state==='map')closeMap();else openMap();}
   if(e.code==='KeyI'){if(state==='inv')closeInv();else if(state==='play')openInv(null);}
-  if(e.code==='KeyK'){if(state==='inv'&&skillsMode)closeInv();else if(state==='play')openSkills();}
+  if(e.code==='KeyL'){if(state==='inv'&&skillsMode)closeInv();else if(state==='play')openSkills();}
   if(state==='talk'){const m=e.code.match(/^(Digit|Numpad)([1-9])$/);if(m)chooseOpt(+m[2]-1);if(e.code==='Escape')endTalk();}
   if(state==='play'&&(e.code==='Equal'||e.code==='NumpadAdd')){setZoom(SETTINGS.zoom*1.15);saveSettings();}
   if(state==='play'&&(e.code==='Minus'||e.code==='NumpadSubtract')){setZoom(SETTINGS.zoom/1.15);saveSettings();}
@@ -3785,7 +3922,7 @@ function doBedRest(hours,bed){const h=G.hero,rate=bedRate(bed),risk=bedRisk(bed)
 // ---- gear (inventory) screen ----
 let invOther=null;
 function openInv(other){if(state!=='play')return;
-  const mine=carById(G.lastCar),car=heroCar()||(mine&&!mine.wrecked&&Math.hypot(mine.x-G.hero.x,mine.y-G.hero.y)<mine.r+60?mine:nearestCar(50));invOther=other||(car?{kind:'car',car}:null);   // in the car, or standing beside it: its boot, and fitting parts to it
+  const mine=carById(G.lastCar),car=heroCar()||(mine&&!mine.wrecked&&Math.hypot(mine.x-G.hero.x,mine.y-G.hero.y)<mine.r+60?mine:nearestCar(50)),home=!other&&propHere();invOther=other||(home?{kind:'store',prop:home}:car?{kind:'car',car}:null);   /* Gear at home: your store */   // in the car, or standing beside it: its boot, and fitting parts to it
   if(invOther&&invOther.kind==='box'){const bx=invOther.box;boxItems(bx);
     // Mick has an eye for things other people miss
     if(G.comp&&compAbility(G.comp)==='scrounger'&&!G.comp.inCar&&!bx.scrounged){bx.scrounged=true;const extra=genLoot(bx.table||'ruin',(Math.random()*1e9)|0,1,bx.biome);
@@ -3821,10 +3958,10 @@ function renderWork(){let html='';
   html+='<h3>Standing with the towns</h3>'+(towns.length?'<div class="stats">Each job done for a town raises your standing there. The more they trust you, the better the pay; after six or seven jobs they’ve nothing left for you, and it’s time to move on.</div>'+
     towns.map(id=>{const n=G.townJobs[id]||0,cap=townJobCap(id);return standBar(LOCS[id].name,townStanding(id),false,'('+n+' of '+cap+' jobs)');}).join(''):'<div class="stats">You haven’t worked for any town yet.</div>');
   $('invBody').innerHTML=html;}
-function otherInv(){if(!invOther)return null;if(invOther.kind==='comp')return G.comp?G.comp.inv:null;return invOther.kind==='car'?invOther.car.items:invOther.box.items;}
-function otherCap(){return invOther&&invOther.kind==='car'?carCap(invOther.car):invOther&&invOther.kind==='comp'?heroCap():undefined;}
-function otherTouched(){if(!invOther)return;if(invOther.kind==='comp')compPackChanged();else if(invOther.kind==='car')invOther.car.touched=true;else boxChanged(invOther.box);}
-function otherName(){if(!invOther)return '';if(invOther.kind==='comp')return G.comp?G.comp.def.name+'’s pack':'';if(invOther.kind==='car')return 'Boot of the '+invOther.car.def.name+(invOther.car.id===G.lastCar?' (your car)':' (not your car)');
+function otherInv(){if(!invOther)return null;if(invOther.kind==='store')return invOther.prop.items;if(invOther.kind==='comp')return G.comp?G.comp.inv:null;return invOther.kind==='car'?invOther.car.items:invOther.box.items;}
+function otherCap(){if(invOther&&invOther.kind==='store')return PROP[invOther.prop.type].cap;return invOther&&invOther.kind==='car'?carCap(invOther.car):invOther&&invOther.kind==='comp'?heroCap():undefined;}
+function otherTouched(){if(!invOther||invOther.kind==='store')return;if(invOther.kind==='comp')compPackChanged();else if(invOther.kind==='car')invOther.car.touched=true;else boxChanged(invOther.box);}
+function otherName(){if(!invOther)return '';if(invOther.kind==='store')return propName(invOther.prop);if(invOther.kind==='comp')return G.comp?G.comp.def.name+'’s pack':'';if(invOther.kind==='car')return 'Boot of the '+invOther.car.def.name+(invOther.car.id===G.lastCar?' (your car)':' (not your car)');
   return {crate:'Wooden crate',locker:'Rusted locker',esky:'Old esky',bag:'Raider’s bag'}[invOther.box.kind];}
 function invCar(){return heroCar()||(invOther&&invOther.kind==='car'?invOther.car:null);}
 function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
@@ -3850,6 +3987,9 @@ function renderInv(){$('invTitle').textContent=skillsMode?'Skills':journalMode?'
   const mine=Object.keys(h.inv);html+=mine.length?mine.map(k=>itemRow(k,h.inv[k],'me')).join(''):'<div class="empty">Nothing but the clothes on your back.</div>';
   if(o){const cap=otherCap();html+='<h3>'+otherName()+'<small>'+(cap!==undefined?invWeight(o)+' of '+cap+' kg':'')+'</small></h3>';
     const ks=Object.keys(o);html+=ks.length?ks.map(k=>itemRow(k,o[k],'other')).join('')+'<div class="irow"><span class="nm"></span><button class="go" data-a="takeevery">Take everything that fits</button></div>':'<div class="empty">Empty.</div>';}
+  if(invOther&&invOther.kind==='store'&&PROP[invOther.prop.type].cars){const P=invOther.prop,T=PROP[P.type];   /* a warehouse's cars (v10.6) */
+    html+='<h3>Cars in the warehouse<small>'+P.cars.length+' of '+T.cars+'</small></h3>';html+=P.cars.length?P.cars.map((s,i)=>'<div class="irow"><span class="nm">'+CARS[s.type].name+'<small>fuel '+Math.round(s.fuel)+'%, body '+Math.round(s.cond)+'%</small></span><button class="go" data-a="wtake" data-k="'+i+'">Drive it out</button></div>').join(''):'<div class="empty">None yet. Park a car of yours by the warehouse and put it away here.</div>';
+    const near=carsNearProp(P);for(const c of near)html+='<div class="irow"><span class="nm">'+c.def.name+'<small>parked outside</small></span><button data-a="wstore" data-k="'+c.id+'"'+(P.cars.length>=T.cars?' disabled':'')+'>Put it away</button></div>';}
   if(car){html+='<h3>'+car.def.name+'<small>fuel '+Math.round(car.fuel)+'%'+(hasTool(car)?', toolkit to hand':', no toolkit')+'</small></h3>';
     const probs=carProblems(car);if(probs.length)html+='<div class="stats" style="color:#ffb38a">'+probs.join('. ')+'.</div>';
     {const pb=partsBonus(car),fitted=Object.keys(car.ups||{}).filter(k=>SPEEDPARTS[k]).map(k=>SPEEDPARTS[k].name+(car.ups[k]===2?' (twin)':''));html+='<div class="stats">Engine: '+carMotor(car).name+(fitted.length?'; '+fitted.join(', '):'')+'. Top speed +'+(pb.spd*100).toFixed(1)+'%, fuel use +'+(pb.fuel*100).toFixed(1)+'%.</div>';}
@@ -3861,10 +4001,13 @@ function renderInv(){$('invTitle').textContent=skillsMode?'Skills':journalMode?'
   const bench=atWorkbench(),st=myStores();
   html+='<h3>Make things<small>'+(bench?'at the workbench in this '+bench.kind:'workbench recipes need a garage, shed, servo or store')+'</small></h3>';
   RECIPES.forEach((r,i)=>{const need=Object.keys(r.needs).map(k=>{const have=countIn(st,k),ok=have>=r.needs[k];return '<span style="color:'+(ok?'#b9d27a':'#ff9a7a')+'">'+ITEMS[k].name.toLowerCase()+' '+have+'/'+r.needs[k]+'</span>';}).join(', ');
-    const can=canCraft(r);html+='<div class="irow"><i style="background:'+ITEMS[r.make].icon+'"></i><span class="nm">'+ITEMS[r.make].name+(r.qty>1?' ×'+r.qty:'')+(r.bench?' <small>(workbench)</small>':'')+'<br><small>'+need+'</small></span><button data-a="craft" data-k="'+i+'"'+(can?'':' disabled')+'>Make</button></div>';});
+    const fuelTxt=r.fuel?', <span style="color:'+(craftFuel()>=r.fuel?'#b9d27a':'#ff9a7a')+'">a splash of petrol ('+r.fuel+'% of a tank, from a jerry can or your car)</span>':'';
+    const can=canCraft(r);html+='<div class="irow"><i style="background:'+ITEMS[r.make].icon+'"></i><span class="nm">'+ITEMS[r.make].name+(r.qty>1?' ×'+r.qty:'')+(r.bench?' <small>(workbench)</small>':'')+'<br><small>'+need+fuelTxt+'</small></span><button data-a="craft" data-k="'+i+'"'+(can?'':' disabled')+'>Make</button></div>';});
   $('invBody').innerHTML=html;}
 function invClick(e){const btn=e.target.closest&&e.target.closest('button');if(!btn)return;e.stopPropagation();
   const a=btn.dataset.a,k=btn.dataset.k,h=G.hero,o=otherInv(),car=invCar();
+  if(a==='wstore'){if(storeCar(invOther.prop,carById(k)))showMsg('Put away safe in the warehouse',1.4);renderInv();return;}
+  if(a==='wtake'){const c=takeCar(invOther.prop,+k);if(c)showMsg(c.def.name+': parked outside the warehouse',1.6);renderInv();return;}
   if(a==='skill'){const s=SKILLS.find(q=>q.id===k);if(raiseSkill(k)){SFX.pick();showMsg(s.name+': level '+skill(k),1.6);}renderInv();return;}
   if(a==='use'){const inv=btn.dataset.s==='me'?h.inv:o;if(useItem(k,inv,car)&&btn.dataset.s!=='me')otherTouched();}
   else if(a==='craft'){const r=RECIPES[+k];if(r&&craft(r))showMsg('Made '+ITEMS[r.make].name.toLowerCase()+(r.qty>1?' ×'+r.qty:''),1.4);}
@@ -6622,6 +6765,7 @@ function particles3(b){const ox=Math.round(b.x),oz=Math.round(b.y),N=[0,0],tgt=[
     else if(q.kind==='debris'){y=q.gy+4+q.up*age-140*age*age;if(y<q.gy+1){y=q.gy+1;}a=Math.min(1,f*2);sz=Math.max(1.6,sz*1.2);}   // bits arc up and fall back to the ground
     else if(q.kind==='dust'){y=q.gy+3+sz*0.25+age*12+Math.sin((q.ph||0)+age*2)*2;a=f*f*(3-2*f)*0.34*Math.min(1,age/0.45);sz*=1.25;}   // fading away gently at the end, not all at once   // dust rolls out low and spreads: thin where it's kicked up, thicker behind
     else if(q.kind==='smoke'){y=q.gy+(q.lift||8)+(q.heavy?age*22-age*age*1.6:age*24)*(0.8+(q.wf||1)*0.3);a=Math.pow(f,0.7)*f*(3-2*f)*(q.heavy?0.9:0.62)*(q.plume?0.5*Math.min(1,age/1.1):1)*Math.min(1,age/0.25);}   // fades gently as it thins out   // smoke climbs; a raider's dust plume is see-through near the vehicle
+    else if(q.kind==='thrown'){y=q.gy+(q.lift||0);a=1;sz=Math.max(3.2,sz*1.6);}   // a bottle or a pipe bomb in flight (v10.6)
     else if(q.kind==='fire'){y=q.gy+(q.lift||5)+age*22;a=f;if(f<0.5)col=fxCol3('#c2381f');}
     else{y=q.gy+10+age*30-age*age*90;a=f;sz=Math.max(2.5,sz*1.4);}   // sparks arc and fall
     if(!add&&dk>0.3)col=col.map(v=>v*(1-dk*0.6));   // dust and smoke darken with the night; flames don't
@@ -6764,7 +6908,7 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
   if(!heroCar())heroVsCars();
   navBudget=2;for(const n of G.npcs)updateNPC(n,dt);npcContacts();
   if(car&&car.speed>20)addNoise(car.x,car.y,150+car.speed*0.8);   // engines carry a long way out here
-  updateWildlife(dt);for(const f of G.foes)updateFoe(f,dt);updateComp(dt);stepBullets(dt);G.fightT-=dt;
+  updateWildlife(dt);for(const f of G.foes)updateFoe(f,dt);updateComp(dt);stepBullets(dt);stepThrows(dt);theftTick(dt);G.fightT-=dt;
   if(compOnFoot()){const cp=G.comp;for(const c of G.cars){if(c.speed<110||c===car)continue;const d=Math.hypot(cp.x-c.x,cp.y-c.y);if(d<c.r+cp.r){hurtComp((c.speed-80)*0.3);const l=d||1;cp.x+=(cp.x-c.x)/l*12;cp.y+=(cp.y-c.y)/l*12;}}}
   if(!heroCar())for(const f of G.foes){if(f.dead)continue;const dx=f.x-h.x,dy=f.y-h.y,d=Math.hypot(dx,dy),m=f.r+h.r;if(d<m&&d>1e-4){f.x+=dx/d*(m-d)*0.5;f.y+=dy/d*(m-d)*0.5;h.x-=dx/d*(m-d)*0.5;h.y-=dy/d*(m-d)*0.5;}}
   for(const f of G.foes){if(f.dead)continue;for(const c of G.cars){if(c.speed<60)continue;const d=Math.hypot(f.x-c.x,f.y-c.y);   // cars hit people on foot
@@ -6843,7 +6987,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
