@@ -196,7 +196,7 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
     <small id="clock"></small>
     <small id="wiped"></small>
     <small id="dbg"></small>
-    <div class="hbtns"><button id="zoomBtn" class="hidden">Reset zoom</button><button id="toolsBtn" class="hidden">Tools</button><button id="journalBtn">Journal</button><button id="workBtn">Work</button><button id="gearBtn">Gear</button><button id="mapBtn">Map</button><button id="pauseBtn">Pause</button></div>
+    <div class="hbtns"><button id="zoomBtn" class="hidden">Reset zoom</button><button id="toolsBtn" class="hidden">Tools</button><button id="skillsBtn">Skills</button><button id="journalBtn">Journal</button><button id="workBtn">Work</button><button id="gearBtn">Gear</button><button id="mapBtn">Map</button><button id="pauseBtn">Pause</button></div>
   </div>
 </div>
 <div id="msg"></div>
@@ -234,28 +234,28 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
     <p id="sSub"></p>
     <div id="sStats"></div>
     <div id="sBtns"></div>
-    <p class="controls" id="sCtl">On foot: arrows or WASD to walk, Shift to run, E to get in a car.<br>Driving: arrows or WASD, B to brake, Down to reverse, G to shoot if you have a gun, Down plus a turn to slide, Shift to boost, E to get out.<br>F searches crates and car boots, R pours a jerrycan into a car, T patches it with scrap, Q drinks, C eats, Z sleeps in a stopped car, X talks to people, I opens your gear.<br>Combat: Space attacks, V sneaks. Equip weapons in your gear. Hit an unaware raider from behind for a takedown. Pinch with two fingers (or + and −) to zoom the view, and tap Reset zoom to go back. M opens the map (drag to pan, pinch or +/− to zoom, tap a place to plan a route), P pauses.<br>Touch: drag anywhere on the right side to move or steer; all action buttons are on the left.</p>
+    <p class="controls" id="sCtl">On foot: arrows or WASD to walk, Shift to run, E to get in a car.<br>Driving: arrows or WASD, B to brake, Down to reverse, G to shoot if you have a gun, Down plus a turn to slide, Shift to boost, E to get out.<br>F searches crates and car boots, R pours a jerrycan into a car, T patches it with scrap, Q drinks, C eats, Z sleeps in a stopped car, X talks to people, I opens your gear, K your skills.<br>Combat: Space attacks, V sneaks. Equip weapons in your gear. Hit an unaware raider from behind for a takedown. Pinch with two fingers (or + and −) to zoom the view, and tap Reset zoom to go back. M opens the map (drag to pan, pinch or +/− to zoom, tap a place to plan a route), P pauses.<br>Touch: drag anywhere on the right side to move or steer; all action buttons are on the left.</p>
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=10.3"></script>
-<script src="models/84-hero-model.js?v=10.3"></script>
-<script src="models/84b-hero-body.js?v=10.3"></script>
-<script src="models/84c-buggy-model.js?v=10.3"></script>
-<script src="models/84d-tarona-model.js?v=10.3"></script>
-<script src="models/84e-wall-model.js?v=10.3"></script>
-<script src="models/84f-plant-models.js?v=10.3"></script>
-<script src="models/84g-kestrel-model.js?v=10.3"></script>
-<script src="models/84h-building-models.js?v=10.3"></script>
-<script src="models/84i-building-models2.js?v=10.3"></script>
-<script src="models/84j-f100-model.js?v=10.3"></script>
-<script src="models/84l-kingsford-model.js?v=10.3"></script>
-<script src="models/84m-wagon-model.js?v=10.3"></script>
+<script src="models/21b-mesa-models.js?v=10.4"></script>
+<script src="models/84-hero-model.js?v=10.4"></script>
+<script src="models/84b-hero-body.js?v=10.4"></script>
+<script src="models/84c-buggy-model.js?v=10.4"></script>
+<script src="models/84d-tarona-model.js?v=10.4"></script>
+<script src="models/84e-wall-model.js?v=10.4"></script>
+<script src="models/84f-plant-models.js?v=10.4"></script>
+<script src="models/84g-kestrel-model.js?v=10.4"></script>
+<script src="models/84h-building-models.js?v=10.4"></script>
+<script src="models/84i-building-models2.js?v=10.4"></script>
+<script src="models/84j-f100-model.js?v=10.4"></script>
+<script src="models/84l-kingsford-model.js?v=10.4"></script>
+<script src="models/84m-wagon-model.js?v=10.4"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='10.3';
+const VERSION='10.4';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1081,7 +1081,7 @@ function onRoadAt(c){const s=surfaceAt(c.x,c.y);c.ri=s.ri;c.onRoad=s.on;c.surf=s
 // exhaust, a blower), but never more than 60%, so a climb always costs something. The stock Hold'em 202: none.
 function hillPull(c){if(!c.ups)return 0;const p=(typeof partsBonus==='function'?partsBonus(c).spd:0)+(c.ups.blower?0.12:0);return Math.min(0.6,p*3);}
 function driveCar(c,thr,steer,dt,boost,drift){
-  const d=c.def,on=c.onRoad,S=c.surf||ROADCLS.highway,um=upMods(c),offMax=clamp((d.off*(c.biome?c.biome.off:1)+um.off)*(c.terr===T.DRY?0.8:1),0.3,1);   // soft sand in a dry riverbed drags at the wheels
+  const d=c.def,on=c.onRoad,S=c.surf||ROADCLS.highway,um=upMods(c),hs=c.driver==='hero',offMax=clamp((d.off*(c.biome?c.biome.off:1)+um.off+(hs?skill('offroad')*SK_OFF:0))*(c.terr===T.DRY?0.8:1),0.3,1);   /* Off-road skill (v10.4) */   // soft sand in a dry riverbed drags at the wheels
   const suspF=0.7+0.3*Math.min(1,c.susp/100),rough=!on||S!==ROADCLS.highway,fl=flats(c),brokenSprings=c.susp<=0;   // worn springs hurt on rough ground
   const sMax=(on?Math.max(S.max,offMax):offMax)*(brokenSprings?0.7:rough?suspF:1)*Math.max(0.2,1-0.2*fl),   // broken springs: −30%; each flat: −20%
     sAcc=on?S.acc:0.5+offMax*0.45,sDrag=on?S.drag:1+(1-offMax)*3;
@@ -1090,7 +1090,7 @@ function driveCar(c,thr,steer,dt,boost,drift){
   let vf=c.vx*fx+c.vy*fy,vr=c.vx*rx+c.vy*ry;
   let sl=slopeFactor(c.x,c.y,c.speed>20?c.vx:Math.cos(c.a),c.speed>20?c.vy:Math.sin(c.a),true);   // hills: slower uphill, a little quicker down
   if(sl<1)sl=1-(1-sl)*(1-hillPull(c));   // a more powerful engine loses less speed on a climb
-  const max=c.maxSpeed*sMax*health*um.max*sl*(on&&S===ROADCLS.highway?um.hwy:1)*(boost?1.4:1);
+  const max=c.maxSpeed*sMax*health*um.max*sl*(on&&S===ROADCLS.highway?um.hwy:1)*(on&&hs?1+skill('road')*SK_ROADSPD:1)*(boost?1.4:1);   /* Roadcraft */
   if(c.cruise){   // the stick held part-way: hold that fraction of top speed instead of creeping up to full
     const want=max*c.cruise;if(vf<want)vf=Math.min(want,vf+c.acc*um.acc*sAcc*(0.35+0.65*c.cruise)*(0.5+0.5*Math.min(1,c.engine/50))*dt);else vf+=(want-vf)*Math.min(1,dt*1.5);}
   else if(thr>=0){if(vf<max)vf=Math.min(max,vf+thr*c.acc*um.acc*sAcc*(0.5+0.5*Math.min(1,c.engine/50))*(boost?1.6:1)*dt);}
@@ -1197,7 +1197,7 @@ function carPair(a,b){
     const vp=p.vx*px+p.vy*py,ve=-(e.vx*px+e.vy*py);
     const pm=upMods(p),nose=(Math.cos(p.a)*px+Math.sin(p.a)*py)>0.5;
     if(e.mode!=='swipe'&&vp>=ve){ // you hit them: a roo bar adds to rams, spiked hubs to side-swipes
-      e.stab-=imp*0.75*e.soft*(nose?pm.ram:pm.swipe);e.stagger=0.55;p.cond-=Math.max(0,imp-90)*0.02/p.def.armor/pm.armor;
+      e.stab-=imp*0.75*e.soft*(nose?pm.ram:pm.swipe)*(1+skill('warrior')*SK_SHOVE);   /* Road Warrior */e.stagger=0.55;p.cond-=Math.max(0,imp-90)*0.02/p.def.armor/pm.armor;
       if(imp>90)popText(e.x,e.y-22,'Shoved','#efe2c4');
     } else {                        // they hit you
       e.stab-=imp*0.1*e.soft;p.stagger=0.35;p.cond-=Math.max(0,imp-40)*0.026*Math.sqrt(e.mass)/p.def.armor/pm.armor;p.flash=1;
@@ -1220,7 +1220,7 @@ function burnOut(c){const raider=c.driver==='raider'||c.wasRaider||!!c.fac&&!c.c
   for(let i=0;i<(c.burn>0?(raider?5:12):0);i++){const a=Math.random()*TAU,s=rand(20,90);part({kind:'fire',x:c.x,y:c.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.4,.9),max:.9,size:rand(8,14),grow:-6,drag:3,col:'#ffb347'});}   // the fire takes hold
   SFX.hit(0.5);}
 function wreckCar(c){
-  if(c.wrecked)return;burnOut(c);G.removed.add(c.id);if(c.convoy&&invCount(c.items)){G.boxes.push({id:'cg'+c.id,kind:'crate',x:c.x+rand(-20,20),y:c.y+rand(-20,20),items:c.items,persist:false,transient:true});c.items={};}   // the cargo, spilt
+  if(c.wrecked)return;if(c.driver==='raider'&&!c.skDone){c.skDone=true;skillPoints(1,'enemy vehicle');}burnOut(c);G.removed.add(c.id);if(c.convoy&&invCount(c.items)){G.boxes.push({id:'cg'+c.id,kind:'crate',x:c.x+rand(-20,20),y:c.y+rand(-20,20),items:c.items,persist:false,transient:true});c.items={};}   // the cargo, spilt
   if(c.driver==='hero'){exitCar(true);hurtHero(25,'wreck');showMsg('Thrown clear of the wreck',2.4);}
   c.driver=null;
 }
@@ -1627,7 +1627,7 @@ function hurtHero(n,src){if(n<=0||G.god)return;if(window.__dmg)window.__dmg[src|
   const h=G.hero,A=heroArmour();if(A)n*=1-A.cut;h.hp-=n;h.flash=1;maybeInjure(n,src);G.hurt=Math.min(1,G.hurt+n/25);G.shake=Math.max(G.shake,Math.min(16,3+n*0.5));}
 function updateHeroOnFoot(dt,inp){
   // walking pace is deliberately unhurried
-  const h=G.hero,A=heroArmour(),lg=injFx().walk,sp=(h.crouch?28:inp.sprint?100*(1-(A?A.slow:0)):58)*lg,k=Math.min(1,dt*10);h.atkCd-=dt;h.swing=Math.max(0,h.swing-dt);   // cooldowns run on foot; driveHero runs them in the car
+  const h=G.hero,A=heroArmour(),lg=injFx().walk,sp=(h.crouch?28:inp.sprint?100*(1+skill('athlete')*SK_RUN)*(1-(A?A.slow:0)):58)*lg,k=Math.min(1,dt*10);h.atkCd-=dt;h.swing=Math.max(0,h.swing-dt);   // cooldowns run on foot; driveHero runs them in the car
   const sf=slopeFactor(h.x,h.y,inp.mx,inp.my,false)*(terrainAt(h.x,h.y)===T.DRY?0.85:1);   // climbing is slow going, and so is soft sand
   h.vx+=(inp.mx*sp*sf-h.vx)*k;h.vy+=(inp.my*sp*sf-h.vy)*k;
   h.x+=h.vx*dt;h.y+=h.vy*dt;h.speed=Math.hypot(h.vx,h.vy);
@@ -1735,7 +1735,7 @@ function heroHpCap(){return Math.max(10,Math.round(100-heroCapLoss()));}
 // the side effects of what you have, one lot per kind
 function injFx(){const kinds=[...new Set(heroInj().map(i=>i.type))],fx={wobble:0,weapon:1,carry:1,walk:1,view:null};
   for(const k of kinds){const e=INJURIES[k]&&INJURIES[k].fx;if(!e)continue;if(e.wobble)fx.wobble=1;if(e.weapon)fx.weapon*=e.weapon;if(e.carry)fx.carry*=e.carry;if(e.walk)fx.walk*=e.walk;if(e.view)fx.view=e.view;}return fx;}
-function heroCap(){return Math.round(HERO_CAP*injFx().carry*10)/10;}   // how much you can carry
+function heroCap(){return Math.round(HERO_CAP*(1+skill('strength')*SK_CARRY)*injFx().carry*10)/10;}   // how much you can carry
 function injure(src,type){const h=G.hero;type=type||Object.keys(INJURIES)[Math.floor(Math.random()*Object.keys(INJURIES).length)];const I=INJURIES[type];
   heroInj().push({type,rating:I.rating,when:G.clock,src});h.capLoss=(h.capLoss||0)+I.rating;h.hp=Math.max(1,Math.min(h.hp-I.rating,heroHpCap()));
   showMsg('Injured: '+I.name.toLowerCase()+'. Your health can’t go above '+heroHpCap()+'% until a doctor sees to it',3.2);SFX.hit&&SFX.hit(0.8);h.flash=1;return type;}
@@ -1823,7 +1823,7 @@ function makeRaider2(type,x,y,a,v,d){
 function startWipe(e){if(e.wipe>0||e.dead||e.driver!=='raider')return;if(window.__stats){const k='wipe_'+(e.ri&&e.ri.d>e.ri.w/2+18?'offroad':'')+(e.lastHit||'');window.__stats[k]=(window.__stats[k]||0)+1;}e.wipe=1.2;e.spin=(Math.random()<0.5?-1:1)*rand(5,9);e.stab=0;
   popText(e.x,e.y-26,'Wiped out','#f2a03d');SFX.screech();}
 // after the spin: half the time it burns, half the time the driver legs it and leaves the car
-function finishWipe(e){G.wiped++;e.wasRaider=true;if(e.convoy)changeRep(e.fac,-5);else raiderDown(e.fac);if(e.jobBoss)jobBossDown(e.jobBoss);
+function finishWipe(e){G.wiped++;if(!e.convoy&&!e.skDone){e.skDone=true;skillPoints(1,'enemy vehicle');}e.wasRaider=true;if(e.convoy)changeRep(e.fac,-5);else raiderDown(e.fac);if(e.jobBoss)jobBossDown(e.jobBoss);
   const bag=(x,y)=>G.boxes.push({id:'rb'+(raiderSeq++),kind:'bag',x,y,table:'raider',rolls:e.type==='brute'?3:2,seed:(Math.random()*1e9)|0,persist:false,transient:true});
   if(Math.random()<0.5){e.driver=null;e.wipe=0;burnOut(e);e.vx*=0.3;e.vy*=0.3;e.speed=0;if(Math.random()<0.75)bag(e.x+rand(-30,30),e.y+rand(-30,30));}   // burnt out where it stopped (no explosion)
   else{const lf=spawnLooseFoe(e.x+rand(-30,30),e.y+rand(-30,30),Math.random()<0.6);if(lf)lf.fac=e.fac;  // the driver climbs out, dazed: some fight, some run
@@ -2119,8 +2119,8 @@ function hitAnimal(a,dmg,kx,ky){if(a.state==='dead')return;a.hp-=dmg;a.flash=1;a
 function killAnimal(a,vx,vy,how){a.state='dead';a.hp=0;a.vx=vx||0;a.vy=vy||0;a.rot=0;a.how=how||'kill';a.butchered=false;
   if(a.mob)for(const o of G.animals)if(o!==a&&o.mob===a.mob)spook(o,a.x,a.y);}
 function carcassNear(r){const h=G.hero;let best=null,bd=r;for(const a of G.animals||[]){if(a.state!=='dead'||a.butchered)continue;const d=Math.hypot(a.x-h.x,a.y-h.y);if(d<bd){bd=d;best=a;}}return best;}
-function butcher(a){if(!a||a.butchered)return;a.butchered=true;G.clock+=a.sp==='roo'?20:10;giveItem(a.S.meat,a.S.meatN);SFX.pick();
-  showMsg('Butchered the '+a.S.name+': '+(a.S.meatN>1?a.S.meatN+' × ':'')+ITEMS[a.S.meat].name.toLowerCase(),2.2);}
+function butcher(a){if(!a||a.butchered)return;a.butchered=true;G.clock+=a.sp==='roo'?20:10;const mx=a.S.meatN*skill('bush')*SK_MEAT,n=a.S.meatN+Math.floor(mx)+(Math.random()<mx%1?1:0);giveItem(a.S.meat,n);SFX.pick();   /* Bushcraft: more meat (v10.4) */
+  showMsg('Butchered the '+a.S.name+': '+(n>1?n+' × ':'')+ITEMS[a.S.meat].name.toLowerCase(),2.2);}
 
 /* ===== townsfolk: daily routines, walking in and out of buildings ===== */
 const ROLE_LABEL={passenger:'passenger',gatekeeper:'gatekeeper',drifter:'drifter',wanderer:'drifter',companion:'companion',publican:'publican',mechanic:'mechanic',doctor:'doctor',guard:'guard',settler:'settler',trader:'trader',scavenger:'scavenger'};
@@ -2419,7 +2419,7 @@ function losClear(x1,y1,x2,y2){const d=Math.hypot(x2-x1,y2-y1),o=nearLoc((x1+x2)
     if(i%2===0){const rk=obstacleAt(x,y,0);if(rk&&rk.r>26)return false;if(insideMesa(x,y)||inShellWall(x,y))return false;}}
   return true;}
 function nearDoor(b,x,y){const [lx,ly]=bLocal(b,x,y);return Math.abs(lx)<b.door/2+2&&ly>b.h/2-14;}
-function sightRange(t){const h=G.hero,car=t.kind==='car';return (isNight()?150:290)*(car?1.7:h.crouch?0.62:1)*(typeof stormSight==='function'?stormSight():1);}   // a dust storm hides you
+function sightRange(t){const h=G.hero,car=t.kind==='car';return (isNight()?150:290)*(car?1.7:h.crouch?0.62*skSneak(skill('stealth')):1)*(typeof stormSight==='function'?stormSight():1);}   // a dust storm hides you
 function canSee(f,t){const dx=t.x-f.x,dy=t.y-f.y,d=Math.hypot(dx,dy);if(d>sightRange(t))return false;
   if(d>15&&Math.abs(angDiff(Math.atan2(dy,dx),f.a))>0.95)return false;   // a cone of about 110 degrees; only bumping into them gives you away
   return losClear(f.x,f.y,t.x,t.y);}
@@ -2471,10 +2471,11 @@ function updateFoe(f,dt){
 function missChance(W,dist){return clamp(dist/W.range*0.9-0.08,0.03,0.85);}   // point blank: almost always hits; at the edge of range: mostly misses
 function fireWeapon(src,W,a,extraSpread,dist,tr){const sx=src.x+Math.cos(a)*14,sy=src.y+Math.sin(a)*14;
   const armHurt=(src===G.hero||src.driver==='hero')&&injFx().weapon<1;   // a broken arm: wilder aim
-  for(let i=0;i<W.pellets;i++){let aa=a+(Math.random()-0.5)*(W.spread+(extraSpread||0)+(armHurt?0.08:0))*2;const sp=W.bow?680:W.pellets>1?820:1100;
+  const skl=heroSrc(src)?skill(W.bow?'bows':'guns'):0,spM=skSpreadMul(skl),msM=skAimMul(skl);   /* Firearms, Bows (v10.4) */
+  for(let i=0;i<W.pellets;i++){let aa=a+(Math.random()-0.5)*(W.spread*spM+(extraSpread||0)+(armHurt?0.08:0))*2;const sp=W.bow?680:W.pellets>1?820:1100;
     // a single bullet at a known distance: decide hit or miss, and a miss goes clear of the target
-    if(W.pellets===1&&dist>0){if(Math.random()<missChance(W,dist))aa=a+(Math.random()<0.5?-1:1)*(Math.asin(Math.min(1,((tr||10)+10)/dist))+Math.random()*0.08);
-      else aa=a+(Math.random()-0.5)*Math.min(W.spread,Math.atan2((tr||10)*0.6,dist))*2;}
+    if(W.pellets===1&&dist>0){if(Math.random()<missChance(W,dist)*msM)aa=a+(Math.random()<0.5?-1:1)*(Math.asin(Math.min(1,((tr||10)+10)/dist))+Math.random()*0.08);
+      else aa=a+(Math.random()-0.5)*Math.min(W.spread*spM,Math.atan2((tr||10)*0.6,dist))*2;}
     G.bullets.push({x:sx,y:sy,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,life:W.range/sp,dmg:W.dmg*(src===G.hero||src.driver==='hero'?injFx().weapon:1),arrow:!!W.bow,owner:src.kind==='foe'||src.driver==='raider'?'foe':'hero'});}
   if(W.bow){addNoise(src.x,src.y,W.noise);SFX.swing();return;}
   part({kind:'fire',x:sx,y:sy,vx:0,vy:0,life:.07,max:.07,size:9,drag:0,col:'#ffe08a'});addNoise(src.x,src.y,W.noise);SFX.gun(W);}
@@ -2515,15 +2516,15 @@ function heroAttack(){const h=G.hero;if(h.inCar||h.atkCd>0||state!=='play')retur
     if(d>W.range+f.r+h.r||Math.abs(angDiff(Math.atan2(dy,dx),h.a))>W.arc/2)continue;
     const unaware=f.state!=='alert'&&!canSee(f,h);
     if(unaware){hitFoe(f,f.hp+1,dx/d,dy/d,W.knock*0.3);popText(f.x,f.y-24,'Takedown','#f2a03d');quiet=true;}
-    else hitFoe(f,W.dmg*injFx().weapon,dx/d,dy/d,W.knock);hit=true;}
+    else hitFoe(f,W.dmg*injFx().weapon*skMelee(skill('melee')),dx/d,dy/d,W.knock);hit=true;}
   // hitting townsfolk is assault: the town remembers, and its guards come for you
   for(const n of G.npcs){const dx=n.x-h.x,dy=n.y-h.y,d=Math.hypot(dx,dy);if(d<W.range+n.r+h.r&&Math.abs(angDiff(Math.atan2(dy,dx),h.a))<W.arc/2){assault(n);hit=true;}}
   for(const a of G.animals){if(a.state==='dead')continue;const dx=a.x-h.x,dy=a.y-h.y,d=Math.hypot(dx,dy);
-    if(d<W.range+a.r+h.r&&Math.abs(angDiff(Math.atan2(dy,dx),h.a))<W.arc/2){hitAnimal(a,W.dmg,dx/(d||1),dy/(d||1));hit=true;}}
+    if(d<W.range+a.r+h.r&&Math.abs(angDiff(Math.atan2(dy,dx),h.a))<W.arc/2){hitAnimal(a,W.dmg*skMelee(skill('melee')),dx/(d||1),dy/(d||1));hit=true;}}
   if(hit){SFX.punch();addNoise(h.x,h.y,quiet?40:W.noise);}}
 function hitFoe(f,dmg,kx,ky,knock){if(f.dead)return;f.hp-=dmg;f.flash=1;f.stun=f.wind>0?0.05:0.1;f.vx=kx*knock*0.22;f.vy=ky*knock*0.22;sparks(f.x,f.y,3);   // half the shove now raiders move at half pace
   if(f.hp<=0){foeDie(f);return;}if(f.state!=='flee')becomeAlert(f,body());}
-function foeDie(f){f.dead=true;f.deadT=40;G.kills++;if(f.jobBoss)jobBossDown(f.jobBoss);if(!f.loose)G.removed.add(f.id);if(!f.townGuard)raiderDown(f.fac||(f.loc&&f.loc.faction)||territory(f.x,f.y));
+function foeDie(f){f.dead=true;f.deadT=40;G.kills++;if(!f.townGuard)skillPoints(1,'enemy down');if(f.jobBoss)jobBossDown(f.jobBoss);if(!f.loose)G.removed.add(f.id);if(!f.townGuard)raiderDown(f.fac||(f.loc&&f.loc.faction)||territory(f.x,f.y));
   // they drop what they carried: their weapon sometimes, ammo, odds and ends
   const items=genLoot('raider',(Math.random()*1e9)|0,1);const wi=Object.keys(ITEMS).find(k=>ITEMS[k].weapon===f.weapon);
   if(wi&&Math.random()<0.6)invAdd(items,wi,1);const W=WEAPONS[f.weapon];if(W.gun)invAdd(items,W.ammo,2+Math.floor(Math.random()*5));
@@ -2960,6 +2961,66 @@ Object.assign(DLG,{
 for(const k of Object.keys(DLG))if(k.startsWith('st_')&&DLG[k].opts)DLG[k].opts.unshift({t:'About that job…',if:c=>jobs().some(j=>j.giver===c.n.def.id),go:'job_turnin'});
 const _startNodeFor=startNodeFor;startNodeFor=function(n){if(n.def.story&&DLG['st_'+n.def.story])return 'st_'+n.def.story;return _startNodeFor(n);};
 
+/* ===== skills (v10.4) =====
+   Thirteen skills, each from untrained (0) up to level 6. Skill points buy them one level at a time:
+   level 1 costs 10 points, then 15, 20, 25, 30, and 40 for level 6 (140 points to master one skill).
+   Points: 1 for each enemy vehicle you put out of the fight, 1 for each enemy on foot you put down,
+   3 for each place you reach for the first time, 3 for each job you finish.
+   Everything is kept in G.flags.sk, so it saves and loads with the rest of the game. */
+const SKILL_COST=[10,15,20,25,30,40];
+const SKILLS=[
+  {id:'melee',name:'Hand to hand',desc:'You do more damage when you hit an enemy.',fx:l=>'+'+Math.round(skMelee(l)*100-100)+'% damage with fists and melee weapons'},
+  {id:'guns',name:'Firearms',desc:'A better chance of hitting with a gun.',fx:l=>Math.round(100-skAimMul(l)*100)+'% fewer misses, '+Math.round(100-skSpreadMul(l)*100)+'% tighter spread'},
+  {id:'bows',name:'Bows',desc:'A better chance of hitting with a bow or crossbow.',fx:l=>Math.round(100-skAimMul(l)*100)+'% fewer misses, '+Math.round(100-skSpreadMul(l)*100)+'% tighter spread'},
+  {id:'scrounge',name:'Scrounge',desc:'You find more, and better, in the crates, cupboards, bins and bags you search.',fx:l=>Math.round(skScrounge(l)*100)+'% chance of something extra in each place you search'+(l>=4?', and the pick of two finds':'')},
+  {id:'offroad',name:'Off-road',desc:'You drive faster across open country, and it does less damage to your car.',fx:l=>'+'+Math.round(l*SK_OFF*100)+'% off-road speed, '+Math.round(100-skWear(l)*100)+'% less wear off the road'},
+  {id:'bush',name:'Bushcraft',desc:'Boiling the billy takes less time, and you get more meat when you butcher an animal.',fx:l=>'billy boils in '+skBoilMins(l)+' minutes, +'+Math.round(l*SK_MEAT*100)+'% meat'},
+  {id:'vision',name:'Vision',desc:'You see further in a dust storm, and better at night.',fx:l=>'+'+Math.round(l*SK_STORMSEE*100)+'% sight in a storm, brighter nights'},
+  {id:'athlete',name:'Athlete',desc:'You run faster.',fx:l=>'+'+Math.round(l*SK_RUN*100)+'% running speed'},
+  {id:'strength',name:'Strength',desc:'You carry more.',fx:l=>'carry '+Math.round(HERO_CAP*(1+l*SK_CARRY))+' kg'},
+  {id:'stamina',name:'Stamina',desc:'You last longer without sleep, water and food.',fx:l=>Math.round(100-skDrain(l)*100)+'% slower thirst, hunger and tiredness'},
+  {id:'stealth',name:'Stealth',desc:'You get closer before you’re seen when you sneak.',fx:l=>'seen '+Math.round(100-skSneak(l)*100)+'% later while sneaking'},
+  {id:'road',name:'Roadcraft',desc:'You drive faster on roads, with less wear on the tyres and suspension.',fx:l=>'+'+Math.round(l*SK_ROADSPD*100)+'% top speed on roads, '+Math.round(100-skWear(l)*100)+'% less wear on them'},
+  {id:'warrior',name:'Road Warrior',desc:'People on foot have more trouble dodging you, and you hit harder when you shove cars.',fx:l=>'they dodge '+Math.round(skDodge(l)*100)+'% of the time (from 80%), +'+Math.round(l*SK_SHOVE*100)+'% shove'}];
+// what each level does (l: the level, 0 to 6)
+const SK_OFF=0.03,SK_MEAT=0.15,SK_STORMSEE=0.3,SK_RUN=0.05,SK_CARRY=0.1,SK_ROADSPD=0.025,SK_SHOVE=0.12;
+const skMelee=l=>1+0.12*l;                        // ×1.72 at 6
+const skAimMul=l=>1-0.1*l;                        // misses: ×0.4 at 6
+const skSpreadMul=l=>1-0.08*l;                    // spread: ×0.52 at 6
+const skScrounge=l=>0.12*l;                       // 72% at 6
+const skWear=l=>1-0.08*l;                         // ×0.52 at 6
+const skBoilMins=l=>60-7*l;                       // 18 minutes at 6
+const skDrain=l=>1-0.07*l;                        // ×0.58 at 6
+const skSneak=l=>1-0.07*l;                        // ×0.58 at 6
+const skDodge=l=>Math.max(0.2,0.8-0.1*l);         // 20% at 6
+function skState(){const f=G.flags;if(!f.sk)f.sk={lv:{},sp:0,earned:0};return f.sk;}
+function skill(id){return (G&&G.flags&&G.flags.sk&&G.flags.sk.lv[id])||0;}
+function skillCost(id){const l=skill(id);return l>=6?null:SKILL_COST[l];}
+// earning points: a little popup where it happened, and a word when you can afford something
+function skillPoints(n,why){const S=skState(),before=S.sp;S.sp+=n;S.earned+=n;const b=body();
+  popText(b.x,b.y-40,'+'+n+' skill point'+(n>1?'s':'')+(why?' · '+why:''),'#b9d27a');
+  const cheap=Math.min(...SKILLS.map(s=>skillCost(s.id)||999));if(before<cheap&&S.sp>=cheap)setTimeout(()=>showMsg('You have '+S.sp+' skill points: open Skills to spend them',2.8),900);
+  skillsBadge();}
+function raiseSkill(id){const S=skState(),c=skillCost(id);if(c==null||S.sp<c)return false;S.sp-=c;S.lv[id]=skill(id)+1;skillsBadge();return true;}
+function skillsBadge(){const el=typeof document!=='undefined'&&document.getElementById('skillsBtn');if(!el)return;const S=skState(),cheap=Math.min(...SKILLS.map(s=>skillCost(s.id)||999));
+  el.textContent=S.sp>=cheap?'Skills ●':'Skills';el.style.color=S.sp>=cheap?'#b9d27a':'';}
+// the first visit to a place
+function discovered(id){if(G.visited.has(id))return;G.visited.add(id);skillPoints(3,'new place');}
+// the hero is the one doing it: on foot, or driving
+const heroSrc=s=>s===G.hero||(s&&s.driver==='hero');
+// the Skills page (opened from the Skills button, or K)
+function renderSkills(){const S=skState();let html='<div class="stats" style="font-size:19px">Skill points: <b style="color:var(--ember)">'+S.sp+'</b><small style="opacity:.75"> &nbsp;('+S.earned+' earned in all)</small></div>';
+  html+='<div class="stats" style="opacity:.8">1 point for each enemy vehicle or enemy on foot you defeat. 3 for each place you reach for the first time, and for each job you finish. Each level costs more: 10, 15, 20, 25, 30, then 40.</div>';
+  for(const s of SKILLS){const l=skill(s.id),c=skillCost(s.id);let pips='';for(let i=1;i<=6;i++)pips+='<i style="display:inline-block;width:14px;height:10px;margin-right:3px;background:'+(i<=l?'var(--ember)':'rgba(239,226,196,.15)')+'"></i>';
+    html+='<h3>'+s.name+'<small>'+(l?'Level '+l:'Untrained')+'</small></h3><div class="irow" style="border:0;padding:2px 0"><span class="nm">'+pips+'<br><small style="margin:0">'+s.desc+'</small><br><small style="margin:0;opacity:.85">'+(l?'Now: '+s.fx(l)+'.':'')+(c!=null?' Next: '+s.fx(l+1)+'.':' Mastered.')+'</small></span>'+
+      (c!=null?'<button data-a="skill" data-k="'+s.id+'"'+(S.sp>=c?' class="go"':' disabled')+'>Raise · '+c+'</button>':'')+'</div>';}
+  $('invBody').innerHTML=html;}
+// Scrounge: the first time you open a crate, cupboard, bag or bin, a chance of an extra find; from level 4, the better of two
+function scroungeBox(bx){const l=skill('scrounge');if(!l||bx.skScr)return;bx.skScr=true;if(Math.random()>=skScrounge(l))return;
+  const val=inv=>{let v=0;for(const k in inv)v+=(VALUE[k]||1)*inv[k];return v;},one=()=>genLoot(bx.table||'ruin',(Math.random()*1e9)|0,1,bx.biome);
+  let ex=one();if(l>=4){const b=one();if(val(b)>val(ex))ex=b;}if(!Object.keys(ex).length)return;
+  for(const k in ex)invAdd(bx.items,k,ex[k]);boxChanged(bx);popText(G.hero.x,G.hero.y-30,'You spot something others missed','#b9d27a');}
+
 /* ===== companions: one at a time, on foot or riding shotgun ===== */
 function compActive(){return G.comp&&!G.comp.gone;}
 function compOnFoot(){return compActive()&&!G.comp.inCar&&G.comp.state!=='down';}
@@ -3143,7 +3204,7 @@ function rewardText(rw){return Object.keys(rw).map(k=>k==='tip'?'a tip about som
 // a jerry can as pay comes full of fuel
 function giveFullCan(){const h=G.hero,car=heroCar()||carById(G.lastCar);let inv=null;if(invWeight(h.inv)+ITEMS.jerrycan.kg<=heroCap()+1e-6)inv=h.inv;else if(car&&invWeight(car.items)+ITEMS.jerrycan.kg<=carCap(car)){inv=car.items;car.touched=true;}
   if(!inv){addPickup('jerrycan',h.x+rand(-25,25),h.y+rand(-25,25));return;}invAdd(inv,'jerrycan',1);setFill(inv,canFill(inv)+CAN_CAP);popText(h.x,h.y-30,'+ Jerry can of fuel','#f2a03d');}
-function payJob(J,c){for(const k in J.reward){if(k==='tip'){const K=kestrelSpot();if(K&&!G.flags.kestrelTip){G.flags.kestrelTip=true;G.markers.push({id:G.markerSeq++,x:Math.round(K.x),y:Math.round(K.y),text:'Something worth seeing'});setTimeout(()=>showMsg('“There’s something out '+dirText(LOCS[J.town],K.x,K.y)+', left by the side of the road. You’ll know it when you see it.” (Marked on your map.)',4),2600);}continue;}if(k==='jerrycan'){for(let i=0;i<J.reward[k];i++)giveFullCan();continue;}if(c)c.give(k,J.reward[k]);else for(let i=0;i<J.reward[k];i++){if(invWeight(G.hero.inv)+ITEMS[k].kg<=heroCap())invAdd(G.hero.inv,k,1);else addPickup(k,body().x+rand(-30,30),body().y+rand(-30,30));}}
+function payJob(J,c){skillPoints(3,'job done');for(const k in J.reward){if(k==='tip'){const K=kestrelSpot();if(K&&!G.flags.kestrelTip){G.flags.kestrelTip=true;G.markers.push({id:G.markerSeq++,x:Math.round(K.x),y:Math.round(K.y),text:'Something worth seeing'});setTimeout(()=>showMsg('“There’s something out '+dirText(LOCS[J.town],K.x,K.y)+', left by the side of the road. You’ll know it when you see it.” (Marked on your map.)',4),2600);}continue;}if(k==='jerrycan'){for(let i=0;i<J.reward[k];i++)giveFullCan();continue;}if(c)c.give(k,J.reward[k]);else for(let i=0;i<J.reward[k];i++){if(invWeight(G.hero.inv)+ITEMS[k].kg<=heroCap())invAdd(G.hero.inv,k,1);else addPickup(k,body().x+rand(-30,30),body().y+rand(-30,30));}}
   changeRep(J.fac,J.rep);G.townJobs=G.townJobs||{};G.townRep=G.townRep||{};G.townJobs[J.town]=(G.townJobs[J.town]||0)+1;G.townRep[J.town]=townStanding(J.town);   // standing with that town
   {const n=G.townJobs[J.town],cap=townJobCap(J.town),nm=LOCS[J.town].name;setTimeout(()=>showMsg(n>=cap?nm+' has nothing more for you. Time to move on':n===1?nm+' trusts you a little now: better work there':n===5?'You’re one of '+nm+'’s own now: their best work is yours':nm+': standing '+townStanding(J.town)+'%',2.6),1600);}
   G.flags['jobdone_'+J.giver+'_'+J.id.split('_').pop()]=true;if(J.marker){G.markers=G.markers.filter(m=>m.id!==J.marker);if(G.waypoint===J.marker)G.waypoint=null;}if(J.huntMarker)G.markers=G.markers.filter(m=>m.id!==J.huntMarker);if(J.payMarker){G.markers=G.markers.filter(m=>m.id!==J.payMarker);if(G.waypoint===J.payMarker)G.waypoint=null;}
@@ -3301,6 +3362,7 @@ window.addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='TEXTAREA'
   if((e.code==='KeyP'||e.code==='Escape')&&state!=='talk'){if(state==='map')closeMap();else togglePause();}
   if(e.code==='KeyM'){if(state==='map')closeMap();else openMap();}
   if(e.code==='KeyI'){if(state==='inv')closeInv();else if(state==='play')openInv(null);}
+  if(e.code==='KeyK'){if(state==='inv'&&skillsMode)closeInv();else if(state==='play')openSkills();}
   if(state==='talk'){const m=e.code.match(/^(Digit|Numpad)([1-9])$/);if(m)chooseOpt(+m[2]-1);if(e.code==='Escape')endTalk();}
   if(state==='play'&&(e.code==='Equal'||e.code==='NumpadAdd')){setZoom(SETTINGS.zoom*1.15);saveSettings();}
   if(state==='play'&&(e.code==='Minus'||e.code==='NumpadSubtract')){setZoom(SETTINGS.zoom/1.15);saveSettings();}
@@ -3408,6 +3470,7 @@ window.addEventListener('touchend',touchEnd);window.addEventListener('touchcance
 $('gearBtn').addEventListener('click',e=>{e.stopPropagation();openInv(null);});
 $('workBtn').addEventListener('click',e=>{e.stopPropagation();openWork();});
 $('journalBtn').addEventListener('click',e=>{e.stopPropagation();openJournal();});
+$('skillsBtn').addEventListener('click',e=>{e.stopPropagation();openSkills();});
 $('invClose').addEventListener('click',e=>{e.stopPropagation();closeInv();});
 $('invBody').addEventListener('click',invClick);
 $('tradeClose').addEventListener('click',e=>{e.stopPropagation();closeTrade();});
@@ -3523,7 +3586,7 @@ function setDest(id){G.dest=id;const p=routePath(G.lastNode,id);G.leg=p&&p.legs.
 function arrive(o,mode){if(typeof jobsArrive==='function'&&mode!=='intro')jobsArrive(o);
   G.atOutpost=o.id;if(!mode)nodeReached(o.id);else{G.lastNode=o.id;G.inside=o.id;learnAround(o);}
   G.cars=G.cars.filter(c=>c.driver!=='raider');G.encActive=false;
-  const fresh=!G.visited.has(o.id);G.visited.add(o.id);
+  const fresh=!G.visited.has(o.id);discovered(o.id);
   if(o.goal)return win();
   if(mode==='intro'){state='outpost';endStick();
     G.outpostPanel={title:o.name,sub:TEST_MODE?'Test Town. Every vehicle is in the car yard just outside the wall, with crates of weapons, supplies and spares beside them. Everything is marked on the map. Tools are top right.':'Rust Hollow, on the edge of '+zoneAt(o.x,o.y).name+'. Your Tarona is parked beside you. No guns, no friends. Haven is somewhere far to the east. Talk to the locals before you go: the publican, the mechanic, the guards.',
@@ -3708,9 +3771,9 @@ function fillBilly(){const h=G.hero;if(!h.inv.billy)return;invTake(h.inv,'billy'
 function keepBottle(inv,who){if(Math.random()<0.2){if(!who)popText(G.hero.x,G.hero.y-30,'The bottle’s split: you toss it','#c9b9a0');return false;}invAdd(inv,'bottle',1);return true;}
 function bottleStore(){const c=heroCar()||(G.lastCar&&carById(G.lastCar));if(G.hero.inv.bottle)return G.hero.inv;if(c&&c.items&&c.items.bottle&&Math.hypot(c.x-G.hero.x,c.y-G.hero.y)<120)return c.items;return null;}
 function boilBilly(){const h=G.hero;if(!h.inv.billy_full)return;const bs=bottleStore();if(!bs){showMsg('You need an empty plastic bottle to pour the boiled water into. Pubs and traders sell them',3);return;}if(G.foes.some(f=>!f.dead&&f.state==='alert'&&Math.hypot(f.x-h.x,f.y-h.y)<900)||G.cars.some(c=>c.driver==='raider')){showMsg('Not with raiders about',1.8);return;}
-  G.clock+=60;h.water=Math.max(0,h.water-2.5);h.food=Math.max(0,h.food-1.25);h.rest=Math.max(0,h.rest-1);
+  const bm=skBoilMins(skill('bush')),sd=skDrain(skill('stamina'))*bm/60;G.clock+=bm;h.water=Math.max(0,h.water-2.5*sd);h.food=Math.max(0,h.food-1.25*sd);h.rest=Math.max(0,h.rest-1*sd);   /* Bushcraft: a quicker fire (v10.4) */
   for(let i=0;i<10;i++)part({kind:'fire',x:h.x+15+rand(-4,4),y:h.y+rand(-4,4),vx:0,vy:rand(-12,0),life:rand(.4,.8),max:.8,size:rand(4,7),grow:-5,drag:2,col:'#ffb347',lift:3});smoke(h.x+15,h.y,6);   // the little fire
-  invTake(h.inv,'billy_full',1);invAdd(h.inv,'billy',1);invTake(bs,'bottle',1);invAdd(h.inv,'water',1);SFX.pick();showMsg('An hour by the fire: the billy’s boiled, poured into a bottle. Clean water. '+fmtClock(G.clock).split(', ')[1],3);}
+  invTake(h.inv,'billy_full',1);invAdd(h.inv,'billy',1);invTake(bs,'bottle',1);invAdd(h.inv,'water',1);SFX.pick();showMsg((bm>=60?'An hour':bm+' minutes')+' by the fire: the billy’s boiled, poured into a bottle. Clean water. '+fmtClock(G.clock).split(', ')[1],3);}
 function doBedRest(hours,bed){const h=G.hero,rate=bedRate(bed),risk=bedRisk(bed),inTown=!bed.b.ruined&&!!(bed.o&&bed.o.service),dr=inTown?0.5:1;let slept=0,woken=false;   // a bed in a town or city: you get thirsty and hungry half as fast
   for(let i=0;i<hours;i++){G.clock+=60;slept++;h.rest=Math.min(100,h.rest+rate);h.hp=Math.min(heroHpCap(),h.hp+(bed.b.ruined?1:3));
     h.water=Math.max(0,h.water-2.5*dr);h.food=Math.max(0,h.food-1.25*dr);if(h.water<=0)h.hp-=8;if(h.food<=0)h.hp-=3;if(Math.random()<risk){woken=true;break;}}
@@ -3725,10 +3788,12 @@ function openInv(other){if(state!=='play')return;
   if(invOther&&invOther.kind==='box'){const bx=invOther.box;boxItems(bx);
     // Mick has an eye for things other people miss
     if(G.comp&&compAbility(G.comp)==='scrounger'&&!G.comp.inCar&&!bx.scrounged){bx.scrounged=true;const extra=genLoot(bx.table||'ruin',(Math.random()*1e9)|0,1,bx.biome);
-      for(const k in extra)invAdd(bx.items,k,extra[k]);boxChanged(bx);if(Object.keys(extra).length)popText(G.hero.x,G.hero.y-30,G.comp.def.name+' spots something extra','#f2a03d');}}
+      for(const k in extra)invAdd(bx.items,k,extra[k]);boxChanged(bx);if(Object.keys(extra).length)popText(G.hero.x,G.hero.y-30,G.comp.def.name+' spots something extra','#f2a03d');}
+    scroungeBox(bx);}
   state='inv';endStick();SFX.engine(0,0,false,false);$('invPanel').classList.remove('hidden');$('ctx').innerHTML='';ctxKey='';renderInv();}
-function closeInv(){if(state!=='inv')return;state='play';workMode=false;journalMode=false;$('invPanel').classList.add('hidden');}
-let workMode=false,journalMode=false;
+function closeInv(){if(state!=='inv')return;state='play';workMode=false;journalMode=false;skillsMode=false;$('invPanel').classList.add('hidden');}
+let workMode=false,journalMode=false,skillsMode=false;
+function openSkills(){if(state!=='play')return;invOther=null;skillsMode=true;state='inv';endStick();SFX.engine(0,0,false,false);$('invPanel').classList.remove('hidden');$('ctx').innerHTML='';ctxKey='';renderInv();}
 function openJournal(){if(state!=='play')return;invOther=null;journalMode=true;state='inv';endStick();SFX.engine(0,0,false,false);$('invPanel').classList.remove('hidden');$('ctx').innerHTML='';ctxKey='';renderInv();}
 // the Journal: what you've pieced together (by chapter, in the order things happened, not the order you found them), documents
 // you've recovered, and the people you've met with what you know of them. Blank pages are just that: nothing says what's missing.
@@ -3774,7 +3839,7 @@ function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
   if(side==='me'&&!heroCar())b+='<button data-a="drop" data-k="'+k+'">Drop</button>';
   if(side==='other'){b+='<button data-a="take" data-k="'+k+'">Take</button>';if(n>1)b+='<button data-a="takeall" data-k="'+k+'">All</button>';}
   return '<div class="irow"><i style="background:'+it.icon+'"></i><span class="nm">'+it.name+(n>1?' ×'+n:'')+'<small>'+(Math.round(it.kg*n*10)/10)+' kg</small></span>'+b+'</div>';}
-function renderInv(){$('invTitle').textContent=journalMode?'Journal':workMode?'Work':'Gear';if(journalMode)return renderJournal();if(workMode)return renderWork();const h=G.hero,o=otherInv(),car=invCar();let html='';
+function renderInv(){$('invTitle').textContent=skillsMode?'Skills':journalMode?'Journal':workMode?'Work':'Gear';if(skillsMode)return renderSkills();if(journalMode)return renderJournal();if(workMode)return renderWork();const h=G.hero,o=otherInv(),car=invCar();let html='';
   html+='<div class="stats">Health '+Math.round(h.hp)+'%, water '+Math.round(h.water)+'%, food '+Math.round(h.food)+'%, rest '+Math.round(h.rest)+'%. '+fmtClock(G.clock)+'.</div>';
   {const I=heroInj(),fx=injFx();if(I.length||heroCapLoss()>0)html+='<div class="stats" style="color:#e8a090"><b>Injuries:</b> '+(I.length?I.map(i=>INJURIES[i.type].name+' ('+i.rating+')').join(', '):'none now, still mending')+'. Your health can’t go above '+heroHpCap()+'% until a city doctor treats you.'+
     (fx.wobble?' Your steering wobbles.':'')+(fx.weapon<1?' You fight less well.':'')+(fx.carry<1?' You can carry only '+heroCap()+' kg.':'')+(fx.walk<1?' You walk and run at half speed.':'')+(fx.view?' You can’t see far.':'')+'</div>';}
@@ -3799,6 +3864,7 @@ function renderInv(){$('invTitle').textContent=journalMode?'Journal':workMode?'W
   $('invBody').innerHTML=html;}
 function invClick(e){const btn=e.target.closest&&e.target.closest('button');if(!btn)return;e.stopPropagation();
   const a=btn.dataset.a,k=btn.dataset.k,h=G.hero,o=otherInv(),car=invCar();
+  if(a==='skill'){const s=SKILLS.find(q=>q.id===k);if(raiseSkill(k)){SFX.pick();showMsg(s.name+': level '+skill(k),1.6);}renderInv();return;}
   if(a==='use'){const inv=btn.dataset.s==='me'?h.inv:o;if(useItem(k,inv,car)&&btn.dataset.s!=='me')otherTouched();}
   else if(a==='craft'){const r=RECIPES[+k];if(r&&craft(r))showMsg('Made '+ITEMS[r.make].name.toLowerCase()+(r.qty>1?' ×'+r.qty:''),1.4);}
   else if(a==='equip'){h.weapon=k;SFX.click();}else if(a==='unequip'){h.weapon=null;}
@@ -6440,8 +6506,8 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   // light: day to night, the haze matching the sky
   const dk=darkness(),sky=new THREE.Color(0xe8c79a).lerp(new THREE.Color(0x15121c),clamp(dk/0.8,0,1));
   if(G.storm&&G.storm.phase==='coming'){const near=clamp(1-G.storm.d/5200,0,1);sky.lerp(new THREE.Color(0x7c8090).lerp(new THREE.Color(0x15121c),clamp(dk/0.8,0,1)),0.18+0.32*near);}   // a storm coming: the sky clouds over, grey
-  {const sk=typeof stormK==='function'?stormK():0;if(sk>0){sky.lerp(new THREE.Color(0xa88a5e).lerp(new THREE.Color(0x2a2218),clamp(dk/0.8,0,1)),sk*0.85);}sc.fog.near=V3.fogNear*(1-sk*0.92);sc.fog.far=V3.fogFar*(1-sk)+Math.min(V3.fogFar,420)*sk;stormWall3();}   // in a dust storm you can hardly see
-  sc.background.copy(sky);sc.fog.color.copy(sky);V3.mats.far.userData.u.hzCol.value.copy(sky);V3.hemi.intensity=0.55*(1-dk)+0.13;V3.sun.intensity=Math.max(0,0.58*(1-dk*1.25));
+  {const sk=typeof stormK==='function'?stormK():0;if(sk>0){sky.lerp(new THREE.Color(0xa88a5e).lerp(new THREE.Color(0x2a2218),clamp(dk/0.8,0,1)),sk*0.85);}const vs=1+skill('vision')*SK_STORMSEE;sc.fog.near=V3.fogNear*(1-sk*0.92)*Math.min(3,vs);sc.fog.far=V3.fogFar*(1-sk)+Math.min(V3.fogFar,420*vs)*sk;   /* Vision: further in a storm (v10.4) */stormWall3();}   // in a dust storm you can hardly see
+  sc.background.copy(sky);sc.fog.color.copy(sky);V3.mats.far.userData.u.hzCol.value.copy(sky);V3.hemi.intensity=0.55*(1-dk)+0.13+dk*skill('vision')*0.045;   /* Vision: better at night */V3.sun.intensity=Math.max(0,0.58*(1-dk*1.25));
   {const tex=SHADOW_SPAN3*2/2048,sx=Math.round(b.x/tex)*tex,sz=Math.round(b.y/tex)*tex;   // the shadow box follows you, stepping a whole texel at a time so edges don't crawl
     const d=sunDir3();V3.sun.position.set(sx+d.x*1400,gy+d.y*1400,sz+d.z*1400);V3.sun.target.position.set(sx,gy,sz);V3.sun.target.updateMatrixWorld();sky3(dk);}   // the sun where the clock says it is
   const lit=!!car&&headlightsOn()&&car.fuel>0&&!carDead(car);V3.head.intensity=lit?1.6:0;
@@ -6646,10 +6712,10 @@ function syncFX3(b){if(!FX3.ready)initFX3();particles3(b);tracks3(b);bullets3(b)
 // thirst, hunger and tiredness. Rates are per game hour; one game day lasts 45 real minutes.
 function survival(dt,car){const h=G.hero,gm=dt*CLOCK_RATE/60;G.clock+=gm;
   const hour=(G.clock%DAY)/60,night=hour<6||hour>=20,b=car||h,bio=getChunk(Math.floor(b.x/CH),Math.floor(b.y/CH)).biome;
-  const heat=(bio===BIOMES.red||bio===BIOMES.salt?1.3:1)*(night?0.6:1),exert=car?1:(h.speed>75?1.8:h.speed>12?1.1:0.9);
-  h.water=Math.max(0,h.water-6/60*gm*heat*exert);
-  h.food=Math.max(0,h.food-3/60*gm*(car?1:exert));
-  h.rest=Math.max(0,h.rest-5.5/60*gm*(car?1:exert>1.5?1.3:1));
+  const heat=(bio===BIOMES.red||bio===BIOMES.salt?1.3:1)*(night?0.6:1),exert=car?1:(h.speed>75?1.8:h.speed>12?1.1:0.9),sd=skDrain(skill('stamina'));   /* Stamina (v10.4) */
+  h.water=Math.max(0,h.water-6/60*gm*heat*exert*sd);
+  h.food=Math.max(0,h.food-3/60*gm*(car?1:exert)*sd);
+  h.rest=Math.max(0,h.rest-5.5/60*gm*(car?1:exert>1.5?1.3:1)*sd);
   if(h.water<=0)hurtHero(0.35*dt,'thirst');if(h.food<=0)hurtHero(0.12*dt,'hunger');if(h.rest<=0)hurtHero(0.05*dt,'exhaustion');
   const warn=(k,t,v)=>{if(v<25&&!G.warned[k]){G.warned[k]=true;showMsg(t,2.4);}if(v>40)G.warned[k]=false;};
   warn('water','You’re parched. Drink something.',h.water);warn('food','Your stomach is cramping. Eat.',h.food);warn('rest','You can barely keep your eyes open',h.rest);
@@ -6671,8 +6737,8 @@ function driveHero(car,inp,dt){
   // wear: off-road is hardest on the car, dirt and gravel less so, bitumen not at all
   const wear=car.onRoad?(car.surf?car.surf.wear:0):1;
   if(wear>0&&car.speed>120){const w=dt*(car.speed/500)*(1.3-car.def.off)*0.5*wear/car.def.armor;
-    if(car.onRoad){wearTyres(car,w*1.2*um.tyreWear);car.susp=Math.max(0,car.susp-w*0.6*um.suspWear);}           // gravel and dirt chew tyres
-    else{car.susp=Math.max(0,car.susp-w*1.1*um.suspWear);wearTyres(car,w*0.8*um.tyreWear);car.cond-=w*0.4/um.armor;}}   // open country breaks springs
+    if(car.onRoad){const sw=skWear(skill('road'));wearTyres(car,w*1.2*um.tyreWear*sw);car.susp=Math.max(0,car.susp-w*0.6*um.suspWear*sw);}           // gravel and dirt chew tyres
+    else{const sw=skWear(skill('offroad'));car.susp=Math.max(0,car.susp-w*1.1*um.suspWear*sw);wearTyres(car,w*0.8*um.tyreWear*sw);car.cond-=w*0.4/um.armor*sw;}}   // open country breaks springs
   // a driver short on sleep nods off now and then
   if(G.hero.rest<20&&car.speed>80){G.nodT-=dt;if(G.nodT<=0){G.nodT=rand(4,9)*(0.3+G.hero.rest/20);car.a+=rand(-0.3,0.3);
     if(!G.warned.nod){G.warned.nod=true;showMsg('You nodded off at the wheel',2);}}}
@@ -6703,9 +6769,9 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
   for(const f of G.foes){if(f.dead)continue;for(const c of G.cars){if(c.speed<60)continue;const d=Math.hypot(f.x-c.x,f.y-c.y);   // cars hit people on foot
     if(d<c.r+f.r){const rel=Math.hypot(c.vx,c.vy);if(rel>110){
       // someone about to be run down dives out of the way, four times in five (decided once per car coming at them)
-      if(f.dodgeFor!==c||G.time>(f.dodgeT||0)){f.dodgeFor=c;f.dodgeOk=Math.random()<0.8;}f.dodgeT=G.time+1.2;   // one roll of the dice per car coming at them
+      if(f.dodgeFor!==c||G.time>(f.dodgeT||0)){f.dodgeFor=c;f.dodgeOk=Math.random()<(c===car?skDodge(skill('warrior')):0.8);}f.dodgeT=G.time+1.2;   // one roll of the dice per car coming at them
       if(f.dodgeOk){const fx=Math.cos(c.a),fy=Math.sin(c.a),side=((f.x-c.x)*-fy+(f.y-c.y)*fx)>=0?1:-1,push=c.def.wid/2+f.r+14;f.x+=-fy*side*push*0.6;f.y+=fx*side*push*0.6;f.vx=-fy*side*220;f.vy=fx*side*220;f.stun=0.7;f.dodged=(f.dodged||0)+1;popText(f.x,f.y-24,'Dodged!','#efe2c4');continue;}
-      const l=d||1;hitFoe(f,(rel-80)*0.35,(f.x-c.x)/l,(f.y-c.y)/l,rel*0.8);if(c===car){c.cond-=2;SFX.hit(0.4);}}}}}
+      const l=d||1;hitFoe(f,(rel-80)*0.35*(c===car?1+skill('warrior')*SK_SHOVE:1),(f.x-c.x)/l,(f.y-c.y)/l,rel*0.8);if(c===car){c.cond-=2;SFX.hit(0.4);}}}}}
   G.foes=G.foes.filter(f=>!(f.dead&&f.deadT<=0)&&!f.gone);G.noises=[];
   for(const c of G.cars){if(c.dead||c.wrecked)continue;
     if(c.driver==='raider'){if(c.wipe<=0&&(c.stab<=0||c.cond<=0))startWipe(c);}
@@ -6754,12 +6820,12 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
     const tgt=!h.inCar&&bInside(bd,h.x,h.y,-2)?0:1;bd.roofA+=(tgt-bd.roofA)*Math.min(1,dt*7);}}
   G.pruneT-=dt;if(G.pruneT<=0){G.pruneT=1;pruneChunks(b.x,b.y);}
   // places: discover them as you approach, stop in at outposts and cities
-  G.knowT-=dt;if(G.knowT<=0){G.knowT=1;for(const l of LOCS)if(!G.known.has(l.id)&&Math.hypot(l.x-b.x,l.y-b.y)<4000){G.known.add(l.id);if(l.type==='ruin')showMsg((l.camp&&!G.flags['camp_'+l.id]?'Raider camp: ':'Spotted: ')+l.name,2.4);}}
+  G.knowT-=dt;if(G.knowT<=0){G.knowT=1;skillsBadge();for(const l of LOCS)if(!G.known.has(l.id)&&Math.hypot(l.x-b.x,l.y-b.y)<4000){G.known.add(l.id);if(l.type==='ruin')showMsg((l.camp&&!G.flags['camp_'+l.id]?'Raider camp: ':'Spotted: ')+l.name,2.4);}}
   G.facT=(G.facT||0)-dt;if(G.facT<=0){G.facT=1;compTick();jobsTick();if(typeof storyTick==='function')storyTick();for(const o of LOCS)if(o.service&&Math.hypot(o.x-b.x,o.y-b.y)<o.rad+700&&townHostile(o))hostileGuards(o);}
   G.zoneT-=dt;if(G.zoneT<=0){G.zoneT=1.5;const z=zoneAt(b.x,b.y).name;if(z!==G.zoneName){if(G.zoneName)showMsg(z,2.4);G.zoneName=z;}}
   for(const l of LOCS){const d=Math.hypot(b.x-l.x,b.y-l.y);
     if(G.inside===l.id){if(d>l.rad+400)G.inside=-1;}
-    else if(d<l.arrive){if(l.service){arrive(l);if(state!=='play')return;}else{nodeReached(l.id);G.visited.add(l.id);showMsg(l.name,2.4);}}}
+    else if(d<l.arrive){if(l.service){arrive(l);if(state!=='play')return;}else{nodeReached(l.id);showMsg(l.name,2.4);discovered(l.id);}}}
   // reaching a marker you're being guided to
   if(G.waypoint!=null){const wp=G.markers.find(m=>m.id===G.waypoint);if(!wp)G.waypoint=null;else if(Math.hypot(wp.x-b.x,wp.y-b.y)<260){showMsg('You’ve reached '+wp.text,2.4);G.waypoint=null;}}
   if(car&&car.fuel<20&&!G.warnedFuel){G.warnedFuel=true;showMsg('Fuel low',2);}
@@ -6776,7 +6842,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={keepBottle,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
