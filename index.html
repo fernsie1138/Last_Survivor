@@ -238,24 +238,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=10.2"></script>
-<script src="models/84-hero-model.js?v=10.2"></script>
-<script src="models/84b-hero-body.js?v=10.2"></script>
-<script src="models/84c-buggy-model.js?v=10.2"></script>
-<script src="models/84d-tarona-model.js?v=10.2"></script>
-<script src="models/84e-wall-model.js?v=10.2"></script>
-<script src="models/84f-plant-models.js?v=10.2"></script>
-<script src="models/84g-kestrel-model.js?v=10.2"></script>
-<script src="models/84h-building-models.js?v=10.2"></script>
-<script src="models/84i-building-models2.js?v=10.2"></script>
-<script src="models/84j-f100-model.js?v=10.2"></script>
-<script src="models/84l-kingsford-model.js?v=10.2"></script>
-<script src="models/84m-wagon-model.js?v=10.2"></script>
+<script src="models/21b-mesa-models.js?v=10.3"></script>
+<script src="models/84-hero-model.js?v=10.3"></script>
+<script src="models/84b-hero-body.js?v=10.3"></script>
+<script src="models/84c-buggy-model.js?v=10.3"></script>
+<script src="models/84d-tarona-model.js?v=10.3"></script>
+<script src="models/84e-wall-model.js?v=10.3"></script>
+<script src="models/84f-plant-models.js?v=10.3"></script>
+<script src="models/84g-kestrel-model.js?v=10.3"></script>
+<script src="models/84h-building-models.js?v=10.3"></script>
+<script src="models/84i-building-models2.js?v=10.3"></script>
+<script src="models/84j-f100-model.js?v=10.3"></script>
+<script src="models/84l-kingsford-model.js?v=10.3"></script>
+<script src="models/84m-wagon-model.js?v=10.3"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='10.2';
+const VERSION='10.3';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -4658,7 +4658,7 @@ GB.prototype.drape=function(q,lift,col,n){const P=(u,v)=>{const x=(q[0][0]*(1-u)
   for(let j=0;j<n;j++)for(let i=0;i<n;i++)this.quadUp(P(i/n,j/n),P((i+1)/n,j/n),P((i+1)/n,(j+1)/n),P(i/n,(j+1)/n),col);};
 GB.prototype.mesh=function(mat,ox,oz){if(!this.p.length)return null;const g=new THREE.BufferGeometry(),p=new Float32Array(this.p.length);ox=ox||0;oz=oz||0;
   for(let i=0;i<p.length;i+=3){p[i]=this.p[i]-ox;p[i+1]=this.p[i+1];p[i+2]=this.p[i+2]-oz;}   // keep the numbers small: positions relative to the object
-  g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(this.c),3));
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(this.c2||this.c),3));if(this.uv){g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(this.uv),2));mat=this.tmat||mat;}   // a textured model (the Kingsford, v10.3)
   if(this.f.some(v=>v>0)){const fl=new Float32Array(p.length/3);for(let i=0;i<fl.length&&i<this.f.length;i++)fl[i]=this.f[i];g.setAttribute('aFlow',new THREE.BufferAttribute(fl,1));}   // cloth that flaps
   g.computeVertexNormals();g.computeBoundingSphere();const m=new THREE.Mesh(g,mat);m.position.set(ox,0,oz);m.matrixAutoUpdate=false;m.updateMatrix();
   const solid=!(mat===V3.mats.water||mat===V3.mats.far||mat===V3.mats.road);m.castShadow=solid;m.receiveShadow=mat!==V3.mats.water&&mat!==V3.mats.far;return m;};   // real shadows (v9.0)
@@ -5938,27 +5938,89 @@ function kingsGeo3(){if(KF.geo)return KF.geo;const M=KINGSFORD_MODEL,b=Uint8Arra
     hub[w]={x:(mn[0]+mx[0])/2,y:(mn[1]+mx[1])/2,z:(mn[2]+mx[2])/2,r:Math.max(1,(mx[1]-mn[1])/2)};}
   return KF.geo={P,col,hub,L,W,H,min:M.min,max:M.max};}
 let KFC=null;
+/* ---- the Kingsford's paint job (v10.3): one base colour on every panel, with a weathering texture painted over it: the paint faded by
+   the sun, chipped and scratched, rust coming through (round the wheel arches, along the sills, at the bottoms of the doors, in spots, with
+   runs of rust bleeding down from them), dust lying on the roof and bonnet and boot, and mud and dust thick on the lower body and the
+   tyres. The windows are filmed with dust, worst at the bottom, with wiper arcs cleared on the windscreen. One texture per paint colour,
+   made once, laid on the car in sections:
+     A sides (along the car x up it)   B tops (along x across)   C side glass   E sills and black trim   D1 tyres   D2 windscreen   D3 bumpers and wheels ---- */
+const KFTX={};
+const KFR3={A:[0,0,512,512],B:[512,0,512,512],C:[0,512,512,256],E:[0,768,512,256],D1:[512,512,256,512],D2:[768,512,256,256],D3:[768,768,256,256]};
+function kfTex3(hex,T){if(KFTX[hex])return KFTX[hex];const cv=document.createElement('canvas');cv.width=cv.height=1024;const g=cv.getContext('2d'),r=rng(hashStr3(hex)+5);
+  const rgba=(c,a)=>'rgba('+c.map(v=>Math.round(v*255)).join(',')+','+a+')',hx=h=>col3(h),PAINT=hx(hex),RUST=hx('#7a3e1c'),RUSTL=hx('#a0582a'),RUSTD=hx('#4a2a18'),MUD=hx('#9a7450'),MUDD=hx('#6e5036'),DUST=hx('#c4a274'),DUSTL=hx('#d8c49c');   /* red-brown outback dirt */
+  const blob=(x,y,rad,c,a)=>{const gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,rgba(c,a));gr.addColorStop(1,rgba(c,0));g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,TAU);g.fill();};
+  const spot=(x,y,rad,c,a)=>{g.fillStyle=rgba(c,a);g.beginPath();const n=7+Math.floor(r()*5);for(let i=0;i<n;i++){const t=i/n*TAU,q=rad*(0.55+r()*0.6);g.lineTo(x+Math.cos(t)*q,y+Math.sin(t)*q);}g.closePath();g.fill();};
+  const clip=R=>{g.save();g.beginPath();g.rect(R[0],R[1],R[2],R[3]);g.clip();},unclip=()=>g.restore();
+  // where things are on the car, in texture terms: wheel centres along the length, the heights of sills and windows
+  const hubs=T.hub.filter((h,i)=>i%2===0).map(h=>({u:(h.z-T.min[2])/T.L,v:(h.y-T.min[1])/T.H,rr:h.r/T.H}));
+  const mudBand=(R,top,heavy)=>{const [x0,y0,w,h]=R;const yAt=v=>y0+(1-v)*h;   // mud and dust thick low down, thinning out up the body
+    let gr=g.createLinearGradient(0,yAt(top),0,yAt(0));gr.addColorStop(0,rgba(DUST,0));gr.addColorStop(0.3,rgba(DUST,0.45*heavy));gr.addColorStop(0.65,rgba(MUD,0.8*heavy));gr.addColorStop(1,rgba(MUD,0.92*heavy));g.fillStyle=gr;g.fillRect(x0,yAt(top),w,yAt(0)-yAt(top));
+    for(let i=0;i<1600*heavy*w/512;i++){const v=Math.pow(r(),1.8)*top*1.15,x=x0+r()*w,y=yAt(v);spot(x,y,1+r()*4*(1-v/top/1.3),r()<0.5?MUD:(r()<0.5?DUST:MUDD),0.25+r()*0.5);}   // splatter, thicker the lower it is
+    for(const hb of hubs)for(let i=0;i<260*heavy;i++){const a=Math.PI*(0.05+r()*0.9),d=hb.rr*(1.05+r()*r()*1.3),x=x0+(hb.u+Math.cos(a)*d*T.H/T.L)*w,y=yAt(hb.v+Math.sin(a)*d);spot(x,y,1+r()*3.5,r()<0.6?MUD:DUST,0.3+r()*0.45);}};   // flung up round the wheel arches
+  const grain=(R,amt)=>{const [x0,y0,w,h]=R,im=g.getImageData(x0,y0,w,h),d=im.data;for(let i=0;i<d.length;i+=4){const n=(r()-0.5)*amt;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}g.putImageData(im,x0,y0);};
+  const rustAt=(x,y,rad,run)=>{spot(x,y,rad*1.3,RUSTD,0.35);spot(x,y,rad,RUST,0.85);if(r()<0.7)spot(x+(r()-0.5)*rad,y+(r()-0.5)*rad,rad*0.5,RUSTL,0.7);
+    for(let i=0;i<4;i++)spot(x+(r()-0.5)*rad*3,y+(r()-0.5)*rad*3,0.6+r()*rad*0.3,RUST,0.7);   // pitting round the edge
+    if(run){g.strokeStyle=rgba(RUST,0.28);for(let i=0;i<2+Math.floor(r()*3);i++){g.lineWidth=0.8+r()*2;const sx=x+(r()-0.5)*rad*1.4;g.beginPath();g.moveTo(sx,y);g.lineTo(sx+(r()-0.5)*3,y+rad*(2+r()*5));g.stroke();}}};   // bleeding down the panel
+  // ---- A: the sides ----
+  {const R=KFR3.A,[x0,y0,w,h]=R,yAt=v=>y0+(1-v)*h,xAt=u=>x0+u*w;clip(R);g.fillStyle=rgba(PAINT,1);g.fillRect(x0,y0,w,h);
+    let gr=g.createLinearGradient(0,y0,0,y0+h);gr.addColorStop(0,rgba(DUSTL,0.28));gr.addColorStop(0.5,rgba(DUSTL,0.08));gr.addColorStop(1,rgba(DUSTL,0));g.fillStyle=gr;g.fillRect(x0,y0,w,h);   // faded by the sun, most up top
+    for(let i=0;i<60;i++)blob(x0+r()*w,y0+r()*h,20+r()*60,r()<0.6?DUSTL:PAINT.map(v=>v*0.75),0.08+r()*0.1);   // blotchy, uneven paint
+    g.strokeStyle=rgba(DUSTL,0.35);for(let i=0;i<70;i++){g.lineWidth=0.5+r();const x=x0+r()*w,y=y0+r()*h*0.8;g.beginPath();g.moveTo(x,y);g.lineTo(x+(r()-0.5)*40,y+(r()-0.5)*8);g.stroke();}   // scratches
+    for(let i=0;i<70;i++)spot(x0+r()*w,y0+h*0.15+r()*h*0.7,1+r()*2.5,hx('#8a8476'),0.6);   // chips through to bare metal
+    for(const hb of hubs)for(let i=0;i<10;i++){const a=Math.PI*(0.1+r()*0.8),d=hb.rr*(1.08+r()*0.3);rustAt(xAt(hb.u+Math.cos(a)*d*T.H/T.L),yAt(hb.v+Math.sin(a)*d),3+r()*7,r()<0.4);}   // the arches go first
+    for(let i=0;i<34;i++)rustAt(x0+r()*w,yAt(0.14+r()*0.16),3+r()*8,r()<0.3);   // along the sills and the bottoms of the doors
+    for(let i=0;i<16;i++)rustAt(x0+r()*w,yAt(0.3+r()*0.35),2+r()*5,true);   // spots through the panels, running
+    mudBand(R,0.42,1);grain(R,14);unclip();}
+  // ---- B: the tops: bonnet, roof, boot ----
+  {const R=KFR3.B,[x0,y0,w,h]=R;clip(R);g.fillStyle=rgba(PAINT,1);g.fillRect(x0,y0,w,h);g.fillStyle=rgba(DUSTL,0.3);g.fillRect(x0,y0,w,h);   // baked by the sun
+    for(let i=0;i<90;i++)blob(x0+r()*w,y0+r()*h,15+r()*60,r()<0.75?DUST:PAINT.map(v=>v*0.8),0.15+r()*0.25);   // dust lying in drifts
+    for(let i=0;i<1400;i++)spot(x0+r()*w,y0+r()*h,0.6+r()*1.8,r()<0.7?DUST:DUSTL,0.25+r()*0.4);
+    g.strokeStyle=rgba(PAINT.map(v=>v*0.85),0.4);for(let i=0;i<14;i++){g.lineWidth=2+r()*5;const x=x0+r()*w,y=y0+r()*h;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+(r()-0.5)*60,y+(r()-0.5)*30,x+(r()-0.5)*90,y+(r()-0.5)*40);g.stroke();}   // where hands and rain have dragged it off
+    for(let i=0;i<18;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*7,false);for(let i=0;i<10;i++)rustAt(x0+r()*w,y0+(r()<0.5?r()*h*0.12:h-r()*h*0.12),3+r()*8,false);   // spots, and the edges of the panels
+    grain(R,12);unclip();}
+  // ---- C and D2: the glass ----
+  for(const [key,wipe] of [['C',false],['D2',true]]){const R=KFR3[key],[x0,y0,w,h]=R;clip(R);g.fillStyle='#262a2c';g.fillRect(x0,y0,w,h);
+    const gr=g.createLinearGradient(0,y0,0,y0+h);gr.addColorStop(0,rgba(DUST,0.25));gr.addColorStop(0.5,rgba(DUST,0.42));gr.addColorStop(1,rgba(MUD,0.75));g.fillStyle=gr;g.fillRect(x0,y0,w,h);   // a film of dust, thickest at the bottom
+    for(let i=0;i<40;i++)blob(x0+r()*w,y0+r()*h,8+r()*40,DUSTL,0.15+r()*0.2);for(let i=0;i<500;i++)spot(x0+r()*w,y0+h*(0.3+r()*0.7),0.5+r()*1.6,r()<0.5?DUST:MUD,0.3+r()*0.4);
+    g.strokeStyle=rgba(hx('#3a3a38'),0.35);for(let i=0;i<14;i++){g.lineWidth=1+r()*2;const x=x0+r()*w;g.beginPath();g.moveTo(x,y0+r()*h*0.4);g.lineTo(x+(r()-0.5)*4,y0+h*(0.6+r()*0.4));g.stroke();}   // runs where water's cut through it
+    if(wipe){g.globalCompositeOperation='source-over';for(const cx of [0.3,0.7]){g.fillStyle='rgba(38,42,44,0.72)';g.beginPath();g.moveTo(x0+cx*w,y0+h*0.95);g.arc(x0+cx*w,y0+h*0.95,h*0.62,Math.PI*1.08,Math.PI*1.92);g.closePath();g.fill();}   // the wiper arcs
+      g.strokeStyle=rgba(DUST,0.5);g.lineWidth=2;for(const cx of [0.3,0.7]){g.beginPath();g.arc(x0+cx*w,y0+h*0.95,h*0.62,Math.PI*1.08,Math.PI*1.92);g.stroke();}}
+    grain(R,10);unclip();}
+  // ---- E: sills, black trim, the underneath ----
+  {const R=KFR3.E,[x0,y0,w,h]=R;clip(R);g.fillStyle='#2e2a26';g.fillRect(x0,y0,w,h);mudBand(R,1,1.2);for(let i=0;i<20;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*6,false);grain(R,16);unclip();}
+  // ---- D1: the tyres, caked ----
+  {const R=KFR3.D1,[x0,y0,w,h]=R;clip(R);g.fillStyle='#2a241e';g.fillRect(x0,y0,w,h);const gr=g.createLinearGradient(0,y0,0,y0+h);gr.addColorStop(0,rgba(DUST,0.35));gr.addColorStop(0.55,rgba(MUD,0.55));gr.addColorStop(1,rgba(MUD,0.82));g.fillStyle=gr;g.fillRect(x0,y0,w,h);
+    for(let i=0;i<3000;i++)spot(x0+r()*w,y0+Math.pow(r(),0.6)*h,0.8+r()*3,r()<0.45?MUD:(r()<0.6?DUST:MUDD),0.35+r()*0.5);grain(R,18);unclip();}
+  // ---- D3: bumpers and wheels: dull, dusty metal ----
+  {const R=KFR3.D3,[x0,y0,w,h]=R;clip(R);g.fillStyle='#8a8478';g.fillRect(x0,y0,w,h);for(let i=0;i<40;i++)blob(x0+r()*w,y0+r()*h,6+r()*25,r()<0.5?DUST:hx('#5a5650'),0.25);
+    for(let i=0;i<16;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*5,true);mudBand(R,0.6,0.8);grain(R,14);unclip();}
+  const tx=new THREE.CanvasTexture(cv);tx.flipY=false;tx.anisotropy=4;
+  return KFTX[hex]={tex:tx,mat:new THREE.MeshLambertMaterial({vertexColors:true,map:tx})};}
 function kingsford3(c){const T=kingsGeo3(),gb=new GB(),wk=c.wrecked,r=rng(hashStr3(c.id||'kf')+17),S=c.def.len*1.04/T.L,P=T.P,zc=T.min[2]+T.L/2;
-  {const sch=[['#7c8668','#2e2a26'],['#8a6a48',null],['#5a6a7a','#e0dcd0'],['#9a5a3a',null],['#c8b890','#3a332c'],['#4e5a44',null]][Math.floor(r()*6)];KFC={paint:col3(sch[0]),vinyl:sch[1]?col3(sch[1]):null,glass:col3('#2a2a30'),chrome:col3('#8a8478'),trim:col3('#2e2a26'),tyre:col3('#1c1814'),rim:col3('#6a6660')};}   // a faded family colour, sometimes with a vinyl roof
-  const rust=col3('#7a4a2e'),rustD=col3('#4e3e2c'),mud=col3('#6a5640'),dust=col3('#cfc6a6'),burnt=col3('#2a211b');const cell=new Map(),at=(x,y,z)=>{const k=Math.floor(x/14)+','+Math.floor(y/12)+','+Math.floor(z/14);if(!cell.has(k))cell.set(k,r());return cell.get(k);};
+  const hexes=['#7c8668','#8a6a48','#5a6a7a','#9a5a3a','#c8b890','#4e5a44'],hex=hexes[Math.floor(r()*6)];r();   // one faded family colour for the whole car
+  KFC={paint:col3(hex),glass:col3('#2a2a30'),chrome:col3('#8a8478'),trim:col3('#2e2a26'),tyre:col3('#1c1814'),rim:col3('#6a6660')};
+  const flip=r()<0.5,UV=[],C2=[],burnt=col3('#2a211b'),rust=col3('#7a4a2e'),mud=col3('#6a5640'),dust=col3('#cfc6a6');
+  const tex=typeof document!=='undefined'&&typeof THREE!=='undefined'?kfTex3(hex,T):null;
   for(let t=0;t<P.length/9;t++){const o=t*9,ax=P[o],ay=P[o+1],az=P[o+2],bx=P[o+3],by=P[o+4],bz=P[o+5],cx=P[o+6],cy=P[o+7],cz=P[o+8];
-    const ux=bx-ax,uy=by-ay,uz=bz-az,vx=cx-ax,vy=cy-ay,vz=cz-az;let ny=uz*vx-ux*vz;const nl=Math.hypot(uy*vz-uz*vy,ny,ux*vy-uy*vx)||1;ny/=nl;
+    const ux=bx-ax,uy=by-ay,uz=bz-az,vx=cx-ax,vy=cy-ay,vz=cz-az,nx0=uy*vz-uz*vy,ny0=uz*vx-ux*vz,nz0=ux*vy-uy*vx,nl=Math.hypot(nx0,ny0,nz0)||1,ny=ny0/nl,anx=Math.abs(nx0/nl),anz=Math.abs(nz0/nl);
     const mx=(ax+bx+cx)/3,my=(ay+by+cy)/3,mz=(az+bz+cz)/3;let skip=false;
     for(let w=0;w<4;w++){const h=T.hub[w];if(Math.sign(mx)===Math.sign(h.x)&&Math.sign(mz-zc)===Math.sign(h.z-zc)&&Math.hypot(my-h.y,mz-h.z)<h.r*1.05&&Math.abs(mx)>T.W*0.3){const gi=(h.z>zc?0:2)+(h.x<0?1:0);if(c.tw&&c.tw[gi]<0)skip=true;break;}}   // a wheel taken off
     if(skip)continue;
-    let cl=[T.col[t*3]/255,T.col[t*3+1]/255,T.col[t*3+2]/255],lum=(cl[0]+cl[1]+cl[2])/3;
-    if(lum>0.9){   // the model's corners are all white (its colours were in the missing textures): paint it ourselves, by what each part is
-      const fy=(my-T.min[1])/T.H,dz=mz-zc,cab=mz>T.min[2]+T.L*0.17&&mz<T.min[2]+T.L*0.72;let wh=null;
-      for(const h of T.hub){if(Math.sign(mx)===Math.sign(h.x)&&Math.hypot(my-h.y,mz-h.z)<h.r*1.05&&Math.abs(mx)>T.W*0.3){wh=Math.hypot(my-h.y,mz-h.z)<h.r*0.55?KFC.rim:KFC.tyre;break;}}
-      if(wh)cl=wh;else if(fy>0.56&&cab&&Math.abs(ny)<0.85)cl=mix3(KFC.glass,dust,0.15);   // the glass
-      else if(Math.abs(dz)>T.L*0.44&&fy<0.36)cl=KFC.chrome;   // bumpers
-      else if(fy<0.12)cl=KFC.trim;else cl=(fy>0.56&&ny>0.6&&cab&&KFC.vinyl)?KFC.vinyl:KFC.paint;lum=0.5;}
-    if(wk)cl=mix3(cl,burnt,0.8);
-    else if(lum>0.18){const rz=at(mx,my,mz);if(rz<0.1)cl=mix3(cl,rust,0.7);else if(rz<0.15)cl=mix3(cl,rustD,0.5);   // rust through the paint (not on glass or black trim)
-      if(ny>0.55)cl=mix3(cl,dust,0.32);const low=Math.max(0,(T.min[1]+T.H*0.32-my)/(T.H*0.32));if(low>0)cl=mix3(cl,mud,Math.min(0.8,low));}   // dust on top, mud up the sides
-    else cl=mix3(cl,dust,0.12);
-    const v=0.88+r()*0.2;cl=cl.map(x=>x*v);
-    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]])gb.pushV((z-zc)*S,(y-T.min[1])*S,-x*S,cl[0],cl[1],cl[2],0);}   // nose (+z in the model) forward
+    // what each part is (the model came with no colours of its own)
+    const fy=(my-T.min[1])/T.H,dz=mz-zc,cab=mz>T.min[2]+T.L*0.17&&mz<T.min[2]+T.L*0.72;let k='paint';
+    for(const h of T.hub){if(Math.sign(mx)===Math.sign(h.x)&&Math.hypot(my-h.y,mz-h.z)<h.r*1.05&&Math.abs(mx)>T.W*0.3){k=Math.hypot(my-h.y,mz-h.z)<h.r*0.55?'rim':'tyre';break;}}
+    if(k==='paint'){if(fy>0.56&&cab&&Math.abs(ny)<0.85)k='glass';else if(Math.abs(dz)>T.L*0.44&&fy<0.36)k='chrome';else if(fy<0.12)k='trim';}
+    // the plain colour (used where the car's drawn without its texture: a crashed wreck by the road)
+    let cl=KFC[k==='rim'?'rim':k];if(wk)cl=mix3(cl,burnt,0.8);else if(k==='paint'){if(ny>0.55)cl=mix3(cl,dust,0.32);const low=Math.max(0,(0.32-fy)/0.32);if(low>0)cl=mix3(cl,mud,Math.min(0.8,low));}
+    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]])gb.pushV((z-zc)*S,(y-T.min[1])*S,-x*S,cl[0],cl[1],cl[2],0);   // nose (+z in the model) forward
+    // where it sits on the texture
+    const sec=k==='paint'?(ny>0.6?'B':'A'):k==='glass'?(anz>anx?'D2':'C'):k==='trim'?'E':k==='tyre'?'D1':'D3',R=KFR3[sec],front=anz>anx&&ny<0.6;
+    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]]){let u=(z-T.min[2])/T.L,v=(y-T.min[1])/T.H,xn=(x-T.min[0])/T.W;
+      if(sec==='B'){v=xn;}else if(sec==='D2'){u=xn;v=(fy>0?(y-T.min[1])/T.H-0.5:0)/0.45;}else if(front&&(sec==='A'||sec==='E'||sec==='D3'))u=0.36+xn*0.28;   // ends of the car: a slice of the side texture across them
+      if(sec==='C')v=(v-0.5)/0.45;if(flip&&sec!=='D2')u=1-u;u=Math.min(0.995,Math.max(0.005,u));v=Math.min(0.995,Math.max(0.005,v));
+      UV.push((R[0]+u*R[2])/1024,(R[1]+(1-v)*R[3])/1024);}
+    const w2=wk?[0.3,0.26,0.23]:k==='rim'?[0.5,0.47,0.43]:[1,1,1];   /* the wheel centres darker: dull, grimy steel */C2.push(...w2,...w2,...w2);}
+  if(tex){gb.uv=UV;gb.c2=C2;gb.tmat=tex.mat;}
   return gb;}
 // the Kingsford wagon (v8.9): David's model, in its own colours (which came with it this time), weathered like the sedan
 const WAGON_DIR=1;   // which end of the model is the nose (+1: toward +z)
