@@ -238,24 +238,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=10.6"></script>
-<script src="models/84-hero-model.js?v=10.6"></script>
-<script src="models/84b-hero-body.js?v=10.6"></script>
-<script src="models/84c-buggy-model.js?v=10.6"></script>
-<script src="models/84d-tarona-model.js?v=10.6"></script>
-<script src="models/84e-wall-model.js?v=10.6"></script>
-<script src="models/84f-plant-models.js?v=10.6"></script>
-<script src="models/84g-kestrel-model.js?v=10.6"></script>
-<script src="models/84h-building-models.js?v=10.6"></script>
-<script src="models/84i-building-models2.js?v=10.6"></script>
-<script src="models/84j-f100-model.js?v=10.6"></script>
-<script src="models/84l-kingsford-model.js?v=10.6"></script>
-<script src="models/84m-wagon-model.js?v=10.6"></script>
+<script src="models/21b-mesa-models.js?v=10.7"></script>
+<script src="models/84-hero-model.js?v=10.7"></script>
+<script src="models/84b-hero-body.js?v=10.7"></script>
+<script src="models/84c-buggy-model.js?v=10.7"></script>
+<script src="models/84d-tarona-model.js?v=10.7"></script>
+<script src="models/84e-wall-model.js?v=10.7"></script>
+<script src="models/84f-plant-models.js?v=10.7"></script>
+<script src="models/84g-kestrel-model.js?v=10.7"></script>
+<script src="models/84h-building-models.js?v=10.7"></script>
+<script src="models/84i-building-models2.js?v=10.7"></script>
+<script src="models/84j-f100-model.js?v=10.7"></script>
+<script src="models/84l-kingsford-model.js?v=10.7"></script>
+<script src="models/84m-wagon-model.js?v=10.7"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='10.6';
+const VERSION='10.7';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1813,11 +1813,11 @@ function windWeather(dt){const W=G.wind;if(!W||state!=='play')return;const b=bod
     if(Math.random()<dt*2.5*k){const a=Math.random()*TAU,d=rand(80,350);part({kind:'flyer',x:b.x+Math.cos(a)*d-ux*200,y:b.y+Math.sin(a)*d-uy*200,vx:W.x*rand(1.5,2.4),vy:W.y*rand(1.5,2.4),life:rand(2.5,4.5),max:4.5,size:rand(1.6,2.8),grow:0,drag:0.2,col:['#d8d0c0','#8a6a44','#6a7a4a','#b8a888'][Math.floor(Math.random()*4)],ph:Math.random()*TAU});}}}   // rubbish, leaves, scraps tumbling by
 // ---- dust storms: every so often a great wall of dust rolls in on the wind, seen from far off; inside it you can barely see,
 // the wind howls, dust pours past; raiders and others lose sight of you beyond a short way. It lasts a few minutes, then blows through.
-function stormStep(dt){const S=G.storm||(G.storm={phase:'none',t:rand(300,700),k:0,d:0});const b=body();
+function stormStep(dt){const S=G.storm||(G.storm={phase:'none',t:rand(600,1400),k:0,d:0});   /* half as often as before (v10.7) */const b=body();
   if(S.phase==='none'){S.t-=dt;S.k=0;if(S.t<=0&&state==='play'){const W=G.wind||{a:0};S.phase='coming';S.a=W.a;S.d=5200;S.speed=rand(45,70);S.len=rand(140,260);showMsg('A dust storm is coming. You can see it on the horizon',3);}}
   else if(S.phase==='coming'){S.d-=S.speed*dt;if(S.px!=null){const mx=b.x-S.px,my=b.y-S.py;if(Math.hypot(mx,my)<500)S.d+=mx*Math.cos(S.a)+my*Math.sin(S.a);}S.px=b.x;S.py=b.y;   /* the front stands in the world (v10.0): drive at it and it's on you sooner, run from it and you gain ground */S.k=clamp(1-(S.d+250)/500,0,1);if(S.d<=-250){S.phase='in';S.t=S.len;}}   // the front sweeps over you
   else if(S.phase==='in'){S.px=null;S.t-=dt;S.k=1;if(S.t<=0){S.phase='going';S.t=30;}}
-  else if(S.phase==='going'){S.t-=dt;S.k=clamp(S.t/30,0,1);if(S.t<=0){S.phase='none';S.t=rand(500,1000);S.k=0;}}
+  else if(S.phase==='going'){S.t-=dt;S.k=clamp(S.t/30,0,1);if(S.t<=0){S.phase='none';S.t=rand(1000,2000);S.k=0;}}
   if(S.phase!=='none'&&G.wind){G.wind.a+=angDiff(S.a,G.wind.a)*Math.min(1,dt*0.5);if(S.k>0.1||S.phase==='coming')G.wind.gTarget=Math.max(G.wind.gTarget||0,0.9);}   // the wind swings round behind it and blows hard
   const pre=S.phase==='coming'?clamp(1-S.d/1100,0,1)*0.7:0,kk=Math.max(S.k,pre);   // the dust starts streaming past while the wall is still a way off
   if(kk>0.05&&state==='play'){const W=G.wind||{x:40,y:0},n=Math.round(kk*9*dt*60)/9;for(let i=0;i<n*5;i++){const a=Math.random()*TAU,d=rand(30,520);   // dust pouring past
@@ -5368,13 +5368,25 @@ function bits3(gb,x,z,r){const gy=heightAt(x,z),q=r(),a=r()*TAU;
   else{const f=gb.force;gb.force='none';if(r()<0.5)gb.cyl(x,gy,z,0.9,2.2,6,dcol3(r,['#8a8476',DIRT3.rust,'#6a5a48']));else gb.box(x,gy,z,1.6,1.6,4.2,a,dcol3(r,['#4a5a3a','#5a3a1e','#7a7a6a']));gb.force=f;}}   // a tin, a bottle on its side
 // round a building's footprint (centre x,z; w by h; turned rot); 'door': the half-width of the gap left clear in the middle of the front
 // (+h side), and of the back too when 'both'
+// a small bush at a building's foot (v10.7): one of David's bush models, smaller than the ones out bush, in saltbush grey-greens;
+// now and then a dead one, just bare twigs
+function bush3(gb,x,z,s,r){const gy=heightAt(x,z),f=gb.force;gb.force='none';const pick=a=>col3(a[Math.floor(r()*a.length)],0.9+r()*0.18);
+  if(r()<0.15){const tw=pick(['#6a5a48','#7a6a56','#5a4a3a']);for(let i=0;i<5;i++){const a=r()*TAU,l=(10+r()*8)*s;gb.beam([x,gy,z],[x+Math.cos(a)*l,gy+(8+r()*10)*s,z+Math.sin(a)*l],0.7,tw);}}
+  else{const g=pick(['#6c7440','#7a8a5a','#8a9a7a','#5f6a3c','#8a8e6e','#9a9a7a']),stem=pick(['#6a5a48','#5a4a3a','#7a6a56']);plant3(gb,r()<0.5?'Bush03':'Bush04',x,z,gy,r()*TAU,62*s,m=>/Box/.test(m)?stem:g,r);}
+  gb.force=f;}
 function baseDress3(gb,b,door,both,dens){const cs=Math.cos(b.rot),sn=Math.sin(b.rot),hw=b.w/2,hh=b.h/2,r=rng(hash2(Math.round(b.x*3)+11,Math.round(b.y*7)+5)),D=dens||1;
   const W=(lx,lz)=>[b.x+lx*cs-lz*sn,b.y+lx*sn+lz*cs],clear=(lx,lz)=>door!=null&&Math.abs(lx)<door+9&&(lz>hh-3||(both&&lz<-hh+3));
   const sides=[[-hw,hh,hw,hh,0,1],[hw,-hh,-hw,-hh,0,-1],[-hw,-hh,-hw,hh,-1,0],[hw,hh,hw,-hh,1,0]];
   for(const [x0,z0,x1,z1,nx,nz] of sides){const len=Math.hypot(x1-x0,z1-z0);for(let u=2+r()*8;u<len-1;u+=(10+r()*12)/D){if(r()<0.25)continue;const t=u/len;
       for(let j=0;j<1+Math.floor(r()*3);j++){const out=0.8+r()*r()*9,lx=x0+(x1-x0)*t+nz*(r()-0.5)*6+nx*out,lz=z0+(z1-z0)*t-nx*(r()-0.5)*6+nz*out;if(clear(lx,lz))continue;const p=W(lx,lz);tuft3(gb,p[0],p[1],0.7+r()*0.6,r);}}}
   for(const [cx,cz] of [[-1,-1],[1,-1],[-1,1],[1,1]])for(let j=0;j<1+Math.floor(r()*3);j++){const lx=cx*(hw+1+r()*6),lz=cz*(hh+1+r()*6);if(clear(lx,lz))continue;const p=W(lx,lz);tuft3(gb,p[0],p[1],0.8+r()*0.7,r);}   // thicker in the corners
-  for(let k=0;k<Math.round((4+r()*5)*D);k++){const sd=sides[Math.floor(r()*4)],t=r(),out=1.5+r()*10,lx=sd[0]+(sd[2]-sd[0])*t+sd[4]*out,lz=sd[1]+(sd[3]-sd[1])*t+sd[5]*out;if(clear(lx,lz))continue;const p=W(lx,lz);bits3(gb,p[0],p[1],r);}}
+  for(let k=0;k<Math.round((4+r()*5)*D);k++){const sd=sides[Math.floor(r()*4)],t=r(),out=1.5+r()*10,lx=sd[0]+(sd[2]-sd[0])*t+sd[4]*out,lz=sd[1]+(sd[3]-sd[1])*t+sd[5]*out;if(clear(lx,lz))continue;const p=W(lx,lz);bits3(gb,p[0],p[1],r);}
+  // small bushes (v10.7): saltbush and bluebush grown up against the walls, mostly at the corners; their own dice, so the grass and
+  // the debris stay where they were
+  {const rb=rng(hash2(Math.round(b.x*5)+3,Math.round(b.y*3)+17)),n=1+Math.round((b.w+b.h)/110*(0.7+rb()*0.5));
+    for(let k=0;k<n;k++){let lx,lz;if(rb()<0.55){const cx=rb()<0.5?-1:1,cz=rb()<0.5?-1:1;lx=cx*(hw+2+rb()*7);lz=cz*(hh+2+rb()*7);if(rb()<0.5)lx=cx*(hw-rb()*hw*0.35);else lz=cz*(hh-rb()*hh*0.35);}   // in a corner, or just round it
+      else{const sd=sides[Math.floor(rb()*4)],t=0.1+rb()*0.8,out=3+rb()*6;lx=sd[0]+(sd[2]-sd[0])*t+sd[4]*out;lz=sd[1]+(sd[3]-sd[1])*t+sd[5]*out;}   // part way along a wall
+      if(clear(lx,lz))continue;const p=W(lx,lz);bush3(gb,p[0],p[1],0.5+rb()*0.35,rb);}}}
 // the townhouse (David's model): a narrow three-storey house of rendered brick with a garage beside it, weathered like everything
 // else: render faded and stained, darker and dusty near the ground and streaked under the sills, a rusty tin roof, peeling timber,
 // a dented roller door going to rust, dusty glass, doors with the paint worn off; every face its own shade
@@ -6650,7 +6662,7 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   // light: day to night, the haze matching the sky
   const dk=darkness(),sky=new THREE.Color(0xe8c79a).lerp(new THREE.Color(0x15121c),clamp(dk/0.8,0,1));
   if(G.storm&&G.storm.phase==='coming'){const near=clamp(1-G.storm.d/5200,0,1);sky.lerp(new THREE.Color(0x7c8090).lerp(new THREE.Color(0x15121c),clamp(dk/0.8,0,1)),0.18+0.32*near);}   // a storm coming: the sky clouds over, grey
-  {const sk=typeof stormK==='function'?stormK():0;if(sk>0){sky.lerp(new THREE.Color(0xa88a5e).lerp(new THREE.Color(0x2a2218),clamp(dk/0.8,0,1)),sk*0.85);}const vs=1+skill('vision')*SK_STORMSEE;sc.fog.near=V3.fogNear*(1-sk*0.92)*Math.min(3,vs);sc.fog.far=V3.fogFar*(1-sk)+Math.min(V3.fogFar,420*vs)*sk;   /* Vision: further in a storm (v10.4) */stormWall3();}   // in a dust storm you can hardly see
+  {const sk=typeof stormK==='function'?stormK():0;if(sk>0){sky.lerp(new THREE.Color(0xa88a5e).lerp(new THREE.Color(0x2a2218),clamp(dk/0.8,0,1)),sk*0.85);}const vs=(1+skill('vision')*SK_STORMSEE)*(heroCar()?1.5:1);sc.fog.near=V3.fogNear*(1-sk*0.92)*Math.min(4.5,vs);sc.fog.far=V3.fogFar*(1-sk)+Math.min(V3.fogFar,420*vs)*sk;   /* Vision: further in a storm (v10.4); half as far again from behind the wheel (v10.7) */   /* Vision: further in a storm (v10.4) */stormWall3();}   // in a dust storm you can hardly see
   sc.background.copy(sky);sc.fog.color.copy(sky);V3.mats.far.userData.u.hzCol.value.copy(sky);V3.hemi.intensity=0.55*(1-dk)+0.13+dk*skill('vision')*0.045;   /* Vision: better at night */V3.sun.intensity=Math.max(0,0.58*(1-dk*1.25));
   {const tex=SHADOW_SPAN3*2/2048,sx=Math.round(b.x/tex)*tex,sz=Math.round(b.y/tex)*tex;   // the shadow box follows you, stepping a whole texel at a time so edges don't crawl
     const d=sunDir3();V3.sun.position.set(sx+d.x*1400,gy+d.y*1400,sz+d.z*1400);V3.sun.target.position.set(sx,gy,sz);V3.sun.target.updateMatrixWorld();sky3(dk);}   // the sun where the clock says it is
