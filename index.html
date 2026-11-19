@@ -187,6 +187,8 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
     <span class="carrow">Car</span><div class="bar carrow"><i id="condBar"></i></div>
     <div class="note carrow" id="carName"></div>
     <div class="note warn carrow" id="carWarn"></div>
+    <div class="note warn" id="illLine" style="display:none;color:#c8d0a0"></div>
+    <div class="note" id="medLine" style="display:none;color:#e8d890"></div>
     <div class="note" id="inv"></div>
     <div class="note" id="weap"></div>
     <div class="note" id="compLine"></div>
@@ -239,24 +241,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=11.3"></script>
-<script src="models/84-hero-model.js?v=11.3"></script>
-<script src="models/84b-hero-body.js?v=11.3"></script>
-<script src="models/84c-buggy-model.js?v=11.3"></script>
-<script src="models/84d-tarona-model.js?v=11.3"></script>
-<script src="models/84e-wall-model.js?v=11.3"></script>
-<script src="models/84f-plant-models.js?v=11.3"></script>
-<script src="models/84g-kestrel-model.js?v=11.3"></script>
-<script src="models/84h-building-models.js?v=11.3"></script>
-<script src="models/84i-building-models2.js?v=11.3"></script>
-<script src="models/84j-f100-model.js?v=11.3"></script>
-<script src="models/84l-kingsford-model.js?v=11.3"></script>
-<script src="models/84m-wagon-model.js?v=11.3"></script>
+<script src="models/21b-mesa-models.js?v=11.5"></script>
+<script src="models/84-hero-model.js?v=11.5"></script>
+<script src="models/84b-hero-body.js?v=11.5"></script>
+<script src="models/84c-buggy-model.js?v=11.5"></script>
+<script src="models/84d-tarona-model.js?v=11.5"></script>
+<script src="models/84e-wall-model.js?v=11.5"></script>
+<script src="models/84f-plant-models.js?v=11.5"></script>
+<script src="models/84g-kestrel-model.js?v=11.5"></script>
+<script src="models/84h-building-models.js?v=11.5"></script>
+<script src="models/84i-building-models2.js?v=11.5"></script>
+<script src="models/84j-f100-model.js?v=11.5"></script>
+<script src="models/84l-kingsford-model.js?v=11.5"></script>
+<script src="models/84m-wagon-model.js?v=11.5"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='11.3';
+const VERSION='11.5';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1266,6 +1268,9 @@ const ITEMS={
   knife:{name:'Knife',kg:0.3,weapon:'knife',icon:'#8a8478'},
   compass:{name:'Compass',kg:0.1,icon:'#b8862f'},
   billy:{name:'Billy can',kg:0.6,icon:'#8a8478'},billy_full:{name:'Billy can of river water',kg:1.6,icon:'#6f8a94'},
+  painkillers:{name:'Painkillers',kg:0.03,use:'med',val:1,icon:'#e8e8e0'},   // (v11.5) injuries' side effects gone for 5-8 min a tablet
+  stims:{name:'Stimulants',kg:0.03,use:'med',val:1,icon:'#d8c040'},          // (v11.5) tiredness, thirst and hunger's effects gone for 5-8 min
+  pills:{name:'Antibiotic tablets',kg:0.05,use:'cure',val:1,icon:'#e6dcc4'},   // (v11.4) a level of illness off a dose, down to level 1
   bottle:{name:'Empty plastic bottle',kg:0.05,icon:'#d7e6ea'},   // (v10.2) boiled billy water goes into one; you keep it when you drink, mostly
   tyreiron:{name:'Tyre iron',kg:2,weapon:'tyreiron',icon:'#55504a'},
   bat:{name:'Cricket bat',kg:1.2,weapon:'bat',icon:'#c9a35a'},
@@ -1305,11 +1310,11 @@ const PARTS={engine:'Engine',tyres:'Tyres',susp:'Suspension',cond:'Body'};
 const HERO_CAP=25;
 // loot tables: [item, weight, min, max]
 const LOOT={
-  ruin:[['glassbottle',4,1,2],['pipe',1.6,1,1],['fuse',0.5,1,1],['compass',0.5,1,1],['tyreiron',3,1,1],['bat',2,1,1],['machete',1.5,1,1],['knife',2.5,1,1],['bow',1.2,1,1],['crossbow',0.5,1,1],['arrows',3,4,10],['bolts',1.5,3,8],['revolver',0.12,1,1],['bullets',0.5,2,6],['shells',0.3,2,4],['water',5.5,1,2],['beans',8,1,3],['jerky',6,1,3],['bandage',5,1,2],['medkit',2,1,1],['jerrycan',1.8,1,1],['scrap',8,1,3],['tyre',2,1,1],['parts',3,1,1],['springs',2,1,1],['toolkit',1,1,1]],
+  ruin:[['pills',0.5,1,1],['glassbottle',4,1,2],['pipe',1.6,1,1],['fuse',0.5,1,1],['compass',0.5,1,1],['tyreiron',3,1,1],['bat',2,1,1],['machete',1.5,1,1],['knife',2.5,1,1],['bow',1.2,1,1],['crossbow',0.5,1,1],['arrows',3,4,10],['bolts',1.5,3,8],['revolver',0.12,1,1],['bullets',0.5,2,6],['shells',0.3,2,4],['water',5.5,1,2],['beans',8,1,3],['jerky',6,1,3],['bandage',5,1,2],['medkit',2,1,1],['jerrycan',1.8,1,1],['scrap',8,1,3],['tyre',2,1,1],['parts',3,1,1],['springs',2,1,1],['toolkit',1,1,1]],
   boot:[['glassbottle',1.2,1,1],['compass',0.4,1,1],['tyreiron',3,1,1],['knife',1,1,1],['arrows',1,3,8],['rounds',0.15,2,5],['water',3.3,1,2],['beans',4,1,2],['jerky',3,1,2],['scrap',5,1,2],['tyre',4,1,1],['jerrycan',0.9,1,1],['parts',2,1,1],['toolkit',1,1,1],['bandage',2,1,1]],
-  camp:[['molotov',1.2,1,2],['pipebomb',0.3,1,1],['fuse',0.8,1,2],['glassbottle',1.5,1,2],['compass',0.5,1,1],['arrows',4,5,12],['bolts',3,4,10],['bow',1.5,1,1],['crossbow',1,1,1],['machete',2,1,1],['knife',2,1,1],['bat',1.2,1,1],['bullets',1.4,3,8],['shells',1,2,6],['rounds',0.5,3,6],['revolver',0.35,1,1],['shotgun',0.2,1,1],['rifle',0.1,1,1],
+  camp:[['pills',0.6,1,2],['molotov',1.2,1,2],['pipebomb',0.3,1,1],['fuse',0.8,1,2],['glassbottle',1.5,1,2],['compass',0.5,1,1],['arrows',4,5,12],['bolts',3,4,10],['bow',1.5,1,1],['crossbow',1,1,1],['machete',2,1,1],['knife',2,1,1],['bat',1.2,1,1],['bullets',1.4,3,8],['shells',1,2,6],['rounds',0.5,3,6],['revolver',0.35,1,1],['shotgun',0.2,1,1],['rifle',0.1,1,1],
     ['water',3.3,1,3],['beans',5,1,3],['jerrycan',1.8,1,1],['medkit',3,1,1],['parts',2,1,1]],
-  stash:[['water',4.4,2,4],['beans',6,2,4],['jerrycan',2.25,1,2],['medkit',3,1,1],['parts',2,1,2],['jerky',4,2,4]],
+  stash:[['pills',0.8,1,2],['water',4.4,2,4],['beans',6,2,4],['jerrycan',2.25,1,2],['medkit',3,1,1],['parts',2,1,2],['jerky',4,2,4]],
   raider:[['molotov',0.5,1,1],['glassbottle',1,1,1],['arrows',2,3,8],['bolts',1,2,6],['bullets',0.5,2,5],['shells',0.3,2,4],['scrap',8,1,2],['jerky',5,1,2],['water',2.75,1,1],['jerrycan',1.35,1,1],['bandage',2,1,1],['parts',1,1,1]]};
 // zones tilt the odds: mining country has parts, the salt is dry, the coast has food
 const ZONE_LOOT={ranges:{parts:2.5,springs:2,toolkit:2,water:0.7},salt:{water:0.4,jerky:1.5},coast:{beans:1.8,water:1.3},mallee:{water:1.2},red:{water:0.8}};
@@ -1355,7 +1360,7 @@ Object.assign(ITEMS,{
 Object.assign(WEAPONS,{
   pipeclub:{name:'Pipe club',melee:true,dmg:16,range:34,arc:1.3,cd:0.6,knock:120,noise:120},
   spikedbat:{name:'Spiked bat',melee:true,dmg:21,range:38,arc:1.6,cd:0.58,knock:170,noise:120}});
-const VALUE={glassbottle:2,pipe:5,fuse:4,molotov:14,pipebomb:32,bottle:1,water:16,beans:8,jerky:4,bandage:6,medkit:30,jerrycan:18,scrap:4,tyre:35,parts:45,springs:40,toolkit:40,
+const VALUE={painkillers:9,stims:11,pills:14,glassbottle:2,pipe:5,fuse:4,molotov:14,pipebomb:32,bottle:1,water:16,beans:8,jerky:4,bandage:6,medkit:30,jerrycan:18,scrap:4,tyre:35,parts:45,springs:40,toolkit:40,
   compass:30,billy:18,billy_full:18,knife:10,tyreiron:12,bat:18,machete:30,bow:45,crossbow:80,arrows:1,bolts:2,revolver:160,shotgun:210,rifle:280,bullets:4,shells:5,rounds:6,
   cloth:3,wire:5,powder:8,durries:15,watch:45,pipeclub:14,spikedbat:28,
   kit_roobar:120,kit_longtank:140,kit_offroad:110,kit_heavysusp:110,kit_blower:220,kit_armour:180,kit_spikes:90};
@@ -1433,10 +1438,10 @@ function buyPrice(o,k,qtyVal){if(TEST_MODE)return 0;   // the test range: everyt
 function sellPrice(o,k){return Math.max(1,Math.floor(VALUE[k]*priceMods(o).sell));}
 // ---- what each trader has today (restocked every morning) ----
 const STOCK_LISTS={
-  trader:[['glassbottle',4],['fuse',2],['pipe',1],['molotov',2],['billy',1],['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
+  trader:[['painkillers',4],['stims',3],['pills',1],['glassbottle',4],['fuse',2],['pipe',1],['molotov',2],['billy',1],['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
   mechanic:[['jerrycan',1],['hose',2],['tyre',3],['parts',2],['springs',2],['scrap',6],['wire',3],['toolkit',1],['kit_roobar',1],['kit_longtank',1],['kit_offroad',1],['kit_heavysusp',1],['kit_spikes',1]],
   publican:[['water',3],['beans',4],['jerky',4],['durries',2]],
-  doctor:[['bandage',6],['medkit',2],['cloth',3]],
+  doctor:[['pills',5],['bandage',6],['medkit',2],['cloth',3]],
   scavenger:[['glassbottle',3],['pipe',2],['scrap',3],['cloth',2],['wire',1],['durries',1],['powder',1]]};
 function traderStock(n){const day=Math.floor(G.clock/DAY),id=n.def.id;G.stock=G.stock||{};
   if(!G.stock[id]||G.stock[id].day!==day){const r=rng(hash2(n.def.seed,day+11)),list=(STOCK_LISTS[n.def.role]||[]).slice(),inv={};
@@ -1646,7 +1651,7 @@ function exitCar(force){const c=heroCar(),h=G.hero;if(!c)return;if(!force&&swapL
   SFX.door();document.body.classList.add('onfoot');
 }
 function hurtHero(n,src){if(n<=0||G.god)return;if(window.__dmg)window.__dmg[src||'?']=(window.__dmg[src||'?']||0)+n;
-  const h=G.hero,A=heroArmour();if(A)n*=1-A.cut;h.hp-=n;h.flash=1;maybeInjure(n,src);G.hurt=Math.min(1,G.hurt+n/25);G.shake=Math.max(G.shake,Math.min(16,3+n*0.5));}
+  const h=G.hero,A=heroArmour();if(A)n*=1-A.cut;h.hp-=n;h.flash=1;maybeInjure(n,src);G.hurt=Math.min(1,G.hurt+n/25);if(src!=='thirst'&&src!=='exhaustion'&&!(src==='hunger'&&onStims()))G.shake=Math.max(G.shake,Math.min(16,3+n*0.5));}   /* (v11.4) thirst blurs and tiredness darkens instead; starving still shakes */
 function updateHeroOnFoot(dt,inp){
   // walking pace is deliberately unhurried
   const h=G.hero,A=heroArmour(),lg=injFx().walk,sp=(h.crouch?28:inp.sprint?100*(1+skill('athlete')*SK_RUN)*(1-(A?A.slow:0)):58)*lg,k=Math.min(1,dt*10);h.atkCd-=dt;h.swing=Math.max(0,h.swing-dt);   // cooldowns run on foot; driveHero runs them in the car
@@ -1676,7 +1681,9 @@ function useItem(k,inv,car){const it=ITEMS[k],h=G.hero;if(!it||!inv[k])return fa
   if(it.use==='drink'){if(h.water>=99)return say('You’re not thirsty');h.water=Math.min(100,h.water+it.val);SFX.slosh();
     if(k==='water'){invTake(inv,k,1);keepBottle(inv);return true;}}
   else if(it.use==='eat'){if(h.food>=99)return say('You’re not hungry');h.food=Math.min(100,h.food+it.val);SFX.pick();}
-  else if(it.use==='heal'){if(h.hp>=heroHpCap()-1)return say(heroCapLoss()?'That’s as good as it gets until a doctor sees your injuries':'You’re not hurt');h.hp=Math.min(heroHpCap(),h.hp+it.val);SFX.pick();}
+  else if(it.use==='heal'){if(h.hp>=heroHpCap()-1)return say(illLvl()?'That’s as good as it gets while you’re ill':heroCapLoss()?'That’s as good as it gets until a doctor sees your injuries':'You’re not hurt');h.hp=Math.min(heroHpCap(),h.hp+it.val);SFX.pick();}
+  else if(it.use==='cure'){if(!takeCure())return false;}
+  else if(it.use==='med'){if(!takeMed(k))return false;}   // painkillers, stimulants (v11.5)   // antibiotics (v11.4)
   else if(it.use==='fuel'){if(!car)return say('No car to pour it into');const f=canFill(inv);if(f<=0.05)return say('Your jerry cans are empty');if(car.fuel>=99)return say('The tank is full');
     const amt=Math.min(f,100-car.fuel);car.fuel+=amt;setFill(inv,f-amt);car.touched=true;SFX.slosh();popText(car.x,car.y-30,'+ '+Math.round(amt)+'% fuel','#f2a03d');return true;}   // the cans stay with you, emptier
   else if(it.use==='wear'){h.armour=h.armour===k?null:k;say(h.armour?'You strap on the '+it.name.toLowerCase():'You take off the armour');return true;}
@@ -1718,6 +1725,7 @@ function getActions(){
     // a billy: fill it at a river, then boil it over a little fire (an hour) for a bottle's worth of safe water
     {const C=convoyNear(260);if(C&&!C.stopped&&(!heroCar()||heroCar().speed<60))acts.push({k:'G',label:'Flag down the convoy',fn:()=>flagConvoy(C)});}
     if(h.inv.billy&&atRiver(h.x,h.y))acts.push({k:'B',label:'Fill the billy',fn:fillBilly});
+    if(!c&&h.water<95&&atRiver(h.x,h.y))acts.push({k:'Y',label:'Drink from the river (unboiled)',alt:true,fn:drinkRiver});   /* quick, but it'll make you sick (v11.4) */
     if(h.inv.billy_full)acts.push({k:'N',label:'Boil the billy ('+(skBoilMins(skill('bush'))>=60?'1 hour':skBoilMins(skill('bush'))+' min')+')',alt:true,fn:boilBilly});
     const bed=!c?nearestBed(22):null;if(bed)acts.push({k:'Z',label:'Rest on the bed',fn:()=>bedPanel(bed)});
     const sv=salvageTarget();if(sv){acts.push({k:'J',label:'Siphon fuel',alt:true,fn:()=>siphonPanel(sv)});acts.push({k:'K',label:'Strip parts',alt:true,fn:()=>stripPanel(sv)});}
@@ -1754,9 +1762,9 @@ const INJURIES={
   concussion:{name:'Concussion',rating:15,fx:{wobble:1,view:'near'}}};
 function heroInj(){const h=G.hero;return h.injuries||(h.injuries=[]);}
 function heroCapLoss(){return G.hero.capLoss||0;}
-function heroHpCap(){return Math.max(10,Math.round(100-heroCapLoss()));}
+function heroHpCap(){return Math.max(10,Math.round(100-heroCapLoss()-(typeof illCap==='function'?illCap():0)));}   // injuries and illness (v11.4) both lower it
 // the side effects of what you have, one lot per kind
-function injFx(){const kinds=[...new Set(heroInj().map(i=>i.type))],fx={wobble:0,weapon:1,carry:1,walk:1,view:null};
+function injFx(){const kinds=typeof onPainkillers==='function'&&onPainkillers()?[]:[...new Set(heroInj().map(i=>i.type))],   /* on painkillers: no side effects (v11.5) */fx={wobble:0,weapon:1,carry:1,walk:1,view:null};
   for(const k of kinds){const e=INJURIES[k]&&INJURIES[k].fx;if(!e)continue;if(e.wobble)fx.wobble=1;if(e.weapon)fx.weapon*=e.weapon;if(e.carry)fx.carry*=e.carry;if(e.walk)fx.walk*=e.walk;if(e.view)fx.view=e.view;}return fx;}
 function heroCap(){return Math.round(HERO_CAP*(1+skill('strength')*SK_CARRY)*injFx().carry*10)/10;}   // how much you can carry
 function injure(src,type){const h=G.hero;type=type||Object.keys(INJURIES)[Math.floor(Math.random()*Object.keys(INJURIES).length)];const I=INJURIES[type];
@@ -1780,6 +1788,89 @@ function clinicTick(dt){const C=G.clinic,h=G.hero;if(!C)return;if(C.b)C.b.roofA=
   if(h.capLoss<=0.01){h.capLoss=0;}if(typeof updateHud==='function')updateHud();}
 function leaveClinic(){const h=G.hero;if(!G.clinic)return;G.clinic=null;h.capLoss=Math.max(0,Math.round((h.capLoss||0)*10)/10);if(h.lying)getUp();state='play';const el=document.getElementById('clinicBox');if(el)el.style.display='none';
   showMsg(h.capLoss>0?'You leave the clinic. Your health can reach '+heroHpCap()+'% now':'You leave the clinic fully mended',2.6);}
+
+/* ===== illness (v11.4): like injuries, sitting on top of health =====
+   Three levels. Each level takes 10% off your health's ceiling and makes thirst, hunger and tiredness drain 10% faster.
+   An illness wears off a level every 5 minutes (so level 3 lasts 15, level 2 lasts 10, level 1 lasts 5). The minutes are play
+   minutes measured on the game clock, so sleeping, boiling the billy and the clinic count too (one game hour = 1.875 minutes).
+   While you're ill the colour drains out of the world: fully black and white after 6 minutes ÷ the level. It comes back when you're well.
+   How you get sick: drinking straight from a river (one level a drink), a snake bite (two levels). At most level 3.
+   Antibiotic tablets (doctors, some traders, and found about the place) take off one level a dose, but only down to level 1:
+   the last of it you have to sweat out.
+   (All kinds of illness have the same effect for now: room is left for kinds in ILLS.) ===== */
+const ILL_STEP=300,ILL_MAX=3,ILL_GREY=360,ILL_RS=1.875;   // seconds a level lasts; top level; seconds to grey at level 1; real seconds per game minute
+const ILLS={fever:{name:'Fever'}};
+function heroIll(){return G.hero.ill||null;}
+function illLvl(){const I=G.hero.ill;return I&&I.left>0?Math.min(ILL_MAX,Math.ceil(I.left/ILL_STEP-1e-6)):0;}
+function illCap(){return illLvl()*10;}          // what it takes off the health ceiling
+function illDrain(){return 1+0.1*illLvl();}     // thirst, hunger and tiredness drain this much faster
+function illLeft(){const I=G.hero.ill;return I?Math.max(0,I.left):0;}
+function sicken(n,src){const h=G.hero;if(G.god&&src!=='test')return 0;const I=h.ill||(h.ill={left:0,grey:0,kind:'fever'}),was=illLvl();
+  I.left=Math.min(ILL_MAX*ILL_STEP,(was?I.left:0)+n*ILL_STEP);const now=illLvl();h.hp=Math.min(h.hp,heroHpCap());
+  if(now>was)showMsg((was?'You feel worse: illness level '+now:'You’re coming down with something: illness level '+now)+'. Your health can’t go above '+heroHpCap()+'% while it lasts',3);
+  else if(now===ILL_MAX&&was===ILL_MAX)showMsg('You’re as sick as you can get',2.2);
+  return now;}
+// a dose of antibiotics: one level off, never past level 1
+function takeCure(){const L=illLvl(),I=G.hero.ill;if(!L){say('You’re not sick');return false;}if(L<=1){say('The tablets won’t shift the last of it. Rest and let it run its course');return false;}
+  I.left=Math.min(I.left,(L-1)*ILL_STEP);showMsg('You swallow the tablets. Illness down to level '+illLvl(),2.4);SFX.pick();return true;}
+// each frame in play: the clock moves, the illness wears off; the colour drains while you're ill and comes back when you're well
+function illTick(){const h=G.hero;if(typeof G.illClock!=='number'||G.clock<G.illClock)G.illClock=G.clock;const s=Math.min(6*3600,(G.clock-G.illClock)*ILL_RS);G.illClock=G.clock;
+  medsTick(s);   // painkillers and stimulants wearing off (v11.5)
+  const I=h.ill;if(!I||s<=0)return;const was=illLvl();I.left=Math.max(0,I.left-s);const now=illLvl();
+  if(now>0)I.grey=Math.min(1,(I.grey||0)+s*now/ILL_GREY);else I.grey=Math.max(0,(I.grey||0)-s/25);
+  if(now<was)showMsg(now?'You’re feeling a little better: illness level '+now:'The fever’s broken. You’re well again',2.6);
+  if(!now&&I.grey<=0)h.ill=null;}
+
+// ---- what your needs do to the screen (v11.4) ----
+// tiredness: a vignette closing in from the edges as you tire; near the end, blackouts: the dark closes right in and holds for a few seconds
+// thirst: the world blurs, worse the drier you are, and worse still the longer you go with none
+// hunger: the shake you get when you're starving (from hurtHero), as before
+// illness: the world loses its colour
+function needsTick(dt,car){const h=G.hero;illTick();
+  h.dryT=h.water<=0?(h.dryT||0)+dt:0;
+  const B=G.blk||(G.blk={ph:null,t:0,next:30});
+  if(onStims()){B.ph=null;B.next=Math.max(B.next,12);}   // on stimulants: no blackouts (v11.5)
+  else if(h.rest<10&&!G.god){if(!B.ph){B.next-=dt;if(B.next<=0){B.ph='close';B.t=0;B.hold=2.5+Math.random()*2;}}}
+  else if(!B.ph)B.next=Math.max(B.next,12);
+  if(B.ph){B.t+=dt;if(B.ph==='close'&&B.t>=1.6){B.ph='black';B.t=0;
+      if(car&&car.speed>40){car.a+=rand(-0.3,0.3);if(!G.warned.nod){G.warned.nod=true;showMsg('You nodded off at the wheel',2);}}   // asleep at the wheel
+      else if(!car&&!G.warned.blk){G.warned.blk=true;showMsg('You black out for a moment. You need sleep',2.4);}}
+    else if(B.ph==='black'&&B.t>=B.hold){B.ph='open';B.t=0;}
+    else if(B.ph==='open'&&B.t>=1.6){B.ph=null;B.next=(h.rest<=0?10:18)+Math.random()*(6+h.rest*3);}}   // more often the more tired you are
+  if(h.rest>15){G.warned.blk=false;}}
+// how dark the edges are (0..1) and how far in the dark reaches (0 = just the corners .. 1 = the whole screen)
+function tiredFx(){if(onStims())return {reach:0,dark:0};const h=G.hero,B=G.blk,k=clamp((32-h.rest)/32,0,1);let reach=k*0.55,dark=k*0.85;
+  if(B&&B.ph){const e=B.ph==='close'?B.t/1.6:B.ph==='black'?1:1-B.t/1.6,s=e*e*(3-2*e);reach=reach+(1.05-reach)*s;dark=dark+(1-dark)*s;}
+  return {reach,dark};}
+function thirstBlur(){const h=G.hero;if(onStims())return 0;return h.water<25?(25-h.water)/25*2.5+Math.min(7,(h.dryT||0)*0.08):0;}   // css pixels
+function drawNeedsFx(ctx,W,H){const {reach,dark}=tiredFx();if(dark>0.01){const M=Math.hypot(W,H)/2,r1=M*(1.02-reach),r0=Math.max(0,r1-M*0.55);
+    const g=ctx.createRadialGradient(W/2,H/2,r0,W/2,H/2,Math.max(r0+1,r1));g.addColorStop(0,'rgba(4,3,2,0)');g.addColorStop(1,'rgba(4,3,2,'+dark.toFixed(3)+')');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    if(reach>0.98){ctx.fillStyle='rgba(4,3,2,'+((reach-0.98)/0.07*dark).toFixed(3)+')';ctx.fillRect(0,0,W,H);}}}   // fully black at the bottom of a blackout
+// blur and colour are a CSS filter on the world's canvas (cheap: the browser does it on the GPU), and only while there's something to show
+function worldFilter(cnv){if(!cnv)return;const b=thirstBlur(),I=G.hero.ill,gr=I?I.grey||0:0;let f='';if(b>0.05)f+='blur('+b.toFixed(2)+'px) ';if(gr>0.005)f+='saturate('+(1-gr).toFixed(3)+')';
+  f=f.trim()||'none';if(cnv.style.filter!==f)cnv.style.filter=f;}
+// drinking straight from the river: water, but a level of illness every time
+function drinkRiver(){const h=G.hero;if(h.water>=99)return say('You’re not thirsty');h.water=Math.min(100,h.water+35);SFX.slosh();sicken(1,'river');}
+
+/* ---- medication (v11.5), from traders: each tablet adds 5 to 8 minutes (play minutes on the game clock, like illness) ----
+   Painkillers: the side effects of injuries go away while they last (the wobble at the wheel, the weak arm, the short carry, the limp,
+     the blurred far sight). The injuries themselves, and the lower health ceiling, stay until a doctor sees to them.
+   Stimulants: the effects of tiredness, thirst and hunger go away while they last (the dark closing in and the blackouts, the blur,
+     the starving shake). Your needs still drain, and going without still hurts you: they only hide it. */
+const MEDS={painkillers:{k:'pk',name:'Painkillers',on:'The pain dulls. You can move properly again',off:'The painkillers have worn off'},
+  stims:{k:'stim',name:'Stimulants',on:'A jolt goes through you. You feel wide awake',off:'The stimulants have worn off. It all comes crashing back'}};
+const MED_MAX=20*60;   // no more than 20 minutes banked at once
+function medLeft(k){const M=G.hero.meds;return M?Math.max(0,M[k]||0):0;}
+function onPainkillers(){return medLeft('pk')>0;}
+function onStims(){return medLeft('stim')>0;}
+function takeMed(item){const h=G.hero,D=MEDS[item];if(!D)return false;
+  if(item==='painkillers'&&!heroInj().length){say('You’re not hurt: save them');return false;}
+  if(item==='stims'&&h.rest>=50&&h.water>=50&&h.food>=50){say('You don’t need them yet');return false;}
+  if(medLeft(D.k)>=MED_MAX-60){say('Any more would do you harm. Wait a while');return false;}
+  const M=h.meds||(h.meds={}),was=medLeft(D.k);M[D.k]=Math.min(MED_MAX,was+300+Math.random()*180);   // 5 to 8 minutes a tablet
+  showMsg((was?'Another tablet: ':'')+(was?D.name+' for '+Math.round(M[D.k]/60)+' more minutes':D.on+' ('+Math.round(M[D.k]/60)+' min)'),2.4);SFX.pick();
+  if(item==='stims'&&G.blk)G.blk.ph=null;return true;}
+function medsTick(s){const M=G.hero.meds;if(!M||s<=0)return;for(const item in MEDS){const k=MEDS[item].k;if(!(M[k]>0))continue;M[k]-=s;if(M[k]<=0){M[k]=0;showMsg(MEDS[item].off,2.4);}}}
 
 /* ===== effects and pickups ===== */
 function addPickup(item,x,y,id){G.pickups.push({item,x,y,id,t:Math.random()*TAU});}
@@ -2136,7 +2227,7 @@ function updateAnimal(a,dt,b,car){a.flash=Math.max(0,a.flash-dt*4);if(a.state===
     else{const nx=(a.x-c.x)/(cd||1),ny=(a.y-c.y)/(cd||1);a.x=c.x+nx*(c.r+a.r);a.y=c.y+ny*(c.r+a.r);}
     break;}}
 function bite(a){const h=G.hero;hurtHero(a.S.bite,a.sp);popText(h.x,h.y-28,'- '+a.S.bite,'#ff5a3a');sparks(h.x,h.y,2);SFX.punch&&SFX.punch();
-  if(a.sp==='snake')showMsg('Snake bite!',1.2);}
+  if(a.sp==='snake'){showMsg('Snake bite!',1.2);sicken(2,'snake');}}   // venom: two levels of illness (v11.4)
 function hitAnimal(a,dmg,kx,ky){if(a.state==='dead')return;a.hp-=dmg;a.flash=1;a.vx+=kx*90;a.vy+=ky*90;
   if(a.hp<=0)return killAnimal(a,kx*60,ky*60);
   if(a.sp==='rabbit'||a.sp==='roo')spook(a,a.x-kx*40,a.y-ky*40);else if(a.sp==='dingo'&&a.state!=='flee')a.state='chase';else if(a.sp==='snake')a.state='attack';}
@@ -3437,7 +3528,7 @@ function newGame(save){
     for(const s of save.cars||[]){const c=carById(s.id);if(c&&s.canFill)setFill(c.items,s.canFill);}
     G.wreckState=save.wreckState||{};
     const sh=save.hero;G.inside=-1;for(const l of LOCS)if(Math.hypot(sh.x-l.x,sh.y-l.y)<l.rad+400)G.inside=l.id;   // already inside a town: don't greet you again
-    Object.assign(G.hero,{x:sh.x,y:sh.y,a:sh.a||0,hp:sh.hp,water:sh.water??100,food:sh.food??100,rest:sh.rest??100,inv:sh.inv||{},weapon:sh.weapon||null,compass:!!sh.compass,armour:sh.armour||null,injuries:sh.injuries||[],capLoss:sh.capLoss||0});setFill(G.hero.inv,sh.canFill||0);G.kills=save.kills||0;
+    Object.assign(G.hero,{x:sh.x,y:sh.y,a:sh.a||0,hp:sh.hp,water:sh.water??100,food:sh.food??100,rest:sh.rest??100,inv:sh.inv||{},weapon:sh.weapon||null,compass:!!sh.compass,armour:sh.armour||null,injuries:sh.injuries||[],capLoss:sh.capLoss||0,ill:sh.ill||null,dryT:sh.dryT||0,meds:sh.meds||null});G.illClock=null;G.blk=null;setFill(G.hero.inv,sh.canFill||0);G.kills=save.kills||0;
     const c=carById(save.hero.inCar);if(c){c.driver='hero';G.hero.inCar=c.id;}
     if(save.comp&&COMPANIONS[save.comp.type]){const s=save.comp,p=makeComp(s.type,s.x,s.y);Object.assign(p,{hp:s.hp,state:s.state==='down'?'follow':s.state,weapon:s.weapon!==undefined?s.weapon:p.weapon,inv:s.inv||Object.assign(s.weapon?{[s.weapon]:1}:s.weapon===undefined&&s.type==='gunhand'?{revolver:1}:{},s.ammoInv||(s.type==='gunhand'&&s.ammoInv===undefined?{bullets:s.ammo??24}:{})),missed:s.missed||0,fedDay:s.fedDay??p.fedDay,inCar:!!(s.inCar&&G.hero.inCar)});G.comp=p;}
   } else {
@@ -3479,7 +3570,7 @@ function saveData(){
   const cp=G.comp;
   return {v:5,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
     removed:[...G.removed].slice(-800),lastCar:G.lastCar,
-    kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
+    kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,ill:G.hero.ill||null,dryT:G.hero.dryT||0,meds:G.hero.meds||null,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
     cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items),owned:!!c.owned}))};
 }
 // ---- saving is to files only (see the save-file code in the UI). Anything the old save slots left on a device is left alone, unused. ----
@@ -3827,7 +3918,7 @@ function tyreHud(c){let el=document.getElementById('tyreBox');if(!el){const at=d
   for(let k of [3,4])if(cells[k])cells[k].style.display='none';}
 function applyMobile(){document.body.classList.toggle('mobile',!!SETTINGS.mobile);}
 function updateHud(){const h=G.hero,car=heroCar(),fc=focusCar();
-  setHud('hpBar','w',Math.max(0,h.hp).toFixed(0)+'%');setHud('hpBar','low',h.hp<30);{const el=document.getElementById('hpCap');if(el)el.style.width=heroCapLoss().toFixed(1)+'%';}
+  setHud('hpBar','w',Math.max(0,h.hp).toFixed(0)+'%');setHud('hpBar','low',h.hp<30);{const el=document.getElementById('hpCap');if(el)el.style.width=(100-heroHpCap()).toFixed(1)+'%';}{const el=document.getElementById('illLine'),L=illLvl();if(el){const t=L?'Ill (level '+L+'): '+Math.ceil(illLeft()/60)+' min to shake it':'';if(el.textContent!==t)el.textContent=t;el.style.display=L?'':'none';}{const el=document.getElementById('medLine'),p=medLeft('pk'),s=medLeft('stim'),t=[p?'Painkillers: '+Math.ceil(p/60)+' min':'',s?'Stimulants: '+Math.ceil(s/60)+' min':''].filter(Boolean).join(' · ');if(el){if(el.textContent!==t)el.textContent=t;el.style.display=t?'':'none';}}}   /* (v11.4, v11.5) */
   for(const k of ['water','food','rest']){setHud(k+'Bar','w',Math.max(0,h[k]).toFixed(0)+'%');setHud(k+'Bar','low',h[k]<25);}
   setHud('clock','text',fmtClock(G.clock));
   setHud('gauges','nocar',!fc);
@@ -3981,8 +4072,9 @@ function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
   return '<div class="irow"><i style="background:'+it.icon+'"></i><span class="nm">'+it.name+(n>1?' ×'+n:'')+'<small>'+(Math.round(it.kg*n*10)/10)+' kg</small></span>'+b+'</div>';}
 function renderInv(){$('invTitle').textContent=skillsMode?'Skills':journalMode?'Journal':workMode?'Work':'Gear';if(skillsMode)return renderSkills();if(journalMode)return renderJournal();if(workMode)return renderWork();const h=G.hero,o=otherInv(),car=invCar();let html='';
   html+='<div class="stats">Health '+Math.round(h.hp)+'%, water '+Math.round(h.water)+'%, food '+Math.round(h.food)+'%, rest '+Math.round(h.rest)+'%. '+fmtClock(G.clock)+'.</div>';
-  {const I=heroInj(),fx=injFx();if(I.length||heroCapLoss()>0)html+='<div class="stats" style="color:#e8a090"><b>Injuries:</b> '+(I.length?I.map(i=>INJURIES[i.type].name+' ('+i.rating+')').join(', '):'none now, still mending')+'. Your health can’t go above '+heroHpCap()+'% until a city doctor treats you.'+
+  {const I=heroInj(),fx=injFx();if(I.length||heroCapLoss()>0)html+='<div class="stats" style="color:#e8a090"><b>Injuries:</b> '+(I.length?I.map(i=>INJURIES[i.type].name+' ('+i.rating+')').join(', '):'none now, still mending')+'. Your health can’t go above '+Math.max(10,Math.round(100-heroCapLoss()))+'% until a city doctor treats you.'+
     (fx.wobble?' Your steering wobbles.':'')+(fx.weapon<1?' You fight less well.':'')+(fx.carry<1?' You can carry only '+heroCap()+' kg.':'')+(fx.walk<1?' You walk and run at half speed.':'')+(fx.view?' You can’t see far.':'')+'</div>';}
+  {const L=illLvl();if(L)html+='<div class="stats" style="color:#c8d0a0"><b>Ill:</b> level '+L+' of 3, about '+Math.ceil(illLeft()/60)+' minutes to shake it. Your health can’t go above '+heroHpCap()+'% and you tire, hunger and thirst '+(L*10)+'% faster.'+(L>1?' Antibiotic tablets would bring it down a level.':' Tablets won’t help now: rest it out.')+'</div>';}
   html+='<div class="stats">Jobs and standing: see <b>Work</b>.</div>';
   if(G.comp){const p=G.comp;html+='<div class="stats">'+p.def.name+' the '+p.C.title+': '+(p.state==='down'?'down!':Math.round(p.hp)+'% health, '+(p.inCar?'riding with you':p.state==='wait'?'waiting':'following'))+', '+(p.weapon?ITEMS[p.weapon].name.toLowerCase()+(WEAPONS[ITEMS[p.weapon].weapon].gun?' ('+compAmmo(p)+')':''):'a club')+'.</div>';}
   html+='<h3>You carry<small>'+invWeight(h.inv)+' of '+heroCap()+' kg</small></h3>';
@@ -6814,9 +6906,9 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   // the 2D canvas lies over the top, clear, for the screen effects that don't need the world
   ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);
   if(G.hurt>0){ctx.fillStyle='rgba(194,56,31,'+(G.hurt*0.3).toFixed(3)+')';ctx.fillRect(0,0,W,H);}
-  if(G.hero.rest<20){const k=(20-G.hero.rest)/20*(0.55+0.25*Math.sin(G.time*1.7));const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.15,W/2,H/2,Math.max(W,H)*0.6);
-    g.addColorStop(0,'rgba(10,6,4,0)');g.addColorStop(1,'rgba(10,6,4,'+k.toFixed(3)+')');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
+  worldFilter(V3.canvas);   // thirsty: blur; ill: the colour draining away (v11.4)
   labels3();if(state==='play')guide3D();
+  drawNeedsFx(ctx,W,H);   // tired: the dark closing in, over the name labels too (v11.4)
   if(G.hero.compass&&G.hero.inv.compass&&state!=='map')compass3D();}
 // the compass, when you carry one and have it out: a band at the top centre that turns with your view; north marked in red
 function compass3D(){if(SETTINGS.mobile){ctx.save();ctx.translate(W/2,0);ctx.scale(0.5,0.5);ctx.translate(-W/2,0);compass3Db();ctx.restore();}else compass3Db();}
@@ -7235,13 +7327,15 @@ function rockGeoUnit3(){const rb=new RB();rb.rock(0,-0.12,0,1,0.85,0,[1,1,1],[1,
 function survival(dt,car){const h=G.hero,gm=dt*CLOCK_RATE/60;G.clock+=gm;
   const hour=(G.clock%DAY)/60,night=hour<6||hour>=20,b=car||h,bio=getChunk(Math.floor(b.x/CH),Math.floor(b.y/CH)).biome;
   const heat=(bio===BIOMES.red||bio===BIOMES.salt?1.3:1)*(night?0.6:1),exert=car?1:(h.speed>75?1.8:h.speed>12?1.1:0.9),sd=skDrain(skill('stamina'));   /* Stamina (v10.4) */
-  h.water=Math.max(0,h.water-6/60*gm*heat*exert*sd);
-  h.food=Math.max(0,h.food-3/60*gm*(car?1:exert)*sd);
-  h.rest=Math.max(0,h.rest-5.5/60*gm*(car?1:exert>1.5?1.3:1)*sd);
+  const il=illDrain();   // ill: everything drains 10% faster a level (v11.4)
+  h.water=Math.max(0,h.water-6/60*gm*heat*exert*sd*il);
+  h.food=Math.max(0,h.food-3/60*gm*(car?1:exert)*sd*il);
+  h.rest=Math.max(0,h.rest-5.5/60*gm*(car?1:exert>1.5?1.3:1)*sd*il);
   if(h.water<=0)hurtHero(0.35*dt,'thirst');if(h.food<=0)hurtHero(0.12*dt,'hunger');if(h.rest<=0)hurtHero(0.05*dt,'exhaustion');
   const warn=(k,t,v)=>{if(v<25&&!G.warned[k]){G.warned[k]=true;showMsg(t,2.4);}if(v>40)G.warned[k]=false;};
   warn('water','You’re parched. Drink something.',h.water);warn('food','Your stomach is cramping. Eat.',h.food);warn('rest','You can barely keep your eyes open',h.rest);
   if(h.rest>30)G.warned.nod=false;
+  needsTick(dt,car);   // illness wearing off; the blackouts when you're exhausted (v11.4)
 }
 function driveHero(car,inp,dt){
   let thr=inp.thr,boost=inp.boost;car.braking=inp.brake;car.cruise=inp.cruise&&!inp.boost&&thr>0?thr:null;
@@ -7262,8 +7356,7 @@ function driveHero(car,inp,dt){
     if(car.onRoad){const sw=skWear(skill('road'));wearTyres(car,w*1.2*um.tyreWear*sw);car.susp=Math.max(0,car.susp-w*0.6*um.suspWear*sw);}           // gravel and dirt chew tyres
     else{const sw=skWear(skill('offroad'));car.susp=Math.max(0,car.susp-w*1.1*um.suspWear*sw);wearTyres(car,w*0.8*um.tyreWear*sw);car.cond-=w*0.4/um.armor*sw;}}   // open country breaks springs
   // a driver short on sleep nods off now and then
-  if(G.hero.rest<20&&car.speed>80){G.nodT-=dt;if(G.nodT<=0){G.nodT=rand(4,9)*(0.3+G.hero.rest/20);car.a+=rand(-0.3,0.3);
-    if(!G.warned.nod){G.warned.nod=true;showMsg('You nodded off at the wheel',2);}}}
+  /* (a driver short on sleep nods off: now at the bottom of a blackout, in needsTick, v11.4) */
   if(boost&&Math.random()<0.7){const fx=Math.cos(car.a),fy=Math.sin(car.a);
     part({kind:'fire',x:car.x-fx*car.r*1.15,y:car.y-fy*car.r*1.15,vx:-fx*160+rand(-30,30),vy:-fy*160+rand(-30,30),life:.25,max:.25,size:7,grow:-10,drag:2,col:'#ffb347'});}
   if(!car.onRoad&&car.speed>200)G.shake=Math.max(G.shake,2);
@@ -7364,7 +7457,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
