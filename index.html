@@ -241,24 +241,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=11.5"></script>
-<script src="models/84-hero-model.js?v=11.5"></script>
-<script src="models/84b-hero-body.js?v=11.5"></script>
-<script src="models/84c-buggy-model.js?v=11.5"></script>
-<script src="models/84d-tarona-model.js?v=11.5"></script>
-<script src="models/84e-wall-model.js?v=11.5"></script>
-<script src="models/84f-plant-models.js?v=11.5"></script>
-<script src="models/84g-kestrel-model.js?v=11.5"></script>
-<script src="models/84h-building-models.js?v=11.5"></script>
-<script src="models/84i-building-models2.js?v=11.5"></script>
-<script src="models/84j-f100-model.js?v=11.5"></script>
-<script src="models/84l-kingsford-model.js?v=11.5"></script>
-<script src="models/84m-wagon-model.js?v=11.5"></script>
+<script src="models/21b-mesa-models.js?v=11.7"></script>
+<script src="models/84-hero-model.js?v=11.7"></script>
+<script src="models/84b-hero-body.js?v=11.7"></script>
+<script src="models/84c-buggy-model.js?v=11.7"></script>
+<script src="models/84d-tarona-model.js?v=11.7"></script>
+<script src="models/84e-wall-model.js?v=11.7"></script>
+<script src="models/84f-plant-models.js?v=11.7"></script>
+<script src="models/84g-kestrel-model.js?v=11.7"></script>
+<script src="models/84h-building-models.js?v=11.7"></script>
+<script src="models/84i-building-models2.js?v=11.7"></script>
+<script src="models/84j-f100-model.js?v=11.7"></script>
+<script src="models/84l-kingsford-model.js?v=11.7"></script>
+<script src="models/84m-wagon-model.js?v=11.7"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='11.5';
+const VERSION='11.7';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1310,12 +1310,12 @@ const PARTS={engine:'Engine',tyres:'Tyres',susp:'Suspension',cond:'Body'};
 const HERO_CAP=25;
 // loot tables: [item, weight, min, max]
 const LOOT={
-  ruin:[['pills',0.5,1,1],['glassbottle',4,1,2],['pipe',1.6,1,1],['fuse',0.5,1,1],['compass',0.5,1,1],['tyreiron',3,1,1],['bat',2,1,1],['machete',1.5,1,1],['knife',2.5,1,1],['bow',1.2,1,1],['crossbow',0.5,1,1],['arrows',3,4,10],['bolts',1.5,3,8],['revolver',0.12,1,1],['bullets',0.5,2,6],['shells',0.3,2,4],['water',5.5,1,2],['beans',8,1,3],['jerky',6,1,3],['bandage',5,1,2],['medkit',2,1,1],['jerrycan',1.8,1,1],['scrap',8,1,3],['tyre',2,1,1],['parts',3,1,1],['springs',2,1,1],['toolkit',1,1,1]],
-  boot:[['glassbottle',1.2,1,1],['compass',0.4,1,1],['tyreiron',3,1,1],['knife',1,1,1],['arrows',1,3,8],['rounds',0.15,2,5],['water',3.3,1,2],['beans',4,1,2],['jerky',3,1,2],['scrap',5,1,2],['tyre',4,1,1],['jerrycan',0.9,1,1],['parts',2,1,1],['toolkit',1,1,1],['bandage',2,1,1]],
-  camp:[['pills',0.6,1,2],['molotov',1.2,1,2],['pipebomb',0.3,1,1],['fuse',0.8,1,2],['glassbottle',1.5,1,2],['compass',0.5,1,1],['arrows',4,5,12],['bolts',3,4,10],['bow',1.5,1,1],['crossbow',1,1,1],['machete',2,1,1],['knife',2,1,1],['bat',1.2,1,1],['bullets',1.4,3,8],['shells',1,2,6],['rounds',0.5,3,6],['revolver',0.35,1,1],['shotgun',0.2,1,1],['rifle',0.1,1,1],
+  ruin:[['pan',0.8,1,1],['campoven',0.3,1,1],['salt',1.5,1,2],['sugar',1,1,1],['tea',1.2,1,1],['curry',0.5,1,1],['syrup',0.8,1,1],['pills',0.5,1,1],['glassbottle',4,1,2],['pipe',1.6,1,1],['fuse',0.5,1,1],['compass',0.5,1,1],['tyreiron',3,1,1],['bat',2,1,1],['machete',1.5,1,1],['knife',2.5,1,1],['bow',1.2,1,1],['crossbow',0.5,1,1],['arrows',3,4,10],['bolts',1.5,3,8],['revolver',0.12,1,1],['bullets',0.5,2,6],['shells',0.3,2,4],['water',5.5,1,2],['beans',8,1,3],['jerky',6,1,3],['bandage',5,1,2],['medkit',2,1,1],['jerrycan',1.8,1,1],['scrap',8,1,3],['tyre',2,1,1],['parts',3,1,1],['springs',2,1,1],['toolkit',1,1,1]],
+  boot:[['tea',1,1,1],['sugar',0.8,1,1],['salt',0.8,1,1],['flour',0.5,1,1],['glassbottle',1.2,1,1],['compass',0.4,1,1],['tyreiron',3,1,1],['knife',1,1,1],['arrows',1,3,8],['rounds',0.15,2,5],['water',3.3,1,2],['beans',4,1,2],['jerky',3,1,2],['scrap',5,1,2],['tyre',4,1,1],['jerrycan',0.9,1,1],['parts',2,1,1],['toolkit',1,1,1],['bandage',2,1,1]],
+  camp:[['pan',0.8,1,1],['flour',1.5,1,2],['salt',1.2,1,2],['tea',1.2,1,2],['sugar',1,1,2],['potato',1.5,2,4],['onion',1.5,2,4],['dripping',0.8,1,1],['curry',0.6,1,1],['rice',0.8,1,1],['pills',0.6,1,2],['molotov',1.2,1,2],['pipebomb',0.3,1,1],['fuse',0.8,1,2],['glassbottle',1.5,1,2],['compass',0.5,1,1],['arrows',4,5,12],['bolts',3,4,10],['bow',1.5,1,1],['crossbow',1,1,1],['machete',2,1,1],['knife',2,1,1],['bat',1.2,1,1],['bullets',1.4,3,8],['shells',1,2,6],['rounds',0.5,3,6],['revolver',0.35,1,1],['shotgun',0.2,1,1],['rifle',0.1,1,1],
     ['water',3.3,1,3],['beans',5,1,3],['jerrycan',1.8,1,1],['medkit',3,1,1],['parts',2,1,1]],
-  stash:[['pills',0.8,1,2],['water',4.4,2,4],['beans',6,2,4],['jerrycan',2.25,1,2],['medkit',3,1,1],['parts',2,1,2],['jerky',4,2,4]],
-  raider:[['molotov',0.5,1,1],['glassbottle',1,1,1],['arrows',2,3,8],['bolts',1,2,6],['bullets',0.5,2,5],['shells',0.3,2,4],['scrap',8,1,2],['jerky',5,1,2],['water',2.75,1,1],['jerrycan',1.35,1,1],['bandage',2,1,1],['parts',1,1,1]]};
+  stash:[['flour',1.2,1,1],['salt',1,1,2],['tea',1,1,2],['sugar',1,1,1],['rice',0.8,1,1],['syrup',0.6,1,1],['pepper',0.5,1,1],['pills',0.8,1,2],['water',4.4,2,4],['beans',6,2,4],['jerrycan',2.25,1,2],['medkit',3,1,1],['parts',2,1,2],['jerky',4,2,4]],
+  raider:[['tea',0.6,1,1],['sugar',0.5,1,1],['potato',0.6,1,2],['molotov',0.5,1,1],['glassbottle',1,1,1],['arrows',2,3,8],['bolts',1,2,6],['bullets',0.5,2,5],['shells',0.3,2,4],['scrap',8,1,2],['jerky',5,1,2],['water',2.75,1,1],['jerrycan',1.35,1,1],['bandage',2,1,1],['parts',1,1,1]]};
 // zones tilt the odds: mining country has parts, the salt is dry, the coast has food
 const ZONE_LOOT={ranges:{parts:2.5,springs:2,toolkit:2,water:0.7},salt:{water:0.4,jerky:1.5},coast:{beans:1.8,water:1.3},mallee:{water:1.2},red:{water:0.8}};
 function genLoot(table,seed,rolls,biome){const r=rng(seed),T=LOOT[table],mod=(biome&&ZONE_LOOT[biome])||{},inv={};
@@ -1438,11 +1438,11 @@ function buyPrice(o,k,qtyVal){if(TEST_MODE)return 0;   // the test range: everyt
 function sellPrice(o,k){return Math.max(1,Math.floor(VALUE[k]*priceMods(o).sell));}
 // ---- what each trader has today (restocked every morning) ----
 const STOCK_LISTS={
-  trader:[['painkillers',4],['stims',3],['pills',1],['glassbottle',4],['fuse',2],['pipe',1],['molotov',2],['billy',1],['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
+  trader:[['pan',1],['campoven',1],['flour',3],['salt',3],['sugar',3],['tea',3],['syrup',2],['rice',2],['curry',2],['pepper',2],['dripping',2],['onion',4],['potato',4],['carrot',4],['honey',1],['painkillers',4],['stims',3],['pills',1],['glassbottle',4],['fuse',2],['pipe',1],['molotov',2],['billy',1],['hose',1],['jerrycan',1],['water',2],['beans',4],['jerky',4],['bandage',3],['cloth',4],['wire',3],['powder',2],['compass',1],['arrows',16],['bolts',8],['bow',1],['knife',1],['bullets',4],['shells',3],['tyreiron',1],['bat',1],['machete',1],['toolkit',1],['durries',3]],
   mechanic:[['jerrycan',1],['hose',2],['tyre',3],['parts',2],['springs',2],['scrap',6],['wire',3],['toolkit',1],['kit_roobar',1],['kit_longtank',1],['kit_offroad',1],['kit_heavysusp',1],['kit_spikes',1]],
-  publican:[['water',3],['beans',4],['jerky',4],['durries',2]],
+  publican:[['water',3],['beans',4],['jerky',4],['durries',2],['meatpie',4],['damper',3],['billytea',3],['roostew',2],['flour',2],['tea',2],['sugar',2],['onion',3],['potato',3]],   /* (v11.6) a feed at the pub, and a few staples */
   doctor:[['pills',5],['bandage',6],['medkit',2],['cloth',3]],
-  scavenger:[['glassbottle',3],['pipe',2],['scrap',3],['cloth',2],['wire',1],['durries',1],['powder',1]]};
+  scavenger:[['pan',1],['salt',2],['tea',1],['quandong',2],['grub',2],['glassbottle',3],['pipe',2],['scrap',3],['cloth',2],['wire',1],['durries',1],['powder',1]]};
 function traderStock(n){const day=Math.floor(G.clock/DAY),id=n.def.id;G.stock=G.stock||{};
   if(!G.stock[id]||G.stock[id].day!==day){const r=rng(hash2(n.def.seed,day+11)),list=(STOCK_LISTS[n.def.role]||[]).slice(),inv={};
     if(n.def.role==='mechanic'&&n.loc.type==='city'){list.push(['kit_blower',1],['kit_armour',1],['rifle',1]);for(const k in SPEEDPARTS)if(SPEEDPARTS[k].city)list.push(['kit_'+k,1]);}
@@ -1584,6 +1584,144 @@ function doStrip(t,jobs){const src=t.src;let quarters=0,done=[],ambush=false;
 function fmtHours(h){const m=Math.round(h*60);return m<60?m+' minutes':(m%60===0?m/60+(m===60?' hour':' hours'):Math.floor(m/60)+' h '+(m%60)+' min');}
 function summarise(list){const c={};for(const x of list)c[x]=(c[x]||0)+1;return Object.keys(c).map(k=>c[k]>1?c[k]+' × '+k:k).join(', ');}
 
+/* ===== bush cooking (v11.6): ingredients, equipment, recipes, buffs =====
+   Ingredients: pantry staples (bought from traders and publicans, found in stashes, ruins, boots and camps) and bush tucker
+   (foraged out bush, different country giving different things). Equipment: the billy, a frying pan, a camp oven.
+   Gear > Cook: put them together over a little fire (on foot, no raiders about; it takes a while), with the meat you butcher too.
+   Cooked food fills you more than its parts would, and many dishes give a buff for a while:
+     Hearty (needs drain slower), Strong (carry more), Quick (faster on foot), Steady (hit harder), Mending (health slowly comes back),
+   or a gentler version of a medicine:
+     Soothed (half the side effects of your injuries: painkillers take them all away),
+     Perked up (half the effect of tiredness, thirst and hunger on you: stimulants take it all away),
+     Recovering (illness wears off half as fast again: antibiotics take a level off at once).
+   The better dishes are worth good trade. Cooking counts as making something (a skill point).
+   Buff minutes run on the game clock, like medicine. ===== */
+Object.assign(ITEMS,{
+  // equipment
+  pan:{name:'Frying pan',kg:1.4,icon:'#3a3632'},
+  campoven:{name:'Camp oven',kg:4.5,icon:'#2a2622'},
+  // pantry
+  flour:{name:'Bag of flour',kg:1,icon:'#ece6d6'},
+  salt:{name:'Salt',kg:0.1,icon:'#f2f2ee'},
+  sugar:{name:'Sugar',kg:0.5,icon:'#f4efe0'},
+  tea:{name:'Tea leaves',kg:0.1,icon:'#4a3a28'},
+  syrup:{name:'Tin of golden syrup',kg:0.5,icon:'#d8a030'},
+  rice:{name:'Bag of rice',kg:0.5,icon:'#eee8dc'},
+  curry:{name:'Curry powder',kg:0.1,icon:'#d89a2a'},
+  pepper:{name:'Black pepper',kg:0.05,icon:'#3a3430'},
+  dripping:{name:'Tin of dripping',kg:0.4,icon:'#e8dcb8'},
+  onion:{name:'Onion',kg:0.15,icon:'#c8a070'},
+  potato:{name:'Potato',kg:0.2,icon:'#b89860'},
+  carrot:{name:'Carrot',kg:0.1,icon:'#e07a2a'},
+  // bush tucker (foraged): some you can eat as they are
+  quandong:{name:'Quandongs',kg:0.15,use:'eat',val:6,icon:'#c83a2a'},
+  bushtomato:{name:'Bush tomatoes',kg:0.1,use:'eat',val:4,icon:'#b8862f'},
+  desertlime:{name:'Desert limes',kg:0.1,use:'eat',val:3,water:3,icon:'#8aa040'},
+  pigface:{name:'Pigface fruit',kg:0.1,use:'eat',val:4,water:5,icon:'#c04a7a'},
+  grub:{name:'Witchetty grubs',kg:0.1,use:'eat',val:7,icon:'#e8dcc0'},
+  honey:{name:'Wild honey',kg:0.3,use:'eat',val:8,icon:'#d8a020'},
+  wattleseed:{name:'Wattleseed',kg:0.1,icon:'#6a4a2a'},
+  saltbush:{name:'Saltbush leaves',kg:0.05,icon:'#9aa894'},
+  pepperberry:{name:'Native pepperberries',kg:0.05,icon:'#3a2a40'},
+  lemonmyrtle:{name:'Lemon myrtle leaves',kg:0.05,icon:'#7a9a50'},
+  gumleaf:{name:'Gum leaves',kg:0.05,icon:'#6a8a78'},
+  // cooked: val is food (eat) or water (drink); water/food add the other; buff: [kind, min minutes, max minutes]
+  damper:{name:'Damper',kg:0.4,use:'eat',val:30,icon:'#d8c090'},
+  wdamper:{name:'Wattleseed damper with honey',kg:0.4,use:'eat',val:40,buff:['hearty',10,14],icon:'#b88a50'},
+  roosteak:{name:'Peppered roo steak',kg:0.6,use:'eat',val:55,buff:['strong',10,14],icon:'#6a2a1a'},
+  grillmeat:{name:'Grilled meat',kg:0.5,use:'eat',val:42,icon:'#7a3a22'},
+  roostew:{name:'Roo stew',kg:0.6,use:'eat',val:50,water:10,buff:['hearty',14,18],icon:'#7a4a2a'},
+  rabbitstew:{name:'Rabbit stew',kg:0.5,use:'eat',val:45,water:10,buff:['hearty',12,16],icon:'#9a6a40'},
+  bushcurry:{name:'Bush curry and rice',kg:0.5,use:'eat',val:50,buff:['steady',10,14],icon:'#c88a2a'},
+  vegcurry:{name:'Vegetable curry',kg:0.5,use:'eat',val:40,buff:['steady',6,9],icon:'#c8a040'},
+  fryup:{name:'Stockman’s fry-up',kg:0.5,use:'eat',val:60,buff:['steady',10,14],icon:'#a06030'},
+  snakegrill:{name:'Snake with bush tomato',kg:0.3,use:'eat',val:35,buff:['quick',8,11],icon:'#9a8a4a'},
+  grubs:{name:'Roasted witchetty grubs',kg:0.1,use:'eat',val:25,buff:['mending',6,8],icon:'#d8b880'},
+  pie:{name:'Quandong pie',kg:0.4,use:'eat',val:40,buff:['mending',8,11],icon:'#b84a30'},
+  dumplings:{name:'Golden syrup dumplings',kg:0.4,use:'eat',val:35,buff:['hearty',8,11],icon:'#d8a050'},
+  meatpie:{name:'Pub meat pie',kg:0.3,use:'eat',val:45,buff:['hearty',6,8],icon:'#a87040'},
+  salad:{name:'Saltbush and pigface salad',kg:0.2,use:'eat',val:20,water:12,buff:['mending',4,6],icon:'#8aa070'},
+  billytea:{name:'Billy tea',kg:0.4,use:'drink',val:25,food:4,buff:['perk',4,6],icon:'#6a4a2a'},
+  myrtletea:{name:'Lemon myrtle tea',kg:0.4,use:'drink',val:25,food:3,buff:['recover',8,11],icon:'#a8b870'},
+  gumbrew:{name:'Gum-leaf brew',kg:0.4,use:'drink',val:22,buff:['soothe',4,6],icon:'#7a9a88'},
+  cordial:{name:'Desert lime cordial',kg:0.5,use:'drink',val:35,food:5,buff:['quick',6,8],icon:'#b8c860'}});
+Object.assign(VALUE,{pan:12,campoven:22,flour:3,salt:1,sugar:2,tea:2,syrup:3,rice:2,curry:3,pepper:2,dripping:2,onion:1,potato:1,carrot:1,
+  quandong:2,bushtomato:1,desertlime:1,pigface:1,grub:1,honey:4,wattleseed:2,saltbush:1,pepperberry:2,lemonmyrtle:2,gumleaf:1,
+  damper:5,wdamper:12,roosteak:16,grillmeat:9,roostew:13,rabbitstew:11,bushcurry:14,vegcurry:9,fryup:15,snakegrill:9,grubs:6,pie:20,dumplings:10,meatpie:9,salad:3,
+  billytea:4,myrtletea:7,gumbrew:5,cordial:9});
+const MEATS='roomeat|dingomeat|rabbitmeat|snakemeat';
+// what goes in ('a|b': either will do), what you need to cook it with, how long it takes (game minutes)
+const COOK=[
+  {make:'grillmeat',qty:1,needs:{[MEATS]:1},tool:'pan',mins:15},
+  {make:'roosteak',qty:1,needs:{roomeat:1,'pepper|pepperberry':1,'salt|saltbush':1},tool:'pan',mins:20},
+  {make:'snakegrill',qty:1,needs:{snakemeat:1,bushtomato:1,'salt|saltbush':1},tool:'pan',mins:20},
+  {make:'grubs',qty:1,needs:{grub:2},tool:'pan',mins:10},
+  {make:'fryup',qty:1,needs:{[MEATS]:1,potato:1,onion:1,dripping:1},tool:'pan',mins:25},
+  {make:'roostew',qty:2,needs:{roomeat:1,onion:1,potato:1,carrot:1,'salt|saltbush':1},tool:'billy',mins:60},
+  {make:'rabbitstew',qty:2,needs:{rabbitmeat:1,onion:1,potato:1,'salt|saltbush':1},tool:'billy',mins:50},
+  {make:'bushcurry',qty:2,needs:{[MEATS]:1,curry:1,rice:1,onion:1},tool:'billy',mins:45},
+  {make:'vegcurry',qty:2,needs:{curry:1,rice:1,potato:1,carrot:1},tool:'billy',mins:40},
+  {make:'dumplings',qty:2,needs:{flour:1,syrup:1,sugar:1},tool:'billy',mins:30},
+  {make:'billytea',qty:2,needs:{tea:1,'sugar|honey':1,'billy_full|water':1},tool:'billy',mins:15},
+  {make:'myrtletea',qty:2,needs:{lemonmyrtle:1,'honey|sugar':1,'billy_full|water':1},tool:'billy',mins:15},
+  {make:'gumbrew',qty:2,needs:{gumleaf:2,honey:1,'billy_full|water':1},tool:'billy',mins:20},
+  {make:'cordial',qty:2,needs:{desertlime:2,sugar:1,'billy_full|water':1},tool:'billy',mins:20},
+  {make:'damper',qty:2,needs:{flour:1,'salt|saltbush':1},tool:'campoven',mins:40},
+  {make:'wdamper',qty:2,needs:{flour:1,wattleseed:1,honey:1},tool:'campoven',mins:45},
+  {make:'pie',qty:2,needs:{quandong:2,flour:1,sugar:1,dripping:1},tool:'campoven',mins:50},
+  {make:'salad',qty:1,needs:{saltbush:1,pigface:2},tool:null,mins:5}];
+// what you get back: the bottle the water came in, the billy once its river water's boiled into the tea
+const COOK_RETURNS={water:'bottle',billy_full:'billy'};
+const BUFFS={hearty:{name:'Hearty',what:'thirst, hunger and tiredness drain 30% slower'},strong:{name:'Strong',what:'you carry 20% more'},
+  quick:{name:'Quick',what:'10% faster on foot'},steady:{name:'Steady',what:'you hit 10% harder'},mending:{name:'Mending',what:'your health slowly comes back'},
+  soothe:{name:'Soothed',what:'your injuries bother you half as much'},perk:{name:'Perked up',what:'tiredness, thirst and hunger bother you half as much'},
+  recover:{name:'Recovering',what:'illness wears off half as fast again'}};
+const TOOL_NAMES={pan:'frying pan',billy:'billy',campoven:'camp oven'};
+
+// ---- the ingredients you have to hand (pockets, the car boot nearby, your store at home), 'either' keys included ----
+function haveOf(st,key){return key.split('|').reduce((s,k)=>s+countIn(st,k),0);}
+function takeOf(st,key,n){for(const k of key.split('|')){let got=Math.min(n,countIn(st,k));if(got>0){takeFrom(st,k,got);for(let i=0;i<got;i++)if(COOK_RETURNS[k])giveItem(COOK_RETURNS[k],1);n-=got;}if(n<=0)break;}}
+function hasCookTool(t){if(!t)return true;const st=myStores();return countIn(st,t)>0||(t==='billy'&&countIn(st,'billy_full')>0);}
+function cookBlocked(){const h=G.hero;if(heroCar())return 'Get out of the car to cook';
+  if(G.foes.some(f=>!f.dead&&f.state==='alert'&&Math.hypot(f.x-h.x,f.y-h.y)<900)||G.cars.some(c=>c.driver==='raider'))return 'Not with raiders about';return null;}
+function canCook(r){if(!hasCookTool(r.tool))return false;const st=myStores();for(const k in r.needs)if(haveOf(st,k)<r.needs[k])return false;return true;}
+function cook(r){if(!canCook(r))return false;const why=cookBlocked();if(why){showMsg(why,1.8);return false;}const st=myStores(),h=G.hero;
+  // a billy full of river water can be the pot as well as the water: it's boiled either way
+  for(const k in r.needs)takeOf(st,k,r.needs[k]);
+  const m=r.mins,sd=skDrain(skill('stamina'))*m/60;G.clock+=m;h.water=Math.max(0,h.water-2.5*sd);h.food=Math.max(0,h.food-1.25*sd);h.rest=Math.max(0,h.rest-1*sd);
+  if(r.tool){for(let i=0;i<12;i++)part({kind:'fire',x:h.x+15+rand(-5,5),y:h.y+rand(-5,5),vx:0,vy:rand(-12,0),life:rand(.4,.8),max:.8,size:rand(4,7),grow:-5,drag:2,col:'#ffb347',lift:3});smoke(h.x+15,h.y,6);}
+  giveItem(r.make,r.qty);SFX.pick();skillPoints(1,'crafted');
+  showMsg((r.tool?m+' minutes over the fire: ':'')+ITEMS[r.make].name+(r.qty>1?' ×'+r.qty:''),2.4);return true;}
+
+// ---- buffs ----
+function buffLeft(id){const B=G.hero.buffs;return B?Math.max(0,B[id]||0):0;}
+function hasBuff(id){return buffLeft(id)>0;}
+function giveBuff(id,mins){const h=G.hero,B=h.buffs||(h.buffs={}),was=buffLeft(id);B[id]=Math.max(was,mins*60);   // a second helping tops it up, it doesn't stack
+  if(!was)popText(h.x,h.y-44,BUFFS[id].name,'#e8d890');}
+function buffsTick(s){const h=G.hero,B=h.buffs;if(!B||s<=0)return;
+  if(B.mending>0)h.hp=Math.min(heroHpCap(),h.hp+Math.min(s,B.mending)*0.06);   // about 3.5 health a minute
+  for(const id in B){if(!(B[id]>0))continue;B[id]-=s;if(B[id]<=0){B[id]=0;showMsg(BUFFS[id].name+' has worn off',1.6);}}}
+function buffList(){const B=G.hero.buffs;if(!B)return [];return Object.keys(BUFFS).filter(id=>B[id]>0).map(id=>({id,name:BUFFS[id].name,min:Math.ceil(B[id]/60)}));}
+// what eating or drinking something does beyond the food or water
+function eatExtras(it){const h=G.hero;if(it.water)h.water=Math.min(100,h.water+it.water);if(it.food)h.food=Math.min(100,h.food+it.food);
+  if(it.buff){const [id,a,b]=it.buff;giveBuff(id,a+Math.random()*(b-a));}}
+
+// ---- foraging: out bush, on foot. Half an hour looking; what you find depends on the country. Each patch (about 2 km) once a day ----
+const FORAGE={mallee:[['quandong',3],['wattleseed',4],['grub',4],['honey',1.5],['desertlime',2],['saltbush',2],['gumleaf',3]],
+  red:[['bushtomato',5],['quandong',3],['wattleseed',2],['grub',1.5],['gumleaf',1.5]],
+  ranges:[['pepperberry',4],['honey',2.5],['desertlime',2],['gumleaf',3],['bushtomato',1]],
+  coast:[['pigface',5],['lemonmyrtle',3],['saltbush',2],['gumleaf',3],['honey',1]],
+  salt:[['saltbush',5],['pigface',0.5]]};
+function forageSpot(){const h=G.hero;return Math.floor(h.x/2000)+','+Math.floor(h.y/2000);}
+function canForage(){const h=G.hero;if(heroCar()||h.inCar)return false;if(nearLoc(h.x,h.y,120))return false;const t=terrainRaw(h.x,h.y);return t===T.GROUND;}
+function forage(){const h=G.hero,why=cookBlocked();if(why){showMsg(why,1.8);return;}const day=Math.floor(G.clock/DAY),spot=forageSpot();G.foraged=G.foraged||{};
+  if(G.foraged[spot]===day){showMsg('You’ve picked this patch clean today. Try further on',2.2);return;}G.foraged[spot]=day;
+  const m=30,sd=skDrain(skill('stamina'))*m/60;G.clock+=m;h.water=Math.max(0,h.water-2.5*sd*1.4);h.food=Math.max(0,h.food-1.25*sd*1.4);h.rest=Math.max(0,h.rest-1*sd*1.4);
+  const T2=FORAGE[zoneAt(h.x,h.y).biome]||FORAGE.red,tot=T2.reduce((s,e)=>s+e[1],0),got={},rolls=1+Math.floor(Math.random()*2.2)+Math.floor(skill('bush')/2);   // Bushcraft: more finds
+  for(let i=0;i<rolls;i++){if(Math.random()<0.15)continue;let x=Math.random()*tot;for(const [k,w] of T2){x-=w;if(x<=0){got[k]=(got[k]||0)+1+(Math.random()<0.35?1:0);break;}}}
+  const ks=Object.keys(got);for(const k of ks)giveItem(k,got[k]);SFX.pick();
+  showMsg(ks.length?'Half an hour foraging: '+ks.map(k=>(got[k]>1?got[k]+' × ':'')+ITEMS[k].name.toLowerCase()).join(', '):'Half an hour foraging and nothing worth having',2.8);}
+
 /* ===== the outback's oldest ruins: lone buildings reduced to a few broken walls =====
    Strung along the roads and scattered through open country. Most hold nothing at all;
    a few have a pile of debris worth sifting for a scrap or two. Nothing here to strip. */
@@ -1651,7 +1789,7 @@ function exitCar(force){const c=heroCar(),h=G.hero;if(!c)return;if(!force&&swapL
   SFX.door();document.body.classList.add('onfoot');
 }
 function hurtHero(n,src){if(n<=0||G.god)return;if(window.__dmg)window.__dmg[src||'?']=(window.__dmg[src||'?']||0)+n;
-  const h=G.hero,A=heroArmour();if(A)n*=1-A.cut;h.hp-=n;h.flash=1;maybeInjure(n,src);G.hurt=Math.min(1,G.hurt+n/25);if(src!=='thirst'&&src!=='exhaustion'&&!(src==='hunger'&&onStims()))G.shake=Math.max(G.shake,Math.min(16,3+n*0.5));}   /* (v11.4) thirst blurs and tiredness darkens instead; starving still shakes */
+  const h=G.hero,A=heroArmour();if(A)n*=1-A.cut;h.hp-=n;h.flash=1;maybeInjure(n,src);G.hurt=Math.min(1,G.hurt+n/25);if(src!=='thirst'&&src!=='exhaustion'&&!(src==='hunger'&&onStims()))G.shake=Math.max(G.shake,Math.min(16,3+n*0.5)*(src==='hunger'&&hasBuff('perk')?0.5:1));}   /* (v11.4) thirst blurs and tiredness darkens instead; starving still shakes */
 function updateHeroOnFoot(dt,inp){
   // walking pace is deliberately unhurried
   const h=G.hero,A=heroArmour(),lg=injFx().walk,sp=(h.crouch?28:inp.sprint?100*(1+skill('athlete')*SK_RUN)*(1-(A?A.slow:0)):58)*lg,k=Math.min(1,dt*10);h.atkCd-=dt;h.swing=Math.max(0,h.swing-dt);   // cooldowns run on foot; driveHero runs them in the car
@@ -1678,9 +1816,9 @@ function heroVsCars(){const h=G.hero;
 function hasTool(car){return !!(G.hero.inv.toolkit||(car&&car.items.toolkit));}
 // use one of an item from an inventory; car is the vehicle it applies to (if any)
 function useItem(k,inv,car){const it=ITEMS[k],h=G.hero;if(!it||!inv[k])return false;
-  if(it.use==='drink'){if(h.water>=99)return say('You’re not thirsty');h.water=Math.min(100,h.water+it.val);SFX.slosh();
+  if(it.use==='drink'){if(h.water>=99&&!(it.food&&h.food<99)&&!it.buff)return say('You’re not thirsty');h.water=Math.min(100,h.water+it.val);eatExtras(it);SFX.slosh();
     if(k==='water'){invTake(inv,k,1);keepBottle(inv);return true;}}
-  else if(it.use==='eat'){if(h.food>=99)return say('You’re not hungry');h.food=Math.min(100,h.food+it.val);SFX.pick();}
+  else if(it.use==='eat'){if(h.food>=99&&!(it.water&&h.water<99)&&!it.buff)return say('You’re not hungry');h.food=Math.min(100,h.food+it.val);eatExtras(it);SFX.pick();}   /* cooked food: water and a buff too (v11.6) */
   else if(it.use==='heal'){if(h.hp>=heroHpCap()-1)return say(illLvl()?'That’s as good as it gets while you’re ill':heroCapLoss()?'That’s as good as it gets until a doctor sees your injuries':'You’re not hurt');h.hp=Math.min(heroHpCap(),h.hp+it.val);SFX.pick();}
   else if(it.use==='cure'){if(!takeCure())return false;}
   else if(it.use==='med'){if(!takeMed(k))return false;}   // painkillers, stimulants (v11.5)   // antibiotics (v11.4)
@@ -1697,7 +1835,7 @@ function useItem(k,inv,car){const it=ITEMS[k],h=G.hero;if(!it||!inv[k])return fa
   else return false;
   invTake(inv,k,1);return true;}
 function say(t){showMsg(t,1.4);return false;}
-function bestOf(inv,use){let best=null;for(const k in inv)if(ITEMS[k].use===use&&(!best||ITEMS[k].val>ITEMS[best].val))best=k;return best;}
+function bestOf(inv,use){let best=null;const sc=k=>ITEMS[k].val-(ITEMS[k].buff?1000:0);for(const k in inv)if(ITEMS[k].use===use&&(!best||sc(k)>sc(best)))best=k;return best;}   // a quick bite: plain food first, the special dishes kept for when you choose them (v11.6)
 // eat or drink whatever is to hand: your pockets first, then the boot of the car you're in
 function quickUse(use){const car=heroCar();for(const inv of [G.hero.inv,car&&car.items])if(inv){const k=bestOf(inv,use);if(k){useItem(k,inv,car);popText(body().x,body().y-30,'− '+ITEMS[k].name,'#efe2c4');return;}}}
 function nearestBox(r){const h=G.hero;let best=null,bd=r;for(const b of G.boxes){const d=Math.hypot(b.x-h.x,b.y-h.y);if(d<bd){bd=d;best=b;}}return best;}
@@ -1724,6 +1862,7 @@ function getActions(){
     const cc=carcassNear(36);if(cc)acts.push({k:'U',label:'Butcher the '+cc.S.name,fn:()=>butcher(cc)});
     // a billy: fill it at a river, then boil it over a little fire (an hour) for a bottle's worth of safe water
     {const C=convoyNear(260);if(C&&!C.stopped&&(!heroCar()||heroCar().speed<60))acts.push({k:'G',label:'Flag down the convoy',fn:()=>flagConvoy(C)});}
+    if(!c&&canForage())acts.push({k:'K',label:'Forage for bush tucker',alt:true,fn:forage});   /* (v11.6) */
     if(h.inv.billy&&atRiver(h.x,h.y))acts.push({k:'B',label:'Fill the billy',fn:fillBilly});
     if(!c&&h.water<95&&atRiver(h.x,h.y))acts.push({k:'Y',label:'Drink from the river (unboiled)',alt:true,fn:drinkRiver});   /* quick, but it'll make you sick (v11.4) */
     if(h.inv.billy_full)acts.push({k:'N',label:'Boil the billy ('+(skBoilMins(skill('bush'))>=60?'1 hour':skBoilMins(skill('bush'))+' min')+')',alt:true,fn:boilBilly});
@@ -1765,7 +1904,10 @@ function heroCapLoss(){return G.hero.capLoss||0;}
 function heroHpCap(){return Math.max(10,Math.round(100-heroCapLoss()-(typeof illCap==='function'?illCap():0)));}   // injuries and illness (v11.4) both lower it
 // the side effects of what you have, one lot per kind
 function injFx(){const kinds=typeof onPainkillers==='function'&&onPainkillers()?[]:[...new Set(heroInj().map(i=>i.type))],   /* on painkillers: no side effects (v11.5) */fx={wobble:0,weapon:1,carry:1,walk:1,view:null};
-  for(const k of kinds){const e=INJURIES[k]&&INJURIES[k].fx;if(!e)continue;if(e.wobble)fx.wobble=1;if(e.weapon)fx.weapon*=e.weapon;if(e.carry)fx.carry*=e.carry;if(e.walk)fx.walk*=e.walk;if(e.view)fx.view=e.view;}return fx;}
+  for(const k of kinds){const e=INJURIES[k]&&INJURIES[k].fx;if(!e)continue;if(e.wobble)fx.wobble=1;if(e.weapon)fx.weapon*=e.weapon;if(e.carry)fx.carry*=e.carry;if(e.walk)fx.walk*=e.walk;if(e.view)fx.view=e.view;}
+  if(typeof hasBuff==='function'){if(kinds.length&&hasBuff('soothe')){fx.wobble*=0.5;fx.weapon=1-(1-fx.weapon)*0.5;fx.carry=1-(1-fx.carry)*0.5;fx.walk=1-(1-fx.walk)*0.5;}   // a gum-leaf brew: half the bother (v11.6)
+    if(hasBuff('steady'))fx.weapon*=1.1;if(hasBuff('strong'))fx.carry*=1.2;if(hasBuff('quick'))fx.walk*=1.1;}   // food buffs
+  return fx;}
 function heroCap(){return Math.round(HERO_CAP*(1+skill('strength')*SK_CARRY)*injFx().carry*10)/10;}   // how much you can carry
 function injure(src,type){const h=G.hero;type=type||Object.keys(INJURIES)[Math.floor(Math.random()*Object.keys(INJURIES).length)];const I=INJURIES[type];
   heroInj().push({type,rating:I.rating,when:G.clock,src});h.capLoss=(h.capLoss||0)+I.rating;h.hp=Math.max(1,Math.min(h.hp-I.rating,heroHpCap()));
@@ -1816,7 +1958,8 @@ function takeCure(){const L=illLvl(),I=G.hero.ill;if(!L){say('You’re not sick'
 // each frame in play: the clock moves, the illness wears off; the colour drains while you're ill and comes back when you're well
 function illTick(){const h=G.hero;if(typeof G.illClock!=='number'||G.clock<G.illClock)G.illClock=G.clock;const s=Math.min(6*3600,(G.clock-G.illClock)*ILL_RS);G.illClock=G.clock;
   medsTick(s);   // painkillers and stimulants wearing off (v11.5)
-  const I=h.ill;if(!I||s<=0)return;const was=illLvl();I.left=Math.max(0,I.left-s);const now=illLvl();
+  buffsTick(s);   // food buffs (v11.6)
+  const I=h.ill;if(!I||s<=0)return;const was=illLvl();I.left=Math.max(0,I.left-s*(hasBuff('recover')?1.5:1));   /* lemon myrtle tea: wears off faster */const now=illLvl();
   if(now>0)I.grey=Math.min(1,(I.grey||0)+s*now/ILL_GREY);else I.grey=Math.max(0,(I.grey||0)-s/25);
   if(now<was)showMsg(now?'You’re feeling a little better: illness level '+now:'The fever’s broken. You’re well again',2.6);
   if(!now&&I.grey<=0)h.ill=null;}
@@ -1830,7 +1973,7 @@ function needsTick(dt,car){const h=G.hero;illTick();
   h.dryT=h.water<=0?(h.dryT||0)+dt:0;
   const B=G.blk||(G.blk={ph:null,t:0,next:30});
   if(onStims()){B.ph=null;B.next=Math.max(B.next,12);}   // on stimulants: no blackouts (v11.5)
-  else if(h.rest<10&&!G.god){if(!B.ph){B.next-=dt;if(B.next<=0){B.ph='close';B.t=0;B.hold=2.5+Math.random()*2;}}}
+  else if(h.rest<(hasBuff('perk')?4:10)&&!G.god){if(!B.ph){   /* perked up: only at the very bottom (v11.6) */B.next-=dt;if(B.next<=0){B.ph='close';B.t=0;B.hold=2.5+Math.random()*2;}}}
   else if(!B.ph)B.next=Math.max(B.next,12);
   if(B.ph){B.t+=dt;if(B.ph==='close'&&B.t>=1.6){B.ph='black';B.t=0;
       if(car&&car.speed>40){car.a+=rand(-0.3,0.3);if(!G.warned.nod){G.warned.nod=true;showMsg('You nodded off at the wheel',2);}}   // asleep at the wheel
@@ -1841,8 +1984,8 @@ function needsTick(dt,car){const h=G.hero;illTick();
 // how dark the edges are (0..1) and how far in the dark reaches (0 = just the corners .. 1 = the whole screen)
 function tiredFx(){if(onStims())return {reach:0,dark:0};const h=G.hero,B=G.blk,k=clamp((32-h.rest)/32,0,1);let reach=k*0.55,dark=k*0.85;
   if(B&&B.ph){const e=B.ph==='close'?B.t/1.6:B.ph==='black'?1:1-B.t/1.6,s=e*e*(3-2*e);reach=reach+(1.05-reach)*s;dark=dark+(1-dark)*s;}
-  return {reach,dark};}
-function thirstBlur(){const h=G.hero;if(onStims())return 0;return h.water<25?(25-h.water)/25*2.5+Math.min(7,(h.dryT||0)*0.08):0;}   // css pixels
+  if(hasBuff('perk')){reach*=0.5;dark*=0.5;}return {reach,dark};}
+function thirstBlur(){const h=G.hero;if(onStims())return 0;return (hasBuff('perk')?0.5:1)*(h.water<25?(25-h.water)/25*2.5+Math.min(7,(h.dryT||0)*0.08):0);}   // css pixels
 function drawNeedsFx(ctx,W,H){const {reach,dark}=tiredFx();if(dark>0.01){const M=Math.hypot(W,H)/2,r1=M*(1.02-reach),r0=Math.max(0,r1-M*0.55);
     const g=ctx.createRadialGradient(W/2,H/2,r0,W/2,H/2,Math.max(r0+1,r1));g.addColorStop(0,'rgba(4,3,2,0)');g.addColorStop(1,'rgba(4,3,2,'+dark.toFixed(3)+')');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
     if(reach>0.98){ctx.fillStyle='rgba(4,3,2,'+((reach-0.98)/0.07*dark).toFixed(3)+')';ctx.fillRect(0,0,W,H);}}}   // fully black at the bottom of a blackout
@@ -3523,12 +3666,12 @@ function newGame(save){
     G.visited=new Set(save.visited);G.known=new Set(save.known||[]);G.wiped=save.wiped||0;G.dist=save.dist||0;G.time=save.time||0;G.legsDone=save.legs||0;
     G.atOutpost=save.at;G.lastNode=save.lastNode??save.at;G.markers=save.markers||[];G.markerSeq=save.markerSeq||G.markers.length+1;G.waypoint=save.waypoint??null;G.stock=save.stock||{};G.removed=new Set(save.removed||[]);G.lastCar=save.lastCar||null;
     G.dest=typeof save.dest==='number'?save.dest:null;
-    G.clock=save.clock||8*60;G.boxDelta=save.boxDelta||{};G.flags=save.flags||{};G.rep=save.rep||{};G.townJobs=save.townJobs||{};G.townRep=save.townRep||{};
+    G.clock=save.clock||8*60;G.boxDelta=save.boxDelta||{};G.flags=save.flags||{};G.rep=save.rep||{};G.townJobs=save.townJobs||{};G.foraged=save.foraged||{};G.townRep=save.townRep||{};
     for(const s of save.cars||[])if(CARS[s.type])G.cars.push(makeCar(s.type,s.x,s.y,s.a,{id:s.id,fuel:s.fuel,cond:s.cond,engine:s.engine??100,tyres:s.tyres??100,tw:s.tw,susp:s.susp??100,items:s.items||{},ups:s.ups||{},touched:true,owned:s.owned??true}));
     for(const s of save.cars||[]){const c=carById(s.id);if(c&&s.canFill)setFill(c.items,s.canFill);}
     G.wreckState=save.wreckState||{};
     const sh=save.hero;G.inside=-1;for(const l of LOCS)if(Math.hypot(sh.x-l.x,sh.y-l.y)<l.rad+400)G.inside=l.id;   // already inside a town: don't greet you again
-    Object.assign(G.hero,{x:sh.x,y:sh.y,a:sh.a||0,hp:sh.hp,water:sh.water??100,food:sh.food??100,rest:sh.rest??100,inv:sh.inv||{},weapon:sh.weapon||null,compass:!!sh.compass,armour:sh.armour||null,injuries:sh.injuries||[],capLoss:sh.capLoss||0,ill:sh.ill||null,dryT:sh.dryT||0,meds:sh.meds||null});G.illClock=null;G.blk=null;setFill(G.hero.inv,sh.canFill||0);G.kills=save.kills||0;
+    Object.assign(G.hero,{x:sh.x,y:sh.y,a:sh.a||0,hp:sh.hp,water:sh.water??100,food:sh.food??100,rest:sh.rest??100,inv:sh.inv||{},weapon:sh.weapon||null,compass:!!sh.compass,armour:sh.armour||null,injuries:sh.injuries||[],capLoss:sh.capLoss||0,ill:sh.ill||null,dryT:sh.dryT||0,meds:sh.meds||null,buffs:sh.buffs||null});G.illClock=null;G.blk=null;setFill(G.hero.inv,sh.canFill||0);G.kills=save.kills||0;
     const c=carById(save.hero.inCar);if(c){c.driver='hero';G.hero.inCar=c.id;}
     if(save.comp&&COMPANIONS[save.comp.type]){const s=save.comp,p=makeComp(s.type,s.x,s.y);Object.assign(p,{hp:s.hp,state:s.state==='down'?'follow':s.state,weapon:s.weapon!==undefined?s.weapon:p.weapon,inv:s.inv||Object.assign(s.weapon?{[s.weapon]:1}:s.weapon===undefined&&s.type==='gunhand'?{revolver:1}:{},s.ammoInv||(s.type==='gunhand'&&s.ammoInv===undefined?{bullets:s.ammo??24}:{})),missed:s.missed||0,fedDay:s.fedDay??p.fedDay,inCar:!!(s.inCar&&G.hero.inCar)});G.comp=p;}
   } else {
@@ -3568,9 +3711,9 @@ function syncCars(){
 }
 function saveData(){
   const cp=G.comp;
-  return {v:5,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
+  return {v:5,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},foraged:G.foraged||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
     removed:[...G.removed].slice(-800),lastCar:G.lastCar,
-    kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,ill:G.hero.ill||null,dryT:G.hero.dryT||0,meds:G.hero.meds||null,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
+    kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,ill:G.hero.ill||null,dryT:G.hero.dryT||0,meds:G.hero.meds||null,buffs:G.hero.buffs||null,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
     cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items),owned:!!c.owned}))};
 }
 // ---- saving is to files only (see the save-file code in the UI). Anything the old save slots left on a device is left alone, unused. ----
@@ -3918,7 +4061,7 @@ function tyreHud(c){let el=document.getElementById('tyreBox');if(!el){const at=d
   for(let k of [3,4])if(cells[k])cells[k].style.display='none';}
 function applyMobile(){document.body.classList.toggle('mobile',!!SETTINGS.mobile);}
 function updateHud(){const h=G.hero,car=heroCar(),fc=focusCar();
-  setHud('hpBar','w',Math.max(0,h.hp).toFixed(0)+'%');setHud('hpBar','low',h.hp<30);{const el=document.getElementById('hpCap');if(el)el.style.width=(100-heroHpCap()).toFixed(1)+'%';}{const el=document.getElementById('illLine'),L=illLvl();if(el){const t=L?'Ill (level '+L+'): '+Math.ceil(illLeft()/60)+' min to shake it':'';if(el.textContent!==t)el.textContent=t;el.style.display=L?'':'none';}{const el=document.getElementById('medLine'),p=medLeft('pk'),s=medLeft('stim'),t=[p?'Painkillers: '+Math.ceil(p/60)+' min':'',s?'Stimulants: '+Math.ceil(s/60)+' min':''].filter(Boolean).join(' · ');if(el){if(el.textContent!==t)el.textContent=t;el.style.display=t?'':'none';}}}   /* (v11.4, v11.5) */
+  setHud('hpBar','w',Math.max(0,h.hp).toFixed(0)+'%');setHud('hpBar','low',h.hp<30);{const el=document.getElementById('hpCap');if(el)el.style.width=(100-heroHpCap()).toFixed(1)+'%';}{const el=document.getElementById('illLine'),L=illLvl();if(el){const t=L?'Ill (level '+L+'): '+Math.ceil(illLeft()/60)+' min to shake it':'';if(el.textContent!==t)el.textContent=t;el.style.display=L?'':'none';}{const el=document.getElementById('medLine'),p=medLeft('pk'),s=medLeft('stim'),t=[p?'Painkillers: '+Math.ceil(p/60)+' min':'',s?'Stimulants: '+Math.ceil(s/60)+' min':''].concat(buffList().map(b=>b.name+': '+b.min+' min')).filter(Boolean).join(' · ');if(el){if(el.textContent!==t)el.textContent=t;el.style.display=t?'':'none';}}}   /* (v11.4, v11.5) */
   for(const k of ['water','food','rest']){setHud(k+'Bar','w',Math.max(0,h[k]).toFixed(0)+'%');setHud(k+'Bar','low',h[k]<25);}
   setHud('clock','text',fmtClock(G.clock));
   setHud('gauges','nocar',!fc);
@@ -4060,7 +4203,7 @@ function invCar(){return heroCar()||(invOther&&invOther.kind==='car'?invOther.ca
 function itemRow(k,n,side){const it=ITEMS[k],o=otherInv(),car=invCar();let b='';
   const usable=it.use&&(it.use==='fuel'||it.use==='repair'||it.use==='upgrade'?!!car:it.use==='wear'?side==='me':true);
   if(usable&&it.use==='wear')b+='<button data-a="use" data-k="'+k+'" data-s="'+side+'">'+(G.hero.armour===k?'Worn (take off)':'Wear')+'</button>';
-  else if(usable)b+='<button data-a="use" data-k="'+k+'" data-s="'+side+'">'+(it.use==='drink'?'Drink':it.use==='eat'?'Eat':it.use==='heal'?'Use':it.use==='fuel'?'Pour in':'Fit')+'</button>';
+  else if(usable)b+='<button data-a="use" data-k="'+k+'" data-s="'+side+'">'+(it.use==='drink'?'Drink':it.use==='eat'?'Eat':it.use==='heal'?'Use':it.use==='med'||it.use==='cure'?'Take':it.use==='fuel'?'Pour in':'Fit')+'</button>';
   if(side==='me'&&k==='compass')b+=G.hero.compass?'<button data-a="uncompass" data-k="compass">Equipped</button>':'<button data-a="compass" data-k="compass">Equip</button>';
   if(side==='me'&&it.weapon)b+=G.hero.weapon===k?'<button data-a="unequip" data-k="'+k+'">Equipped</button>':'<button data-a="equip" data-k="'+k+'">Equip</button>';
   const toComp=invOther&&invOther.kind==='comp';
@@ -4097,6 +4240,13 @@ function renderInv(){$('invTitle').textContent=skillsMode?'Skills':journalMode?'
   RECIPES.forEach((r,i)=>{const need=Object.keys(r.needs).map(k=>{const have=countIn(st,k),ok=have>=r.needs[k];return '<span style="color:'+(ok?'#b9d27a':'#ff9a7a')+'">'+ITEMS[k].name.toLowerCase()+' '+have+'/'+r.needs[k]+'</span>';}).join(', ');
     const fuelTxt=r.fuel?', <span style="color:'+(craftFuel()>=r.fuel?'#b9d27a':'#ff9a7a')+'">a splash of petrol ('+r.fuel+'% of a tank, from a jerry can or your car)</span>':'';
     const can=canCraft(r);html+='<div class="irow"><i style="background:'+ITEMS[r.make].icon+'"></i><span class="nm">'+ITEMS[r.make].name+(r.qty>1?' ×'+r.qty:'')+(r.bench?' <small>(workbench)</small>':'')+'<br><small>'+need+fuelTxt+'</small></span><button data-a="craft" data-k="'+i+'"'+(can?'':' disabled')+'>Make</button></div>';});
+  // cooking (v11.6)
+  {const why=cookBlocked(),tools=['billy','pan','campoven'].filter(t=>hasCookTool(t)).map(t=>TOOL_NAMES[t]);
+   html+='<h3>Cook<small>'+(why?why:'over a little fire, wherever you are')+'. Your gear: '+(tools.length?tools.join(', '):'nothing to cook with yet: traders sell frying pans and camp ovens')+'</small></h3>';
+   const nm=k=>k.split('|').map(x=>x==='billy_full'?'billy of river water':x==='water'?'water bottle':ITEMS[x].name.toLowerCase()).join(' or ');
+   COOK.forEach((r,i)=>{const it=ITEMS[r.make],need=Object.keys(r.needs).map(k=>{const have=haveOf(st,k),ok=have>=r.needs[k];return '<span style="color:'+(ok?'#b9d27a':'#ff9a7a')+'">'+(k===MEATS?'any meat':nm(k))+' '+have+'/'+r.needs[k]+'</span>';}).join(', ');
+     const tl=r.tool?' <span style="color:'+(hasCookTool(r.tool)?'#b9d27a':'#ff9a7a')+'">('+TOOL_NAMES[r.tool]+')</span>':'',fx=it.buff?' · '+BUFFS[it.buff[0]].name+' '+it.buff[1]+'–'+it.buff[2]+' min: '+BUFFS[it.buff[0]].what:'';
+     html+='<div class="irow"><i style="background:'+it.icon+'"></i><span class="nm">'+it.name+(r.qty>1?' ×'+r.qty:'')+tl+' <small>'+r.mins+' min</small><br><small>'+need+'</small><br><small style="opacity:.75">'+(it.use==='drink'?'+'+it.val+' water':'+'+it.val+' food')+(it.water?', +'+it.water+' water':'')+(it.food?', +'+it.food+' food':'')+fx+'</small></span><button data-a="cook" data-k="'+i+'"'+(canCook(r)&&!why?'':' disabled')+'>Cook</button></div>';});}
   $('invBody').innerHTML=html;}
 function invClick(e){const btn=e.target.closest&&e.target.closest('button');if(!btn)return;e.stopPropagation();
   const a=btn.dataset.a,k=btn.dataset.k,h=G.hero,o=otherInv(),car=invCar();
@@ -4104,6 +4254,7 @@ function invClick(e){const btn=e.target.closest&&e.target.closest('button');if(!
   if(a==='wtake'){const c=takeCar(invOther.prop,+k);if(c)showMsg(c.def.name+': parked outside the warehouse',1.6);renderInv();return;}
   if(a==='skill'){const s=SKILLS.find(q=>q.id===k);if(raiseSkill(k)){SFX.pick();showMsg(s.name+': level '+skill(k),1.6);}renderInv();return;}
   if(a==='use'){const inv=btn.dataset.s==='me'?h.inv:o;if(useItem(k,inv,car)&&btn.dataset.s!=='me')otherTouched();}
+  else if(a==='cook'){const r=COOK[+k];if(r)cook(r);}   /* (v11.6) */
   else if(a==='craft'){const r=RECIPES[+k];if(r&&craft(r))showMsg('Made '+ITEMS[r.make].name.toLowerCase()+(r.qty>1?' ×'+r.qty:''),1.4);}
   else if(a==='equip'){h.weapon=k;SFX.click();}else if(a==='unequip'){h.weapon=null;}
   else if(a==='healcomp'){healComp(k);}else if(a==='comparm'){G.comp.weapon=k;compPackChanged();SFX.click();}
@@ -4480,7 +4631,11 @@ function stdMat3(o){return new THREE.MeshStandardMaterial(Object.assign({roughne
 function srgbVertexColours3(){const C=THREE.ShaderChunk;if(C.color_pars_vertex.includes('lsSrgbToLin'))return;
   C.color_pars_vertex+='\nvec3 lsSrgbToLin(vec3 c){return mix(c*0.0773993808,pow(c*0.9478672986+vec3(0.0521327014),vec3(2.4)),step(vec3(0.04045),c));}\n';
   const old='vColor *= color;';if(!C.color_vertex.includes(old))throw new Error('three.js colour chunk has changed');
-  C.color_vertex=C.color_vertex.replace(old,'#ifdef USE_COLOR_ALPHA\n\tvColor *= vec4( lsSrgbToLin( color.rgb ), color.a );\n#else\n\tvColor *= lsSrgbToLin( color.rgb );\n#endif');}
+  C.color_vertex=C.color_vertex.replace(old,'#ifdef USE_COLOR_ALPHA\n\tvColor *= vec4( lsSrgbToLin( color.rgb ), color.a );\n#else\n\tvColor *= lsSrgbToLin( color.rgb );\n#endif');
+  /* (v11.7) every lit pixel kept to a real, finite colour before the bloom sees it: one NaN or infinity (a zero-length normal somewhere, a hot
+     highlight on the iPad's half-precision maths) gets smeared by the bloom's blur into a flashing black square */
+  const op='gl_FragColor = vec4( outgoingLight, diffuseColor.a );';if(!C.opaque_fragment.includes(op))throw new Error('three.js opaque chunk has changed');
+  C.opaque_fragment=C.opaque_fragment.replace(op,'outgoingLight = min( max( outgoingLight, vec3( 0.0 ) ), vec3( 3.0e4 ) );\nif ( !( outgoingLight.r + outgoingLight.g + outgoingLight.b < 1.0e5 ) ) outgoingLight = vec3( 0.0 );\n'+op);}
 // the post-processing chain. Half-float targets keep the bright end (sun glare, fire, headlights) for the bloom and the tone mapping;
 // a device without half-float render targets falls back to 8-bit ones (still multisampled)
 function makeComposer3(){const R=V3.R,hf=R.extensions.has('EXT_color_buffer_float')||R.extensions.has('EXT_color_buffer_half_float');
@@ -6669,7 +6824,7 @@ function groundMat3(){const m=stdMat3({vertexColors:true,roughness:0.97,envMapIn
       .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
       if(uBump>0.0){float fp=length(fwidth(vWp)),fade=(1.0-smoothstep(220.0,650.0,length(vViewPosition)))*(1.0-smoothstep(0.12,0.4,fp));   /* only while a texel is bigger than a pixel: no sparkle */if(fade>0.0){vec2 dH=vec2(dFdx(gndH),dFdy(gndH))*uBump*fade;
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),R1=cross(sy,normal),R2=cross(normal,sx);float dt=dot(sx,R1)*faceDirection;
-        normal=normalize(abs(dt)*normal-sign(dt)*(dH.x*R1+dH.y*R2));}}   /* bump from the texture's own light and dark: no UVs needed */`);};
+        vec3 nb=abs(dt)*normal-sign(dt)*(dH.x*R1+dH.y*R2);if(dot(nb,nb)>1e-12)normal=normalize(nb);   /* (v11.7) never normalise nothing */}}   /* bump from the texture's own light and dark: no UVs needed */`);};
   m.customProgramCacheKey=()=>'ground2';return m;}
 function detailMat3(m,kind,s1,s2,k1,k2){const tex=detailTex3(kind),u={uDet:{value:tex}};
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWp;').replace('#include <project_vertex>','#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.0)).xz;');
@@ -6693,9 +6848,9 @@ function mesaTex3(kind){const N=256,cv=document.createElement('canvas');cv.width
   const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
 function mesaMat3(){const m=stdMat3({vertexColors:true,roughness:0.96}),u={uWall:{value:mesaTex3('wall')},uTop:{value:mesaTex3('top')}};
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWp;varying vec3 vWn;')
-      .replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\nvWn=normalize(mat3(modelMatrix)*objectNormal);').replace('#include <project_vertex>','#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.0)).xyz;');
+      .replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\nvWn=mat3(modelMatrix)*objectNormal;').replace('#include <project_vertex>','#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.0)).xyz;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vWp;varying vec3 vWn;uniform sampler2D uWall;uniform sampler2D uTop;').replace('#include <color_fragment>',`#include <color_fragment>
-      vec3 n=abs(normalize(vWn));vec3 w=pow(n,vec3(4.0));w/=(w.x+w.y+w.z);
+      vec3 n=abs(vWn/max(length(vWn),1e-5));vec3 w=pow(n,vec3(4.0));w/=max(w.x+w.y+w.z,1e-5);
       vec3 wx=texture2D(uWall,vec2(vWp.z/260.0,vWp.y/150.0)).rgb,wz=texture2D(uWall,vec2(vWp.x/260.0,vWp.y/150.0)).rgb,ty=texture2D(uTop,vWp.xz/180.0).rgb;   // walls by height, the top from above
       vec3 d=(wx*w.x+ty*w.y+wz*w.z)*2.0;diffuseColor.rgb*=pow(mix(vec3(1.0),d,0.85),vec3(2.2));`);};
   m.customProgramCacheKey=()=>'mesa1';return m;}
@@ -7152,7 +7307,7 @@ function grassMat3(stiff){if(!WIND3.uW.value)WIND3.uW.value=new THREE.Vector3(1,
       vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;`);
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vH;')
       .replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=mix(0.45,1.15,vH*(2.0-vH));   /* dark and shaded at the root, sun-bleached at the tip */')
-      .replace('#include <normal_fragment_begin>','#include <normal_fragment_begin>\nnormal=normalize(vNormal);   /* both faces lit as the front: thin blades, no black backs */');};
+      .replace('#include <normal_fragment_begin>','#include <normal_fragment_begin>\nnormal=vNormal/max(length(vNormal),1e-5);   /* both faces lit as the front: thin blades, no black backs */');};
   m.customProgramCacheKey=()=>'grass1';return m;}
 function grassMeshes3(){if(GRASS3.meshes)return GRASS3.meshes;const out={};if(!GRASSU3.uPush.value)GRASSU3.uPush.value=[0,1,2,3].map(()=>new THREE.Vector4(0,0,0,0));
   const mats={tussock:grassMat3(1),spinifex:grassMat3(0.3)};for(const k of ['tussock','spinifex','tussockLo','spinifexLo']){const base=k.replace('Lo',''),mm=new THREE.InstancedMesh(grassGeo3(base,k!==base),mats[base],GRASS_CAP[k]);
@@ -7244,7 +7399,7 @@ function grassTick3(bx,by){if(!V3.scene)return;const M=grassMeshes3(),S=GRASS3.c
    The dust is the ground's own colour and grain, so the rock reads as sitting in the ground, not on it. ---- */
 function RB(){this.p=[];this.c=[];this.d=[];this.dc=[];this.i=[];}
 // a boulder: centre x,z, ground y; radius r, height h; turned rot; colour col (sRGB); pts: 8 outline bulges; seed; o: {skirt, top, dcol, lo}
-RB.prototype.rock=function(x,y,z,r,h,rot,col,pts,seed,o){o=o||{};const R=rng(seed||1),nu=o.lo?9:18,vs=o.lo?[0,0.45,0.8,1,1.14]:[0,0.18,0.36,0.54,0.7,0.84,0.95,1,1.14],base=this.p.length/3;
+RB.prototype.rock=function(x,y,z,r,h,rot,col,pts,seed,o){o=o||{};const R=rng(seed||1),nu=o.far?8:o.lo?9:18,vs=o.far?[0,0.5,0.86,1.14]:o.lo?[0,0.45,0.8,1,1.14]:[0,0.18,0.36,0.54,0.7,0.84,0.95,1,1.14],base=this.p.length/3;
   const ph=[0,1,2,3,4].map(()=>R()*TAU),fq=[2,3,5,7,9],am=[0.1,0.085,0.055,0.035,0.02],pv=[0,1,2,3,4].map(()=>R()*TAU);
   const bulge=th=>{if(!pts)return 1;const u=((th-rot)/TAU*pts.length%pts.length+pts.length)%pts.length,a=Math.floor(u),t=u-a,s=t*t*(3-2*t);return pts[a]*(1-s)+pts[(a+1)%pts.length]*s;};
   const lump=(th,v)=>{let n=0;for(let k=0;k<5;k++)n+=am[k]*Math.sin(fq[k]*th+ph[k]+v*(1.7+k)*Math.cos(pv[k]));return n;};
@@ -7269,7 +7424,7 @@ RB.prototype.geometry=function(ox,oz,withDust){const g=new THREE.BufferGeometry(
   g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(this.c),3));
   if(withDust){g.setAttribute('aDust',new THREE.BufferAttribute(new Float32Array(this.d),2));g.setAttribute('aDCol',new THREE.BufferAttribute(new Float32Array(this.dc),3));}
   g.setIndex(this.i);g.computeVertexNormals();g.computeBoundingSphere();return g;};
-RB.prototype.mesh=function(ox,oz){if(!this.p.length)return null;const m=new THREE.Mesh(this.geometry(ox,oz,true),rockMat3());m.position.set(ox,0,oz);m.matrixAutoUpdate=false;m.updateMatrix();m.castShadow=true;m.receiveShadow=true;return m;};
+RB.prototype.mesh=function(ox,oz,far){if(!this.p.length)return null;const m=new THREE.Mesh(this.geometry(ox,oz,true),rockMat3(far));m.matrixAutoUpdate=false;m.updateMatrix();m.castShadow=true;m.receiveShadow=true;return m;};
 
 // the stone texture: grain at three scales, light and dark speckles, fine cracks and a few strata lines; a neutral grey (mean 128)
 function rockTex3(){const N=512,[cv,g]=gndCanvas3(N),im=g.createImageData(N,N),D=im.data,r=rng(3301);
@@ -7280,19 +7435,22 @@ function rockTex3(){const N=512,[cv,g]=gndCanvas3(N),im=g.createImageData(N,N),D
   g.lineCap='round';for(let k=0;k<70;k++){let x=r()*N,y=r()*N,a=r()*TAU;const n=6+Math.floor(r()*14);g.strokeStyle='rgba(35,28,22,'+(0.35+r()*0.35)+')';g.lineWidth=0.7+r()*1.1;
     for(let s=0;s<n;s++){const l=6+r()*12,x2=x+Math.cos(a)*l,y2=y+Math.sin(a)*l;wrapDraw3(N,(dx,dy)=>{g.beginPath();g.moveTo(x+dx,y+dy);g.lineTo(x2+dx,y2+dy);g.stroke();});x=x2;y=y2;a+=(r()-0.5)*0.9;}}   // hairline cracks
   normTex3(g,N);const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
-const ROCKT3={tex:null,mat:null};
-function rockMat3(){if(ROCKT3.mat)return ROCKT3.mat;if(!ROCKT3.tex)ROCKT3.tex=rockTex3();
+const ROCKT3={tex:null,texFar:null,mat:null,matFar:null,lodD:1100};
+// the far rocks' texture: the same stone at an eighth of the size (64x64), so distant rocks read only a few texels
+function rockTexFar3(){const N=64,[cv,g]=gndCanvas3(N);g.imageSmoothingQuality='high';g.drawImage(ROCKT3.tex.image,0,0,N,N);const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+// past about 110 m (ROCKT3.lodD): a third of the triangles, no small stones, and a cheaper shader: one texture scale, flat-coloured dust, no bump
+function rockMat3(far){if(far)return rockMatFar3();if(ROCKT3.mat)return ROCKT3.mat;if(!ROCKT3.tex)ROCKT3.tex=rockTex3();
   const m=stdMat3({vertexColors:true,roughness:0.88,envMapIntensity:1.2}),u={uRockT:{value:ROCKT3.tex},uDirtT:{value:V3.mats.ground.userData.u.uDet.value},uBump:{value:SETTINGS.gfx==='fast'?0:1.4}};m.userData.u=u;
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u);
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 aDust;attribute vec3 aDCol;varying vec2 vDust;varying vec3 vDC;varying vec3 vRWp;varying vec3 vRWn;')
-      .replace('#include <project_vertex>','#include <project_vertex>\nvDust=aDust;vDC=lsSrgbToLin(aDCol);vRWp=(modelMatrix*vec4(transformed,1.0)).xyz;vRWn=normalize(mat3(modelMatrix)*objectNormal);');
+      .replace('#include <project_vertex>','#include <project_vertex>\nvDust=aDust;vDC=lsSrgbToLin(aDCol);vRWp=(modelMatrix*vec4(transformed,1.0)).xyz;vRWn=mat3(modelMatrix)*objectNormal;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vDust;varying vec3 vDC;varying vec3 vRWp;varying vec3 vRWn;uniform sampler2D uRockT,uDirtT;uniform float uBump;float rkH;float rkDust;\nvec3 tri3(sampler2D t,vec3 p,vec3 w){return texture2D(t,p.zy).rgb*w.x+texture2D(t,p.xz).rgb*w.y+texture2D(t,p.xy).rgb*w.z;}')
       .replace('#include <color_fragment>',`#include <color_fragment>
-      vec3 tw=pow(abs(normalize(vRWn)),vec3(4.0));tw/=(tw.x+tw.y+tw.z);   /* projected from three sides: no stretching on steep faces */
+      vec3 wn=vRWn/max(length(vRWn),1e-5);vec3 tw=pow(abs(wn),vec3(4.0));tw/=max(tw.x+tw.y+tw.z,1e-5);   /* projected from three sides: no stretching on steep faces */
       vec3 t1=tri3(uRockT,vRWp/46.0,tw)*2.0,t2=tri3(uRockT,vRWp/13.0+0.31,tw)*2.0;
       vec3 det=mix(vec3(1.0),t1,0.85)*mix(vec3(1.0),t2,0.5);
       vec3 rock=diffuseColor.rgb*pow(det,vec3(2.2));
-      float up=smoothstep(0.55,0.92,normalize(vRWn).y),dn=dot(t1,vec3(0.3333))*0.6+dot(t2,vec3(0.3333))*0.4;
+      float up=smoothstep(0.55,0.92,wn.y),dn=dot(t1,vec3(0.3333))*0.6+dot(t2,vec3(0.3333))*0.4;
       rkDust=clamp(max(vDust.x,vDust.y*up*smoothstep(1.08,0.82,dn)),0.0,1.0);   /* dust in the hollows of the upward faces, a skirt round the foot */
       vec3 dd=texture2D(uDirtT,vRWp.xz/150.0).rgb*2.0;vec3 dust=vDC*pow(mix(vec3(1.0),dd,0.8),vec3(2.2))*1.04;
       diffuseColor.rgb=mix(rock,dust,rkDust);
@@ -7301,24 +7459,38 @@ function rockMat3(){if(ROCKT3.mat)return ROCKT3.mat;if(!ROCKT3.tex)ROCKT3.tex=ro
       .replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
       {float fp=length(fwidth(vRWp)),fade=(1.0-smoothstep(200.0,600.0,length(vViewPosition)))*(1.0-smoothstep(0.1,0.35,fp));if(uBump>0.0&&fade>0.0){vec2 dH=vec2(dFdx(rkH),dFdy(rkH))*uBump*fade;
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),R1=cross(sy,normal),R2=cross(normal,sx);float dt=dot(sx,R1)*faceDirection;
-        normal=normalize(abs(dt)*normal-sign(dt)*(dH.x*R1+dH.y*R2));}}`);};
+        vec3 nb=abs(dt)*normal-sign(dt)*(dH.x*R1+dH.y*R2);if(dot(nb,nb)>1e-12)normal=normalize(nb);}}`);};
   m.customProgramCacheKey=()=>'rock1';ROCKT3.mat=m;return m;}
+function rockMatFar3(){if(ROCKT3.matFar)return ROCKT3.matFar;if(!ROCKT3.tex)ROCKT3.tex=rockTex3();if(!ROCKT3.texFar)ROCKT3.texFar=rockTexFar3();
+  const m=stdMat3({vertexColors:true,roughness:0.9,envMapIntensity:1.2}),u={uRockT:{value:ROCKT3.texFar}};m.userData.u=u;
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 aDust;attribute vec3 aDCol;varying vec2 vDust;varying vec3 vDC;varying vec3 vRWp;varying vec3 vRWn;')
+      .replace('#include <project_vertex>','#include <project_vertex>\nvDust=aDust;vDC=lsSrgbToLin(aDCol);vRWp=(modelMatrix*vec4(transformed,1.0)).xyz;vRWn=mat3(modelMatrix)*objectNormal;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vDust;varying vec3 vDC;varying vec3 vRWp;varying vec3 vRWn;uniform sampler2D uRockT;')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+      vec3 wn=vRWn/max(length(vRWn),1e-5);vec3 tw=pow(abs(wn),vec3(4.0));tw/=max(tw.x+tw.y+tw.z,1e-5);
+      vec3 t1=(texture2D(uRockT,vRWp.zy/46.0).rgb*tw.x+texture2D(uRockT,vRWp.xz/46.0).rgb*tw.y+texture2D(uRockT,vRWp.xy/46.0).rgb*tw.z)*2.0;
+      vec3 rock=diffuseColor.rgb*pow(mix(vec3(1.0),t1,0.7),vec3(2.2));
+      float dust=clamp(max(vDust.x,vDust.y*smoothstep(0.55,0.92,wn.y)*0.5),0.0,1.0);   /* (the hollows' dust, averaged out at this distance) */
+      diffuseColor.rgb=mix(rock,vDC*1.04,dust);`);};
+  m.customProgramCacheKey=()=>'rock1far';ROCKT3.matFar=m;return m;}
 
 // a chunk's rocks: boulders (the stacked slabs are gone, v11.3), split boulders, river stones; small stones round them; the dust
-function rocksMesh3(c){const ox=c.cx*CH,oy=c.cy*CH,rb=new RB(),pal=ROCK3[c.zone.biome]||ROCK3.mallee;if(!c.rocks.length)return null;
+function rocksMesh3(c){const ox=c.cx*CH+CH/2,oy=c.cy*CH+CH/2,rb=new RB(),rf=new RB(),pal=ROCK3[c.zone.biome]||ROCK3.mallee;if(!c.rocks.length)return null;   // (v11.7) a near and a far version, centred on the chunk
   for(const k of c.rocks){const y=landY3(k.x,k.y),r=rng(hash2(Math.round(k.x),Math.round(k.y))),form=r(),col=col3(pal[Math.floor(r()*pal.length)],0.9+r()*0.2),R=k.r;
     const biome=zoneAt(k.x,k.y).biome,mallee=biome==='mallee',gc=groundCol3(k.x,k.y),dcol=[Math.min(1,gc[0]*1.04),Math.min(1,gc[1]*1.04),Math.min(1,gc[2]*1.04)];
     const o={skirt:mallee?0.2:0.8,top:mallee?0.35:0.6,dcol},seed=r()*1e6;
-    if(form<0.62)rb.rock(k.x,y-R*0.1,k.y,R,R*(form<0.42?0.7+r()*0.35:0.45+r()*0.2),k.rot,col,k.pts,seed,o);   // a weathered boulder, or a lower, flatter one
+    const of=Object.assign({},o,{far:true}),both=(...a)=>{rb.rock(...a,o);rf.rock(...a,of);};
+    if(form<0.62)both(k.x,y-R*0.1,k.y,R,R*(form<0.42?0.7+r()*0.35:0.45+r()*0.2),k.rot,col,k.pts,seed);   // a weathered boulder, or a lower, flatter one
     else if(form<0.76)continue;   // (the tor of piled boulders: removed in v7.0; such rocks are taken out of the world as it's laid out)
-    else if(form<0.88){for(const sg of [-1,1]){const a=k.rot+Math.PI/2,dx=Math.cos(a)*R*0.24*sg,dz=Math.sin(a)*R*0.24*sg;rb.rock(k.x+dx,y-R*0.1,k.y+dz,R*0.6,R*0.78,k.rot+sg,col,null,seed+sg*77,o);}}   // a boulder split in two
-    else rb.rock(k.x,y-R*0.1,k.y,R,R*0.75,k.rot,col,k.pts,seed,o);
+    else if(form<0.88){for(const sg of [-1,1]){const a=k.rot+Math.PI/2,dx=Math.cos(a)*R*0.24*sg,dz=Math.sin(a)*R*0.24*sg;both(k.x+dx,y-R*0.1,k.y+dz,R*0.6,R*0.78,k.rot+sg,col,null,seed+sg*77);}}   // a boulder split in two
+    else both(k.x,y-R*0.1,k.y,R,R*0.75,k.rot,col,k.pts,seed);
     for(let j=0;j<2+Math.floor(r()*3);j++){const a=r()*TAU,d=R*(1.05+r()*0.6),s0=R*(0.12+r()*0.16),sx=k.x+Math.cos(a)*d,sz=k.y+Math.sin(a)*d;
       rb.rock(sx,landY3(sx,sz)-s0*0.15,sz,s0,s0*0.65,r()*TAU,col3(pal[Math.floor(r()*pal.length)]),null,r()*1e6,{lo:true,skirt:o.skirt*0.6,top:o.top,dcol});}   // stones scattered round it
     if(!mallee&&!k.river){const W=0.6;   // drifts of dirt banked against the foot, mostly on the downwind side
       for(let j=0;j<2+Math.floor(r()*3);j++){const a=W+Math.PI+(r()-0.5)*2.6+(j===0?0:(r()-0.5)*2),d=R*(0.75+r()*0.35),rx=R*(0.35+r()*0.4),hh=Math.max(0.6,R*(0.05+r()*0.05));
-        rb.drift(k.x+Math.cos(a)*d,k.y+Math.sin(a)*d,rx,rx*(0.45+r()*0.3),a+Math.PI/2,hh,dcol);}}}
-  return rb.mesh(ox,oy);}
+        const rz=rx*(0.45+r()*0.3);for(const B of [rb,rf])B.drift(k.x+Math.cos(a)*d,k.y+Math.sin(a)*d,rx,rz,a+Math.PI/2,hh,dcol);}}}
+  const near=rb.mesh(ox,oy),far=rf.mesh(ox,oy,true),lod=new THREE.LOD();lod.position.set(ox,0,oy);lod.addLevel(near,0);lod.addLevel(far,ROCKT3.lodD);lod.updateMatrix();lod.matrixAutoUpdate=false;lod.userData.rocks=true;return lod;}
 // the far scatter's rock (one shape, instanced): a smooth one too
 function rockGeoUnit3(){const rb=new RB();rb.rock(0,-0.12,0,1,0.85,0,[1,1,1],[1,0.85,1.1,0.9,1.05,0.8,1,0.95],4242,{lo:true});return rb.geometry(0,0,false);}
 
@@ -7327,7 +7499,7 @@ function rockGeoUnit3(){const rb=new RB();rb.rock(0,-0.12,0,1,0.85,0,[1,1,1],[1,
 function survival(dt,car){const h=G.hero,gm=dt*CLOCK_RATE/60;G.clock+=gm;
   const hour=(G.clock%DAY)/60,night=hour<6||hour>=20,b=car||h,bio=getChunk(Math.floor(b.x/CH),Math.floor(b.y/CH)).biome;
   const heat=(bio===BIOMES.red||bio===BIOMES.salt?1.3:1)*(night?0.6:1),exert=car?1:(h.speed>75?1.8:h.speed>12?1.1:0.9),sd=skDrain(skill('stamina'));   /* Stamina (v10.4) */
-  const il=illDrain();   // ill: everything drains 10% faster a level (v11.4)
+  const il=illDrain()*(hasBuff('hearty')?0.7:1);   // a good feed: 30% slower (v11.6)   // ill: everything drains 10% faster a level (v11.4)
   h.water=Math.max(0,h.water-6/60*gm*heat*exert*sd*il);
   h.food=Math.max(0,h.food-3/60*gm*(car?1:exert)*sd*il);
   h.rest=Math.max(0,h.rest-5.5/60*gm*(car?1:exert>1.5?1.3:1)*sd*il);
@@ -7339,7 +7511,7 @@ function survival(dt,car){const h=G.hero,gm=dt*CLOCK_RATE/60;G.clock+=gm;
 }
 function driveHero(car,inp,dt){
   let thr=inp.thr,boost=inp.boost;car.braking=inp.brake;car.cruise=inp.cruise&&!inp.boost&&thr>0?thr:null;
-  {const fx=injFx();if(fx.wobble&&car.speed>30){const t=G.time;inp.steer=clamp(inp.steer+(Math.sin(t*2.3)*0.5+Math.sin(t*5.7+1)*0.3+Math.sin(t*11.1)*0.2)*0.22,-1,1);}}   // hurt: your hands aren't steady on the wheel
+  {const fx=injFx();if(fx.wobble&&car.speed>30){const t=G.time;inp.steer=clamp(inp.steer+(Math.sin(t*2.3)*0.5+Math.sin(t*5.7+1)*0.3+Math.sin(t*11.1)*0.2)*0.22*fx.wobble,-1,1);}}   // hurt: your hands aren't steady on the wheel
   const dead=carDead(car);
   if(dead){if(thr>0||(thr<0&&car.vf<=5)){if(G.deadMsgT<=0){showMsg(dead==='engine'?'The engine’s dead. It won’t turn over':'The car’s too battered to run',2.2);G.deadMsgT=4;}}
     if(thr>0||car.vf<=5)thr=Math.min(0,thr)*(car.vf>5?1:0);boost=false;car.cruise=null;}   // you can still brake and coast, but there's no drive
@@ -7457,7 +7629,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
