@@ -241,24 +241,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=11.8"></script>
-<script src="models/84-hero-model.js?v=11.8"></script>
-<script src="models/84b-hero-body.js?v=11.8"></script>
-<script src="models/84c-buggy-model.js?v=11.8"></script>
-<script src="models/84d-tarona-model.js?v=11.8"></script>
-<script src="models/84e-wall-model.js?v=11.8"></script>
-<script src="models/84f-plant-models.js?v=11.8"></script>
-<script src="models/84g-kestrel-model.js?v=11.8"></script>
-<script src="models/84h-building-models.js?v=11.8"></script>
-<script src="models/84i-building-models2.js?v=11.8"></script>
-<script src="models/84j-f100-model.js?v=11.8"></script>
-<script src="models/84l-kingsford-model.js?v=11.8"></script>
-<script src="models/84m-wagon-model.js?v=11.8"></script>
+<script src="models/21b-mesa-models.js?v=11.9"></script>
+<script src="models/84-hero-model.js?v=11.9"></script>
+<script src="models/84b-hero-body.js?v=11.9"></script>
+<script src="models/84c-buggy-model.js?v=11.9"></script>
+<script src="models/84d-tarona-model.js?v=11.9"></script>
+<script src="models/84e-wall-model.js?v=11.9"></script>
+<script src="models/84f-plant-models.js?v=11.9"></script>
+<script src="models/84g-kestrel-model.js?v=11.9"></script>
+<script src="models/84h-building-models.js?v=11.9"></script>
+<script src="models/84i-building-models2.js?v=11.9"></script>
+<script src="models/84j-f100-model.js?v=11.9"></script>
+<script src="models/84l-kingsford-model.js?v=11.9"></script>
+<script src="models/84m-wagon-model.js?v=11.9"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='11.8';
+const VERSION='11.9';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -7247,7 +7247,7 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   V3.amb.intensity=SETTINGS.gfx==='fast'?GFX3.light*GFX3.fastFill*GFX3.env*Math.max(0.06,1-dk*1.1)*(1-0.5*(typeof stormK==='function'?stormK():0)):0;
   sc.environmentIntensity=GFX3.env*Math.max(0.06,1-dk*1.1)*(1-0.5*(typeof stormK==='function'?stormK():0));   // the reflections and fill light dim with the day, and in a storm
   {const tex=SHADOW_SPAN3*2/2048,sx=Math.round(b.x/tex)*tex,sz=Math.round(b.y/tex)*tex;   // the shadow box follows you, stepping a whole texel at a time so edges don't crawl
-    const d=sunDir3();V3.sun.position.set(sx+d.x*1400,gy+d.y*1400,sz+d.z*1400);V3.sun.target.position.set(sx,gy,sz);V3.sun.target.updateMatrixWorld();sky3(dk);}   // the sun where the clock says it is
+    const d=sunDir3();V3.sun.position.set(sx+d.x*1400,gy+d.y*1400,sz+d.z*1400);V3.sun.target.position.set(sx,gy,sz);V3.sun.target.updateMatrixWorld();sky3(dk);clouds3(dk,sc.background);V3.sun.intensity*=CLOUDS3.sunShade;}   // the sun where the clock says it is; the clouds, and their shade when one crosses it (v11.9)
   const lit=!!car&&headlightsOn()&&car.fuel>0&&!carDead(car);V3.head.intensity=lit?1.6*GFX3.light:0;
   if(car){const fx=Math.cos(car.a),fy=Math.sin(car.a);V3.head.position.set(car.x+fx*car.def.len*0.5,gy+10,car.y+fy*car.def.len*0.5);V3.headT.position.set(car.x+fx*400,gy-10,car.y+fy*400);V3.headT.updateMatrixWorld();}
   if(V3.camOverride){const o=V3.camOverride;cam.position.set(o.x,o.y,o.z);cam.lookAt(o.tx,o.ty,o.tz);}   // tests can look from anywhere
@@ -7447,6 +7447,86 @@ function labels3(){const cam=V3.cam,v=new THREE.Vector3();
       label(n.x,n.y,28,n.def.name+', '+ROLE_LABEL[n.def.role],'700 15px "Barlow Condensed", Arial, sans-serif','#efe2c4');}}
   for(const t of G.texts)label(t.x,t.y,22+(1.2-t.life)*20,t.t,'700 20px "Barlow Condensed", Arial, sans-serif',t.col,Math.min(1,t.life*2));}
 function syncFX3(b){if(!FX3.ready)initFX3();particles3(b);tracks3(b);bullets3(b);cones3(b);animals3(b);pickups3(b);markers3(b);campfires3(b);}
+
+/* ---- sky clouds (v11.9): billboard clouds for a dusty, burnt-out sky ----
+   Heaped cumulus built from soft puffs, plus high, thin streaks of cirrus. All of it on a dome round the camera (far off, like the sun),
+   drifting slowly downwind. Not clean white: sun-bleached cream on top, dusty brown-grey underneath, the low ones sinking into the haze;
+   orange and bruised purple at sunrise and sunset; dark shapes against the stars at night.
+   How much cloud there is changes from day to day (clear, scattered, heavy), building up grey-brown ahead of a dust storm and lost
+   in the dust once it's on you. When a cloud passes over the sun, the sunlight dims for a while.
+   One InstancedMesh, one draw call: each puff is a quad turned to face the camera in the vertex shader, lit by the sun from where it
+   sits in its cloud (tops lit, bases shaded, a bright rim when the sun's behind). ---- */
+const CLOUDS3={mesh:null,list:[],sunShade:1,cov:0.4};
+const CLOUD_R3=14500;   // how far off the dome is: in front of the sun's disc, behind the mountains on the horizon
+// four puff shapes on one sheet: three heaped puffs and one wisp, white, with a little shading inside (red) for texture
+function cloudTex3(){const N=512,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d'),r=rng(9091);g.clearRect(0,0,N,N);
+  // each tile drawn small and blown up: soft masses, not a pile of circles
+  const sm=document.createElement('canvas');sm.width=sm.height=64;const q=sm.getContext('2d');
+  for(let t=0;t<4;t++){q.clearRect(0,0,64,64);
+    if(t<3){for(let k=0;k<26;k++){const a=r()*TAU,d=Math.pow(r(),0.8)*17,x=32+Math.cos(a)*d*1.15,y=35+Math.sin(a)*d*0.62-(d<8?2:0),rr=7+r()*9*(1-d/26);   // a heaped mass, flat-bottomed
+        const gr=q.createRadialGradient(x,y,0,x,y,rr);gr.addColorStop(0,'rgba(255,255,255,0.5)');gr.addColorStop(0.6,'rgba(255,255,255,0.22)');gr.addColorStop(1,'rgba(255,255,255,0)');q.fillStyle=gr;q.beginPath();q.arc(x,y,rr,0,TAU);q.fill();}
+      q.globalCompositeOperation='destination-out';const fl=q.createLinearGradient(0,40,0,50);fl.addColorStop(0,'rgba(0,0,0,0)');fl.addColorStop(1,'rgba(0,0,0,0.9)');q.fillStyle=fl;q.fillRect(0,40,64,24);q.globalCompositeOperation='source-over';}   // the flat base
+    else{for(let k=0;k<22;k++){const x=6+r()*52,y=26+r()*12,l=8+r()*20,w=1.5+r()*3;q.save();q.translate(x,y);q.rotate((r()-0.5)*0.25);q.scale(l,w);   // feathered smears
+        const gr=q.createRadialGradient(0,0,0,0,0,1);gr.addColorStop(0,'rgba(255,255,255,0.3)');gr.addColorStop(1,'rgba(255,255,255,0)');q.fillStyle=gr;q.beginPath();q.arc(0,0,1,0,TAU);q.fill();q.restore();}}
+    g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(sm,(t%2)*256,Math.floor(t/2)*256,256,256);}
+  // ragged, dusty edges from noise (the middle stays solid), and a little texture inside (red channel: shading)
+  const im=g.getImageData(0,0,N,N),D=im.data,n1=tileNoise3(N,12,71),n2=tileNoise3(N,40,73);
+  for(let i=0;i<N*N;i++){const n=n1[i]*0.6+n2[i]*0.4,a=D[i*4+3]/255,e=Math.max(0,Math.min(1,a*1.6-(1-n)*0.55*(1-a)));D[i*4+3]=Math.round(Math.pow(e,1.1)*255);D[i*4]=Math.round(140+n*115);D[i*4+1]=D[i*4+2]=255;}
+  g.putImageData(im,0,0);const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.NoColorSpace;return t;}
+function buildClouds3(){const r=rng(5150),inst=[];   // [az, el, threshold, kind] [x, y, depth, size] [nx, ny, nz, tile] aspect
+  const nC=58;for(let c=0;c<nC;c++){const az=r()*TAU,el=(2.5+Math.pow(r(),1.5)*28)*Math.PI/180,th=(c+r()*0.8)/nC,ang=(13+r()*22)*Math.PI/180*(0.6+Math.sin(el)*1.6),W=CLOUD_R3*Math.tan(ang)/2,H=W*(0.3+r()*0.26)*(0.65+Math.sin(el)*1.3);
+    const n=14+Math.floor(r()*10),puffs=[];CLOUDS3.list.push({az,el,th,rad:ang/2});
+    for(let i=0;i<n;i++){const u=(r()+r()+r())/1.5-1,x=u*W,top=(1-Math.abs(u)*0.85),y=H*0.18+Math.pow(r(),0.8)*H*0.62*top,z=(r()-0.5)*W*0.5,s=W*(0.42+r()*0.3)*(0.6+0.5*top);
+      const nl=Math.hypot(u,(y/H-0.35)*1.6,z/W)||1;puffs.push([az,el,th,0,x,y,z,s,u/nl,(y/H-0.35)*1.6/nl,-z/W/nl,Math.floor(r()*3),1]);}
+    puffs.sort((a,b)=>b[6]-a[6]);for(const p of puffs)inst.push(p);}   // far side of the cloud first
+  for(let c=0;c<12;c++){const az=r()*TAU,el=(16+r()*40)*Math.PI/180,th=(c+r())/12,W=CLOUD_R3*Math.tan((18+r()*24)*Math.PI/180)/2,rot=(r()-0.5)*0.5;   // high streaks of cirrus
+    for(let k=0;k<2+Math.floor(r()*3);k++)inst.push([az+(r()-0.5)*0.05,el+(r()-0.5)*0.03,th,1,(r()-0.5)*W*0.6,(r()-0.5)*W*0.08,0,W*(0.4+r()*0.3),0,0.2,0,3,2.6+r()*1.6]);}
+  const N=inst.length,A=new Float32Array(N*4),B=new Float32Array(N*4),C=new Float32Array(N*4),S=new Float32Array(N);
+  inst.forEach((p,i)=>{A.set(p.slice(0,4),i*4);B.set(p.slice(4,8),i*4);C.set(p.slice(8,12),i*4);S[i]=p[12];});
+  const g=new THREE.InstancedBufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array([-0.5,-0.5,0,0.5,-0.5,0,0.5,0.5,0,-0.5,0.5,0]),3));g.setIndex([0,1,2,0,2,3]);
+  g.setAttribute('aC',new THREE.InstancedBufferAttribute(A,4));g.setAttribute('aO',new THREE.InstancedBufferAttribute(B,4));g.setAttribute('aN',new THREE.InstancedBufferAttribute(C,4));g.setAttribute('aAsp',new THREE.InstancedBufferAttribute(S,1));g.instanceCount=N;
+  const u={uTex:{value:cloudTex3()},uR:{value:CLOUD_R3},uDrift:{value:0},uCov:{value:0.4},uTime:{value:0},uSun:{value:new THREE.Vector3(0,1,0)},uLit:{value:new THREE.Color()},uShade:{value:new THREE.Color()},
+    uRimC:{value:new THREE.Color()},uSky:{value:new THREE.Color()},uAlpha:{value:1}};
+  const m=new THREE.ShaderMaterial({uniforms:u,transparent:true,depthWrite:false,fog:false,
+    vertexShader:`attribute vec4 aC,aO,aN;attribute float aAsp;uniform float uR,uDrift,uCov,uTime;uniform vec3 uSun;
+      varying vec2 vUv;varying float vA,vLit,vLow,vEl,vRim,vHi;
+      void main(){float az=aC.x+uDrift*(aC.w>0.5?1.5:1.0),el=aC.y;vec3 dir=vec3(cos(el)*cos(az),sin(el),cos(el)*sin(az));
+        vec3 rt=normalize(vec3(-sin(az),0.0,cos(az))),up=normalize(vec3(0.0,1.0,0.0)-dir*dir.y);
+        vec3 c=cameraPosition+dir*uR+rt*aO.x+up*aO.y+dir*aO.z;vec4 mv=viewMatrix*vec4(c,1.0);
+        float s=aO.w*(1.0+0.05*sin(uTime*0.03+aO.x*0.001))*(aC.w>0.5?1.0:0.75+0.5*uCov);   /* heavy days: bigger, merging clouds */mv.xy+=position.xy*vec2(s*aAsp,s);gl_Position=projectionMatrix*mv;
+        float tile=aN.w;vUv=(position.xy+0.5)*0.5+vec2(mod(tile,2.0),1.0-floor(tile/2.0))*0.5;vUv.y=vUv.y;
+        vec3 n=normalize(rt*aN.x*0.5+up*(aN.y*0.6+0.5)-dir*aN.z*0.4);vLit=dot(n,uSun)*0.5+0.5;   /* lit mostly from above, evenly across a cloud */vLow=clamp(aN.y*0.6+0.5,0.0,1.0);vEl=el;vRim=pow(max(0.0,dot(dir,uSun)),5.0);vHi=aC.w;
+        vA=clamp((uCov-aC.z)*7.0,0.0,1.0);if(vA<=0.0)gl_Position=vec4(2.0,2.0,2.0,1.0);}`,
+    fragmentShader:`uniform sampler2D uTex;uniform vec3 uLit,uShade,uRimC,uSky;uniform float uAlpha;varying vec2 vUv;varying float vA,vLit,vLow,vEl,vRim,vHi;
+      void main(){vec4 t=texture2D(uTex,vUv);float a=t.a*vA*uAlpha*(vHi>0.5?0.42:0.92);if(a<0.004)discard;
+        float sh=clamp(mix(0.45,1.0,vLit)*mix(0.55,1.0,vLow)*(0.82+0.3*t.r),0.0,1.0);vec3 col=mix(uShade,uLit,sh);
+        col=mix(col,uRimC,vRim*0.45*(1.15-t.a));   /* toward the sun: the thinner parts glow (no outlines round each puff) */
+        float haze=1.0-smoothstep(0.03,0.3,vEl);col=mix(col,uSky,haze*0.7);a*=1.0-haze*0.3;   /* the low ones sink into the dust haze */
+        gl_FragColor=vec4(col,a);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`});
+  const mesh=new THREE.Mesh(g,m);mesh.frustumCulled=false;mesh.renderOrder=-1;V3.scene.add(mesh);CLOUDS3.mesh=mesh;return mesh;}
+// how cloudy: a new mix each day (some clear, most scattered, some heavy), easing from one day to the next
+function cloudCover3(){if(CLOUDS3.force!=null)return CLOUDS3.force;const day=G.clock/DAY,d0=Math.floor(day),f=day-d0,c=d=>{const r=rng(hash2(d*31+7,913)),q=r();return q<0.3?0.08+r()*0.14:q<0.8?0.3+r()*0.28:0.62+r()*0.25;};
+  const s=f*f*(3-2*f);let cov=c(d0)*(1-s)+c(d0+1)*s;
+  if(G.storm&&G.storm.phase==='coming'){const near=clamp(1-G.storm.d/5200,0,1);cov=Math.max(cov,0.55+0.4*near);}   // it builds up ahead of a storm
+  return cov;}
+function clouds3(dk,sky){if(!V3.scene||!V3.cam)return;const M=CLOUDS3.mesh||buildClouds3(),u=M.material.uniforms,d=sunDir3(),sk=typeof stormK==='function'?stormK():0;
+  const now=performance.now(),dt=Math.min(0.1,CLOUDS3.t?(now-CLOUDS3.t)/1000:0.016);CLOUDS3.t=now;const W=G.wind||{a:0.6,s:20};CLOUDS3.drift=(CLOUDS3.drift||0)+dt*0.00025*(0.4+W.s/40);u.uDrift.value=CLOUDS3.drift;u.uTime.value=G.time||0;
+  const cov=cloudCover3();CLOUDS3.cov=cov;u.uCov.value=cov;u.uSun.value.set(d.x,d.y,d.z).normalize();u.uSky.value.copy(sky);
+  // colours, chosen as they should look on screen (untoned below, like the sky): bleached cream and dust-brown by day, orange and bruise at the ends of it, dark at night
+  const gold=clamp(1-d.up/0.35,0,1)*clamp(1-dk*1.4,0,1),stormy=G.storm&&G.storm.phase==='coming'?clamp(1-G.storm.d/5200,0,1):0;
+  const lit=new THREE.Color(0xeee0c4).lerp(new THREE.Color(0xf2a868),gold*0.85).lerp(new THREE.Color(0x9a9088),stormy*0.6).lerp(new THREE.Color(0x2c2832),clamp(dk/0.75,0,1));
+  const shade=new THREE.Color(0x8c7a66).lerp(new THREE.Color(0x6a4652),gold*0.8).lerp(new THREE.Color(0x4e4640),stormy*0.7).lerp(new THREE.Color(0x14121a),clamp(dk/0.75,0,1));
+  const rim=new THREE.Color(0xffe8c0).lerp(new THREE.Color(0xffb070),gold).multiplyScalar(clamp(1-dk*1.6,0,1)*(1-stormy*0.7));
+  const dust=new THREE.Color(0xe8c79a);lit.lerp(dust,0.12);shade.lerp(dust,0.1);   // everything a little dusty
+  for(const [k,c] of [['uLit',lit],['uShade',shade],['uRimC',rim]]){untone3(c);u[k].value.copy(c);}
+  u.uAlpha.value=(1-sk)*(dk>0.6?0.85:1);M.visible=u.uAlpha.value>0.01;
+  // a cloud over the sun: the sunlight dims (smoothly, as the cloud's edge crosses)
+  let shadeK=1;if(d.up>0.02)for(const c of CLOUDS3.list){if(c.th>cov+0.05)continue;const az=c.az+CLOUDS3.drift,cx=Math.cos(c.el)*Math.cos(az),cy=Math.sin(c.el),cz=Math.cos(c.el)*Math.sin(az),sl=Math.hypot(d.x,d.y,d.z);
+    const ang=Math.acos(clamp((cx*d.x+cy*d.y+cz*d.z)/sl,-1,1)),k=clamp((ang-c.rad*0.35)/(c.rad*0.6),0,1),vis=clamp((cov-c.th)*7,0,1);shadeK=Math.min(shadeK,1-(1-k)*0.55*vis);}
+  CLOUDS3.sunShade+=(shadeK-CLOUDS3.sunShade)*Math.min(1,dt*1.5);}
 
 /* ---- grass (v11.2): living, wind-blown grass round the camera ----
    Two kinds of clump, each one InstancedMesh (one draw call, however many clumps):
@@ -7924,7 +8004,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
