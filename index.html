@@ -241,24 +241,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=11.7"></script>
-<script src="models/84-hero-model.js?v=11.7"></script>
-<script src="models/84b-hero-body.js?v=11.7"></script>
-<script src="models/84c-buggy-model.js?v=11.7"></script>
-<script src="models/84d-tarona-model.js?v=11.7"></script>
-<script src="models/84e-wall-model.js?v=11.7"></script>
-<script src="models/84f-plant-models.js?v=11.7"></script>
-<script src="models/84g-kestrel-model.js?v=11.7"></script>
-<script src="models/84h-building-models.js?v=11.7"></script>
-<script src="models/84i-building-models2.js?v=11.7"></script>
-<script src="models/84j-f100-model.js?v=11.7"></script>
-<script src="models/84l-kingsford-model.js?v=11.7"></script>
-<script src="models/84m-wagon-model.js?v=11.7"></script>
+<script src="models/21b-mesa-models.js?v=11.8"></script>
+<script src="models/84-hero-model.js?v=11.8"></script>
+<script src="models/84b-hero-body.js?v=11.8"></script>
+<script src="models/84c-buggy-model.js?v=11.8"></script>
+<script src="models/84d-tarona-model.js?v=11.8"></script>
+<script src="models/84e-wall-model.js?v=11.8"></script>
+<script src="models/84f-plant-models.js?v=11.8"></script>
+<script src="models/84g-kestrel-model.js?v=11.8"></script>
+<script src="models/84h-building-models.js?v=11.8"></script>
+<script src="models/84i-building-models2.js?v=11.8"></script>
+<script src="models/84j-f100-model.js?v=11.8"></script>
+<script src="models/84l-kingsford-model.js?v=11.8"></script>
+<script src="models/84m-wagon-model.js?v=11.8"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='11.7';
+const VERSION='11.8';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -380,7 +380,7 @@ if(TEST_MODE)buildTestLocs();else (function(){
   let oi=0;for(let t=0;t<40000&&oi<31;t++){const x=(r()*2-1)*WX,y=(r()*2-1)*WY;if(ok(x,y,0.08,118000,'outpost'))add('outpost',outNames[oi++],x,y);}
   let ri=0;for(let t=0;t<40000&&ri<48;t++){const x=(r()*2-1)*WX,y=(r()*2-1)*WY;if(ok(x,y,0.03,52000,'ruin')){
     let nm;for(let g=0;g<50;g++){nm=ruinA[Math.floor(r()*ruinA.length)]+' '+ruinB[Math.floor(r()*ruinB.length)];if(!LOCS.some(l=>l.name===nm))break;}
-    add('ruin',nm,x,y);ri++;}}
+    add('ruin',nm,x,y);ri++;{const o=LOCS[LOCS.length-1],th=ruinTheme(nm);if(th){o.theme=th;o.rad=ruinRad(th);}}}}   // (v11.8) what the place was, and its size
 })();
 // ---- road network ----
 const ROADCLS={highway:{w:130,max:1,acc:1,grip:1,drag:1,wear:0,label:'highway'},
@@ -498,7 +498,8 @@ function nearService(x,y){return nearLoc(x,y,-10,l=>l.service);}
 const PARK_TYPES=['kingsford','kingsford','wagon','ute','ute','van','cruiser','bike'];
 const BKINDS={house:{w:110,h:84,door:34},shed:{w:92,h:72,door:40},pub:{w:176,h:112,door:40},garage:{w:156,h:112,door:72},
   clinic:{w:140,h:100,door:36},servo:{w:150,h:92,door:44},store:{w:130,h:96,door:38},
-  warehouse:{w:270,h:170,door:96},barn:{w:210,h:140,door:76},office:{w:120,h:90,door:34}};
+  warehouse:{w:270,h:170,door:96},barn:{w:210,h:140,door:76},office:{w:120,h:90,door:34},
+  booth:{w:54,h:46,door:24},unit:{w:74,h:62,door:26},hangar:{w:300,h:230,door:190}};   // (v11.8) ticket booths and dunnies, motel rooms, aircraft hangars
 // solid structures you can't go inside: tanks, towers, the refinery's columns and flare (size = diameter)
 const STRUCTS={oiltank:130,column:44,flare:28,watertower:74,raintank:52,windmill:36};
 function makeStruct(kind,x,y,rot,size){const d=size||STRUCTS[kind];return {kind,x,y,rot:rot||0,w:d,h:d,tank:true,struct:true,furn:[],roofA:1};}
@@ -514,6 +515,9 @@ function makeBuilding(o,kind,x,y,rot,r){const K=BKINDS[kind],b={kind,x,y,rot,w:K
   else if(kind==='store'){for(let i=0;i<3;i++)f.push({k:'shelf',x:-hw+26+i*38,y:-10,w:12,h:52});f.push({k:'bar',x:hw-28,y:10,w:16,h:40});}
   else if(kind==='warehouse'){for(let i=0;i<4;i++)for(let j=0;j<2;j++)f.push({k:'crate',x:-hw+40+i*58,y:-hh+34+j*40,w:30,h:28});f.push({k:'drum',x:hw-26,y:hh-30,r:10},{k:'drum',x:hw-50,y:hh-30,r:10});}
   else if(kind==='barn'){for(let i=0;i<3;i++)f.push({k:'bale',x:-hw+34+i*36,y:-hh+30,w:30,h:22});f.push({k:'bench',x:hw-30,y:-10,w:20,h:50},{k:'drum',x:hw-26,y:hh-26,r:9});}
+  else if(kind==='booth'){f.push({k:'shelf',x:0,y:-hh+7,w:30,h:8});}
+  else if(kind==='unit'){f.push({k:'bed',x:-hw+20,y:-hh+28,w:26,h:40},{k:'table',x:hw-18,y:4,r:9});}
+  else if(kind==='hangar'){f.push({k:'drum',x:-hw+22,y:-hh+22,r:9},{k:'drum',x:-hw+44,y:-hh+20,r:9},{k:'bench',x:hw-60,y:-hh+16,w:70,h:16},{k:'shelf',x:hw-14,y:0,w:10,h:60});}
   else if(kind==='office'){f.push({k:'bench',x:-hw+30,y:-hh+20,w:40,h:18},{k:'shelf',x:hw-14,y:-6,w:10,h:44},{k:'table',x:10,y:8,r:12});}
   else{f.push({k:'drum',x:-hw+18,y:-hh+18,r:9},{k:'shelf',x:hw-14,y:-4,w:10,h:44},{k:'bench',x:0,y:-hh+14,w:44,h:14});}
   if(b.ruined)for(let i=0;i<5;i++)f.push({k:'rubble',x:(r()-0.5)*b.w*0.8,y:(r()-0.5)*b.h*0.8,r:5+r()*9});
@@ -531,9 +535,13 @@ function layoutCity(o,r,fits){const th=o.exits.length?o.exits[0]:0,c=Math.cos(th
   const faceRot=(dx,dy)=>Math.atan2(-dx,dy),vDir=sg=>({x:-s*sg,y:c*sg}),uDir=sg=>({x:c*sg,y:s*sg});
   const put=(kind,u,v,dir)=>{const p=W2(u,v),K=BKINDS[kind];if(!fits(p.x,p.y,K))return null;const b=makeBuilding(o,kind,p.x,p.y,faceRot(dir.x,dir.y),r);o.bld.push(b);return b;};
   const putS=(kind,u,v,size)=>{const p=W2(u,v),d=size||STRUCTS[kind];if(!fits(p.x,p.y,{w:d,h:d}))return null;const b=makeStruct(kind,p.x,p.y,th,d);o.bld.push(b);return b;};
-  for(let k=-n;k<=n;k++){const u=k*BK;if(Math.abs(u)>=GR)continue;const half=Math.sqrt(GR*GR-u*u);
-    for(const [a,b] of [[W2(u,-half),W2(u,half)],[W2(-half,u),W2(half,u)]])o.streets.push({x1:a.x,y1:a.y,x2:b.x,y2:b.y,w:STREET});}
-  const blocks=[];for(let i=-n;i<n;i++)for(let j=-n;j<n;j++){const u=(i+0.5)*BK,v=(j+0.5)*BK,d=Math.hypot(u,v);if(d+BK*0.7<GR)blocks.push({u,v,d});}
+  // the grid fills the town's outline (v11.8): GR scaled by the outline in each direction
+  const inG=(u,v,m)=>{const p=W2(u,v),a=Math.atan2(p.y-o.y,p.x-o.x);return Math.hypot(u,v)+(m||0)<GR*shapeAt(o,a);};
+  const ext=(f)=>{let lo=0,hi=0;while(hi<GR&&f(hi+10))hi+=10;while(-lo<GR&&f(lo-10))lo-=10;return [lo,hi];};
+  for(let k=-n;k<=n;k++){const u=k*BK;if(Math.abs(u)>=GR)continue;
+    {const [lo,hi]=ext(v=>inG(u,v));if(hi-lo>40){const a=W2(u,lo),b=W2(u,hi);o.streets.push({x1:a.x,y1:a.y,x2:b.x,y2:b.y,w:STREET});}}
+    {const [lo,hi]=ext(v=>inG(v,u));if(hi-lo>40){const a=W2(lo,u),b=W2(hi,u);o.streets.push({x1:a.x,y1:a.y,x2:b.x,y2:b.y,w:STREET});}}}
+  const blocks=[];for(let i=-n;i<n;i++)for(let j=-n;j<n;j++){const u=(i+0.5)*BK,v=(j+0.5)*BK,d=Math.hypot(u,v);if(inG(u,v,BK*0.7))blocks.push({u,v,d});}
   blocks.sort((p,q)=>p.d-q.d);
   const L=BK/2-STREET/2-6;   // usable half-width of a block
   // 1. the square, in the centre block
@@ -549,10 +557,10 @@ function layoutCity(o,r,fits){const th=o.exits.length?o.exits[0]:0,c=Math.cos(th
   // 4. the outer ring: farms, and a refinery in Fuel Kings country
   const ringR=(GR+wallR)/2,taken=[];const clearArc=(a,half)=>o.exits.every(e=>Math.abs(angDiff(e,a))>half+0.22)&&taken.every(t=>Math.abs(angDiff(t,a))>half+0.25);
   o.ringR=ringR;o.ringTaken=taken;o.clearArc=clearArc;
-  const farms=2+Math.floor(r()*2);for(let f=0,t=0;f<farms&&t<60;t++){const a=r()*TAU;if(!clearArc(a,0.24))continue;taken.push(a);f++;layoutFarm(o,a,ringR,r,fits);}
+  const farms=2+Math.floor(r()*2);for(let f=0,t=0;f<farms&&t<60;t++){const a=r()*TAU;if(!clearArc(a,0.24))continue;taken.push(a);f++;layoutFarm(o,a,ringR*shapeAt(o,a),r,fits);}
   // never leave a town without its pub, garage, clinic or store: if a road took the planned spot, find room anywhere
   for(const k of ['pub','garage','clinic','store'])if(!o.bld.some(b=>b.kind===k))for(let t=0;t<400;t++){const a=r()*TAU,d=200+r()*(GR-150),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;
-    if(fits(x,y,BKINDS[k])){o.bld.push(makeBuilding(o,k,x,y,a+Math.PI/2,r));break;}}}
+    if(fits(x,y,BKINDS[k])){o.bld.push(makeBuilding(o,k,x,y,a+Math.PI/2,r));break;}}}   /* (fits keeps them inside the outline) */
 function layoutFarm(o,a,R,r,fits){const cx=o.x+Math.cos(a)*R,cy=o.y+Math.sin(a)*R,rot=a+Math.PI/2,c=Math.cos(rot),s=Math.sin(rot),P=(u,v)=>({x:cx+u*c-v*s,y:cy+u*s+v*c});
   // a fenced paddock with crop rows (or bare, ploughed dirt), and the farm buildings beside it
   const pw=280+r()*120,ph=170+r()*60,pp=P(-60,10);if(!fits(pp.x,pp.y,{w:pw*0.8,h:ph*0.8}))return;
@@ -573,6 +581,29 @@ function layoutRefinery(o,a,R,r,fits){const cx=o.x+Math.cos(a)*R,cy=o.y+Math.sin
   const cols=parts.filter(b=>b.kind==='column');for(const t of parts.filter(b=>b.kind==='oiltank')){const to=cols[0]||t;o.pipes.push([{x:t.x,y:t.y},P(230,0),{x:to.x,y:to.y}]);}
   if(cols.length&&o.bld.some(b=>b.kind==='flare')){const f=o.bld.find(b=>b.kind==='flare');o.pipes.push([{x:cols[0].x,y:cols[0].y},{x:f.x,y:f.y}]);}
   o.refinery={x:cx,y:cy};}
+/* ---- town outlines (v11.8): walls follow a shape, not a circle ----
+   Each walled town gets an outline: an oval, a rounded rectangle, a long town strung out along its main road, or an irregular blob,
+   with a little wobble. Stored as a radius for each degree round the centre (o.shapeT, 0.6..1 of the old wall radius), so anything
+   that asked "how far out is the wall here?" just asks wallRadAt(o, angle). Cities get milder shapes (their street grid needs room). */
+function townShape(o){const r=rng(hash2(o.id*7+1,o.id*3+2)),city=o.type==='city',T=new Float32Array(360),q=r();
+  const kind=city?(q<0.35?'oval':q<0.7?'rect':'blob'):(q<0.12?'round':q<0.34?'oval':q<0.58?'rect':q<0.8?'long':'blob');
+  const rot=(o.exits.length?o.exits[0]:r()*TAU)+(kind==='long'?0:(r()-0.5)*0.6),B=kind==='round'?1:kind==='long'?(city?0.7:0.64+r()*0.08):kind==='oval'?(city?0.8:0.68+r()*0.12):(city?0.82:0.7+r()*0.15),n=kind==='rect'?5+r()*3:kind==='long'?3:2;
+  const H=[1,2,3].map(k=>[r()*TAU,(kind==='blob'?0.11:0.035)/k]);
+  for(let i=0;i<360;i++){const a=i/360*TAU-rot,c=Math.abs(Math.cos(a)),s=Math.abs(Math.sin(a))/B;let v=Math.pow(Math.pow(c,n)+Math.pow(s,n),-1/n);for(let k=0;k<3;k++)v*=1+H[k][1]*Math.sin(a*(k+2)+H[k][0]);T[i]=v;}
+  let mx=0;for(const v of T)mx=Math.max(mx,v);for(let i=0;i<360;i++)T[i]=Math.max(city?0.6:0.7,T[i]/mx);o.shapeT=T;o.shapeKind=kind;}
+function wallRadAt(o,a){const R=o.rad-40;if(!o.shapeT)return R;let u=((a/TAU)%1+1)%1*360;const i=Math.floor(u)%360,f=u-Math.floor(u);return R*(o.shapeT[i]*(1-f)+o.shapeT[(i+1)%360]*f);}
+function shapeAt(o,a){return o.shapeT?wallRadAt(o,a)/(o.rad-40):1;}
+// is (x,y) inside the town's wall, by at least m?
+function inTown(o,x,y,m){const d=Math.hypot(x-o.x,y-o.y);return d+(m||0)<wallRadAt(o,Math.atan2(y-o.y,x-o.x));}
+// (v11.8) put a building side-on beside one of the town's roads, its door to the road, inside the wall; if nothing's free, one house
+// or shed may make way (only while the town is being laid out, before anyone lives anywhere)
+function roadsidePlace(o,k,rp,opt){const K=BKINDS[k],cand=[];for(const l of o.links){if(l.via)continue;const R=roads[l.road];for(let i=0;i<R.n-1;i++){const x0=R.xs[i],y0=R.ys[i];if(!inTown(o,x0,y0,40))continue;
+    const dx=R.xs[i+1]-x0,dy=R.ys[i+1]-y0,dl=Math.hypot(dx,dy)||1,nx=-dy/dl,ny=dx/dl;for(const sg of [1,-1]){const off=R.w/2+K.h/2+14;cand.push([x0+nx*off*sg,y0+ny*off*sg,Math.atan2(nx*sg,-ny*sg)]);}}}
+  for(let pass=0;pass<((opt&&opt.noReplace)?1:2);pass++)for(const [x,y,rot] of cand){const A={x,y,rot,hw:K.w/2,hh:K.h/2};if(!inTown(o,x,y,Math.hypot(K.w,K.h)/2*0.7+20))continue;
+    const hits=o.bld.filter(q=>obbHit(A,{x:q.x,y:q.y,rot:q.rot||0,hw:q.w/2,hh:q.h/2},10));if(hits.length>1||(hits.length===1&&(pass===0||!['house','shed'].includes(hits[0].kind))))continue;
+    let clear=true;for(const [u,v] of [[-1,-1],[1,-1],[-1,1],[1,1],[0,0]]){const c=Math.cos(rot),s2=Math.sin(rot),px=x+u*K.w/2*c-v*K.h/2*s2,py=y+u*K.w/2*s2+v*K.h/2*c,ri=roadInfo(px,py);if(ri.r>=0&&ri.d<ri.w/2+4)clear=false;}
+    if(!clear)continue;if(hits.length)o.bld.splice(o.bld.indexOf(hits[0]),1);const b=makeBuilding(o,k,x,y,rot,rp);o.bld.push(b);return b;}
+  return null;}
 // local coordinates of a world point inside building b
 function bLocal(b,x,y){const c=Math.cos(b.rot),s=Math.sin(b.rot),dx=x-b.x,dy=y-b.y;return [dx*c+dy*s,-dx*s+dy*c];}
 function bInside(b,x,y,m){const [lx,ly]=bLocal(b,x,y);return Math.abs(lx)<b.w/2-(m||0)&&Math.abs(ly)<b.h/2-(m||0);}
@@ -582,37 +613,54 @@ LOCS.forEach(o=>{
   o.exits=o.links.map(l=>{const R=roads[l.road];let i=l.dir>0?0:R.n-1;
     while(i+l.dir>=0&&i+l.dir<R.n&&Math.hypot(R.xs[i]-o.x,R.ys[i]-o.y)<wallR)i+=l.dir;return Math.atan2(R.ys[i]-o.y,R.xs[i]-o.x);});
   const r=rng(hash2(o.id+77,o.id*13+5));o.bld=[];o.wall=[];o.carSpawns=[];o.boxes=[];o.npcs=[];
-  // gates: one wherever a road comes in, plus extra gates so no stretch of wall is longer than about 100 degrees
-  o.gates=o.exits.map(a=>({a,half:95/wallR}));
+  if(o.type!=='ruin'&&!TEST_MODE){townShape(o);   // (v11.8) where each road crosses the wall's outline
+    // only roads that start here cross the wall (a route out to a ruin runs along one of them first), and each road once
+    const ex=[];for(const l of o.links){if(l.via)continue;const R=roads[l.road];let i=l.dir>0?0:R.n-1;
+      while(i+l.dir>=0&&i+l.dir<R.n&&Math.hypot(R.xs[i]-o.x,R.ys[i]-o.y)<wallRadAt(o,Math.atan2(R.ys[i]-o.y,R.xs[i]-o.x)))i+=l.dir;const a=Math.atan2(R.ys[i]-o.y,R.xs[i]-o.x);if(!ex.some(e=>Math.abs(angDiff(e,a))<0.15))ex.push(a);}
+    o.exits=ex;}
+  // gates: one wherever a road comes in (about 16 m of opening), plus side gates (11 m) so no stretch of wall is too long to walk round
+  o.gates=o.exits.map(a=>({a,half:(o.shapeT?80:95)/wallRadAt(o,a)}));
   if(o.type!=='ruin'){
-    if(!o.gates.length)o.gates.push({a:r()*TAU,half:80/wallR});
+    if(!o.gates.length)o.gates.push({a:r()*TAU,half:80/wallRadAt(o,0)});
     for(let guard=0;guard<12;guard++){const as=o.gates.map(g=>g.a).sort((p,q)=>angDiff(p,0)-angDiff(q,0)).map(a=>(a+TAU)%TAU).sort((p,q)=>p-q);
       let gap=0,at=0;for(let i=0;i<as.length;i++){const nx=i+1<as.length?as[i+1]:as[0]+TAU,g=nx-as[i];if(g>gap){gap=g;at=as[i]+g/2;}}
-      if(gap<=1.75)break;o.gates.push({a:at,half:80/wallR,side:true});}
-    const segs=Math.round(wallR*TAU/52);
-    for(let k=0;k<segs;k++){const a=k/segs*TAU;if(o.gates.every(g=>Math.abs(angDiff(a,g.a))>g.half))o.wall.push({a,c:['#6b4a32','#7d5a3c','#4e3a2c','#5f4b3b'][Math.floor(r()*4)],j:r()*6-3});}}
-  o.streets=[];o.paddocks=[];o.pipes=[];o.square=null;
+      if(gap<=1.75)break;o.gates.push({a:at,half:(o.shapeT?55:80)/wallRadAt(o,at),side:true});}
+    // sections of about 52 px, spaced evenly by length all the way round the outline (so the loop closes), each turned along the wall there
+    const P=a=>{const R=wallRadAt(o,a);return [o.x+Math.cos(a)*R,o.y+Math.sin(a)*R];},M=1440,cum=[0];for(let i=1;i<=M;i++){const p=P((i-1)/M*TAU),q=P(i/M*TAU);cum.push(cum[i-1]+Math.hypot(q[0]-p[0],q[1]-p[1]));}
+    const per=cum[M],N=Math.max(8,Math.round(per/52)),angAt=L=>{let i=0;while(i<M&&cum[i+1]<L)i++;return (i+(L-cum[i])/Math.max(1e-6,cum[i+1]-cum[i]))/M*TAU;};
+    for(let k=0;k<N;k++){const a0=angAt(per*k/N),a1=angAt(per*(k+1)/N),am=angAt(per*(k+0.5)/N),p0=P(a0),p1=P(a1),rot=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]);
+      if(o.gates.every(g=>Math.abs(angDiff(am,g.a))>g.half))o.wall.push({a:am,R:wallRadAt(o,am),rot,c:['#6b4a32','#7d5a3c','#4e3a2c','#5f4b3b'][Math.floor(r()*4)],j:r()*6-3});}}
+  o.streets=[];o.paddocks=[];o.pipes=[];o.square=null;o.pads=[];o.decor=[];o.signs=[];o.flats=[];o.fences=[];
   o.fits=null;
   const kinds=o.type==='city'?[]   // cities are laid out on a street grid instead (below)
-    :o.type==='outpost'?['pub','garage','house','house','shed','house']:['servo','house','shed','house','store'].slice(0,3+Math.floor(r()*3));
+    :o.type==='outpost'?['pub','garage','house','house','shed','house']:o.theme?[]:['servo','house','shed','house','store'].slice(0,3+Math.floor(r()*3));   // (themed ruins are laid out below)
   const inner=o.type==='city'?280:180,outer=o.type==='city'?720:330;
   const fits=(x,y,K)=>{const diag=Math.hypot(K.w,K.h)/2,ri=roadInfo(x,y);
-    if(ri.r>=0&&ri.d<ri.w/2+diag+12)return false;
+    if(ri.r>=0&&ri.d<ri.w/2+diag+12)return false;if(o.wall.length&&!inTown(o,x,y,diag+30))return false;   // (v11.8) inside the wall's outline
     return o.bld.every(q=>Math.hypot(q.x-x,q.y-y)>(diag+Math.hypot(q.w,q.h)/2)*0.92);};
-  for(const kind of kinds){const K=BKINDS[kind];
-    for(let t=0;t<120;t++){const a=r()*TAU,d=inner+r()*(outer-inner),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;
+  for(const kind of kinds){const K=BKINDS[kind],key=kind==='pub'||kind==='garage';   // (the pub and garage, first: anywhere inside the wall if the ring has no room)
+    for(let t=0;t<(key?700:120);t++){const a=r()*TAU,d=(t<120?inner+r()*(outer-inner):60+r()*(o.rad-100))*shapeAt(o,a),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;
       if(fits(x,y,K)){const b=makeBuilding(o,kind,x,y,a+Math.PI/2,r);o.bld.push(b);break;}}}
-  o.fits=fits;if(o.type==='city')layoutCity(o,r,fits);
+  o.fits=fits;if(o.type==='city')layoutCity(o,r,fits);if(o.theme)layoutRuin(o,r,fits);
+  // (v11.8) a narrow town may not have room for its pub or garage in the usual ring: look anywhere inside the wall, and if it's
+  // really tight, squeeze it in by the road (an outpost always has both: the publican and mechanic work there)
+  if(o.type==='outpost'){const rp=rng(hash2(o.id*29+7,o.id+3));for(const k of ['pub','garage']){if(o.bld.some(b=>b.kind===k))continue;const K=BKINDS[k];let done=false;
+    for(let t=0;t<800&&!done;t++){const a=rp()*TAU,d=(60+rp()*(o.rad-100))*shapeAt(o,a),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(fits(x,y,K)){o.bld.push(makeBuilding(o,k,x,y,a+Math.PI/2,rp));done=true;}}
+    for(let t=0;t<800&&!done;t++){const a=rp()*TAU,d=(60+rp()*(o.rad-100))*shapeAt(o,a),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d,diag=Math.hypot(K.w,K.h)/2,ri=roadInfo(x,y);
+      if(!inTown(o,x,y,diag+20)||(ri.r>=0&&ri.d<ri.w/2+diag*0.6)||o.bld.some(q=>Math.hypot(q.x-x,q.y-y)<(diag+Math.hypot(q.w,q.h)/2)*0.8))continue;o.bld.push(makeBuilding(o,k,x,y,a+Math.PI/2,rp));done=true;}
+    if(!done)done=!!roadsidePlace(o,k,rp);
+    if(!done)for(let i=0;i<o.bld.length&&!done;i++){const h=o.bld[i];if(h.kind!=='house'&&h.kind!=='shed')continue;o.bld.splice(i,1);   // last of all: a house makes way (nobody lives anywhere yet)
+      for(const rot of [h.rot,h.rot+Math.PI/2])if(!done&&fits(h.x,h.y,K)){o.bld.splice(i,0,makeBuilding(o,k,h.x,h.y,rot,rp));done=true;}if(!done)o.bld.splice(i,0,h);}}}
   // every outpost has a water tower
-  if(o.type==='outpost')for(let t=0;t<60;t++){const a=r()*TAU,d=inner+r()*(outer-inner)+40,x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(fits(x,y,{w:90,h:90})){o.bld.push(makeStruct('watertower',x,y,a));break;}}
+  if(o.type==='outpost')for(let t=0;t<60;t++){const a=r()*TAU,d=(inner+r()*(outer-inner)+40)*shapeAt(o,a),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(fits(x,y,{w:90,h:90})){o.bld.push(makeStruct('watertower',x,y,a));break;}}
   // the garage's fuel tank sits beside it
-  const gar=o.bld.find(b=>b.kind==='garage');if(gar){const p=gar.L(gar.w/2+36,0);o.bld.push({kind:'tank',x:p.x,y:p.y,rot:gar.rot,w:60,h:60,tank:true,furn:[]});}
+  const gar=o.bld.find(b=>b.kind==='garage');if(gar){const ps=[gar.L(gar.w/2+36,0),gar.L(-gar.w/2-36,0),gar.L(0,-gar.h/2-36)],p=ps.find(q=>!o.wall.length||inTown(o,q.x,q.y,50))||ps[0];o.bld.push({kind:'tank',x:p.x,y:p.y,rot:gar.rot,w:60,h:60,tank:true,furn:[]});}   // (v11.8) whichever side is inside the wall
   const rc=rng(hash2(o.id*31+9,o.id+101)),ncar=o.type==='city'?10:o.type==='outpost'?3:1;
   for(let k=0;k<300&&o.carSpawns.length<ncar;k++){
     const a=rc()*TAU,d=(o.type==='city'?240:120)+rc()*(o.type==='city'?1300:200),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d,type=PARK_TYPES[Math.floor(rc()*PARK_TYPES.length)],
       fuel=o.type==='ruin'?rc()*10:10+rc()*40,   // nobody leaves more than half a tank in a parked car
       cond=o.type==='ruin'?15+rc()*30:50+rc()*40,ca=rc()*TAU;
-    if(o.bld.some(b=>Math.hypot(b.x-x,b.y-y)<Math.hypot(b.w,b.h)/2+40)||o.carSpawns.some(s=>Math.hypot(s.x-x,s.y-y)<100)||o.paddocks.some(p=>Math.hypot(p.x-x,p.y-y)<Math.hypot(p.w,p.h)/2+30))continue;
+    if((o.wall.length&&!inTown(o,x,y,60))||o.bld.some(b=>Math.hypot(b.x-x,b.y-y)<Math.hypot(b.w,b.h)/2+40)||o.carSpawns.some(s=>Math.hypot(s.x-x,s.y-y)<100)||o.paddocks.some(p=>Math.hypot(p.x-x,p.y-y)<Math.hypot(p.w,p.h)/2+30))continue;
     const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<ri.w/2+30)continue;
     o.carSpawns.push({id:'o'+o.id+'_'+k,type,x,y,a:ca,fuel,cond});}
   if(o.type==='ruin'){const bio=zoneAt(o.x,o.y).biome;let k=0;
@@ -635,6 +683,7 @@ LOCS.forEach(o=>{
     for(let t=0;t<900;t++){const a=rv()*TAU,d=130+rv()*(o.rad-40-diag-12-130),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(!fits(x,y,K))continue;
       if(o.paddocks.some(p=>Math.hypot(p.x-x,p.y-y)<Math.hypot(p.w,p.h)/2+diag+10)||o.carSpawns.some(c=>Math.hypot(c.x-x,c.y-y)<diag+40)||(o.square&&Math.hypot(o.square.x-x,o.square.y-y)<o.square.size/2+diag))continue;
       const b=makeBuilding(o,'house',x,y,a+Math.PI/2,rv);b.vacant=true;o.bld.push(b);break;}
+    if(!o.bld.some(b=>b.vacant)){const b=roadsidePlace(o,'house',rv,{noReplace:true});if(b)b.vacant=true;}   // (v11.8) a tight town: beside the road
     if(!o.bld.some(b=>b.vacant)){const hs=o.bld.map((b,i)=>i).filter(i=>o.bld[i].kind==='house'&&!o.bld[i].ruined),v=hs[hs.length-1],to=hs.find(i=>i!==v)??o.bld.findIndex(b=>b.kind==='shed');   // no room for another: one family moves in with the neighbours
       if(v!=null&&to>=0){o.bld[v].vacant=true;for(const d of o.npcs){if(d.home===v)d.home=to;if(d.work===v)d.work=to;}}}}
 });
@@ -913,6 +962,136 @@ function insideMesa(x,y,pad){pad=pad||0;for(const m of mesasNear(x,y,500)){const
 function collideMesas(b){for(const m of mesasNear(b.x,b.y,500)){const dx=b.x-m.x,dy=b.y-m.y,d=Math.hypot(dx,dy)||1;if(d>m.maxR+b.r+4)continue;
     const a=Math.atan2(dy,dx),edge=mesaR(m,a)+b.r*0.9;if(d<edge){const nx=dx/d,ny=dy/d;b.x=m.x+nx*edge;b.y=m.y+ny*edge;return {nx,ny};}}return null;}
 
+/* ===== what the ruins were (v11.8) =====
+   A ruin's name says what it was (Old Drive-In, Burnt Airstrip, Dead Mine...), and now it looks like it: each kind has its own
+   layout, built from the game's own buildings (all ruined) and textures, plus the pieces that make it what it is: a drive-in's
+   screen, car park, speaker posts and ticket booth; an airstrip's runway, hangars, apron, windsock and an old plane; a mine's
+   headframe, ore bins and mullock heaps; a railway siding's line, platform and goods shed; and so on. Everything faces the track
+   in (the dirt road arrives from the front, local +v), and all of it is cracked, rusting and grown over with grass.
+   Layout data: o.bld (buildings and solid structures, as everywhere), o.pads (sealed or gravel surfaces, draped over the ground),
+   o.flats (ground levelled under the big surfaces), o.decor (small things you can walk and drive through), o.signs (painted
+   signs), o.fences, o.pipes. Drawn in 85-view3d (buildLoc3 → ruinSite3). ===== */
+function ruinTheme(name){const n=name.toLowerCase();
+  return n.includes('drive-in')?'drivein':n.includes('airstrip')?'airstrip':n.includes('mine')?'mine':n.includes('siding')?'siding':n.includes('homestead')?'homestead':
+    n.includes('motel')?'motel':n.includes('roadhouse')?'roadhouse':n.includes('servo')?'servo':n.includes(' pub')?'pub':n.includes('shearing')?'shearing':
+    n.includes('telegraph')?'telegraph':n.includes('water tower')?'watertower':null;}
+function ruinRad(th){return {drivein:720,airstrip:1060,mine:640,siding:680,homestead:600,motel:540,roadhouse:540,servo:450,pub:450,shearing:600,telegraph:560,watertower:450}[th]||380;}
+function layoutRuin(o,r,fits){
+  const th=o.exits.length?o.exits[0]:r()*TAU,fx=Math.cos(th),fy=Math.sin(th),sx=-fy,sy=fx;   // front: toward the track in; side: across it
+  const W=(u,v)=>({x:o.x+sx*u+fx*v,y:o.y+sy*u+fy*v}),Wa=(u,v)=>{const p=W(u,v);return [p.x,p.y];};
+  const face=(du,dv)=>{const dx=sx*du+fx*dv,dy=sy*du+fy*dv;return Math.atan2(-dx,dy);};   // a rotation whose local +y (the door) points that way
+  const F={front:face(0,1),back:face(0,-1),left:face(-1,0),right:face(1,0)};
+  // a spot that will do: the one asked for, or failing that (the track winds; a corner of something's in the way) one shifted back or aside
+  const roadOK=(x,y,K)=>{const ri=roadInfo(x,y);return !(ri.r>=0&&ri.d<ri.w/2+Math.hypot(K.w,K.h)/2+8);};
+  const spot=(u,v,K,tight)=>{for(const [du,dv] of [[0,0],[0,-40],[40,-20],[-40,-20],[0,-80],[80,-40],[-80,-40],[0,-130],[130,0],[-130,0],[0,-180]]){const p=W(u+du,v+dv);if(tight?roadOK(p.x,p.y,K):fits(p.x,p.y,K))return p;}return null;};
+  const bld=(kind,u,v,f,opt)=>{const K=BKINDS[kind],p=opt&&opt.force?W(u,v):spot(u,v,K,opt&&opt.tight);if(!p)return null;const b=makeBuilding(o,kind,p.x,p.y,F[f]||f,r);if(opt){const {tight,force,...rest}=opt;Object.assign(b,rest);}o.bld.push(b);return b;};
+  // solid structures: width across the site (local x along the side axis when facing front), depth along it
+  const st=(kind,u,v,w,h,f,opt)=>{const p=opt&&opt.force?W(u,v):spot(u,v,{w,h},opt&&opt.tight);if(!p)return null;const {tight,force,...rest}=opt||{};const b=Object.assign({kind,x:p.x,y:p.y,rot:F[f||'front'],w,h,tank:true,struct:true,furn:[],roofA:1,seed:Math.floor(r()*1e9)},rest);o.bld.push(b);return b;};
+  const pad=(u0,v0,u1,v1,tex,col,opt)=>{o.pads.push(Object.assign({pts:[Wa(u0,v0),Wa(u1,v0),Wa(u1,v1),Wa(u0,v1)],tex,col},opt||{}));};
+  const flat=(u,v,w,h)=>{const p=W(u,v);o.flats.push({x:p.x,y:p.y,w,h,rot:F.front});};
+  const dec=(k,u,v,f,opt)=>{const p=W(u,v);o.decor.push(Object.assign({k,x:p.x,y:p.y,rot:F[f||'front']},opt||{}));};
+  const sign=(word,u,v,w,h,elev,f)=>{const p=W(u,v);o.signs.push({word,x:p.x,y:p.y,rot:F[f||'front'],w,h,elev});};
+  const fence=(pts,kind)=>o.fences.push({pts:pts.map(([u,v])=>W(u,v)),kind:kind||'wire'});
+  const BIT='#3e3c38',GRAV='#8a7a62',CONC='#8e8a80';
+  switch(o.theme){
+  case 'drivein':{
+    st('screen',0,-480,340,24,'front');   // the screen, facing the cars
+    pad(-340,-430,340,330,'concrete',BIT);flat(0,-50,700,780);   // the car park: old bitumen, levelled
+    for(let v=-330;v<=230;v+=110){pad(-300+(v+330)*0.08,v-14,300-(v+330)*0.08,v+14,'none',GRAV,{lift:1.6});   // the ramps: low gravel humps, row after row
+      for(let u=-280;u<=280;u+=56){if(v>-60&&Math.abs(u)<50)continue;if(r()<0.18)continue;dec('speaker',u,v+22,'back',{lean:r()<0.25?(r()-0.5)*0.6:0,gone:r()<0.3});}}
+    bld('store',150,-40,'front');   // the kiosk and projection room in the middle of the lot
+    bld('booth',100,520,'left');bld('booth',-100,520,'right');   // ticket booths at the gate
+    bld('booth',-280,380,'front');   // the dunny block
+    sign('DRIVE-IN',-160,610,150,42,62,'front');
+    fence([[95,470],[360,470],[360,-460],[-360,-460],[-360,470],[-95,470]],'wire');
+    break;}
+  case 'airstrip':{
+    pad(-920,-330,920,-200,'concrete',BIT);flat(0,-265,1860,150);   // the runway
+    for(let u=-860;u<=860;u+=70)dec('mark',u,-265,'right',{len:34,wid:3});   // the centre line
+    for(const e of [-1,1])for(let k=-3;k<=3;k++)dec('mark',e*890,-265+k*15,'front',{len:24,wid:6});   // threshold bars
+    for(let u=-900;u<=900;u+=150)for(const v of [-196,-334])dec('rlight',u,v,'front',{gone:r()<0.35});
+    pad(-380,-200,-320,70,'concrete',BIT);   // the taxiway
+    pad(-640,70,-80,210,'concrete',CONC);flat(-360,140,580,160);   // the apron
+    bld('hangar',-480,340,'back');bld('hangar',-160,350,'back');   // hangars facing the apron
+    bld('office',200,190,'back');bld('shed',380,260,'left');
+    st('oiltank',420,90,58,58,'front');st('raintank',300,330,48,48,'front');
+    st('windsock',520,-440,20,20,'front');
+    dec('plane',-380,140,'right',{tilt:0.08});   // an old Cessna on the apron, a wheel gone
+    fence([[-1000,-420],[1000,-420]],'wire');
+    break;}
+  case 'mine':{
+    pad(-260,-400,260,-120,'none',GRAV,{lift:1});
+    st('headframe',0,-280,64,64,'front');bld('shed',-170,-270,'right');   // the poppet head over the shaft, the winding house beside it
+    st('hopper',150,-230,74,52,'front');   // ore bins
+    st('heap',350,-80,170,170,'front');st('heap',-360,30,190,190,'front');st('heap',300,200,120,120,'front');   // mullock heaps
+    bld('office',190,120,'front');bld('shed',-210,230,'front');bld('shed',-330,320,'front');
+    fence([[-60,-340],[60,-340],[60,-220],[-60,-220],[-60,-340]],'iron');
+    break;}
+  case 'siding':{
+    dec('rail',0,-230,'right',{len:1340});   // the line, straight through
+    st('platform',0,-160,380,40,'front',{tight:true});   // the platform beside it
+    bld('office',-40,-40,'back');   // the station building, facing the line
+    bld('warehouse',340,-40,'back');   // the goods shed
+    st('watertower',-380,-120,74,74,'front');   // for the steam engines
+    bld('house',-260,240,'front');bld('shed',200,240,'front');
+    dec('signal',560,-180,'front');dec('signal',-560,-280,'back');
+    break;}
+  case 'homestead':{
+    bld('house',0,-150,'front',{grand:true});bld('house',-240,-40,'right');   // the big house, the cottage
+    bld('barn',260,-90,'left');bld('shed',230,200,'front');
+    st('windmill',-320,200,36,36,'front');st('raintank',-90,-260,50,50,'front');st('raintank',90,-260,50,50,'front');
+    fence([[-120,-60],[120,-60]],'iron');   // what's left of the garden fence
+    for(const [u0,v0] of [[-420,120],[-300,120],[-420,240]])fence([[u0,v0],[u0+110,v0],[u0+110,v0+110],[u0,v0+110],[u0,v0]],'iron');   // stockyards
+    dec('trough',-250,190,'front');dec('tractor',120,140,'left');
+    break;}
+  case 'motel':{
+    for(let k=0;k<7;k++)bld('unit',-270+k*80,-200,'front',{num:k+1,tight:true});   // a row of rooms
+    for(let k=0;k<3;k++)bld('unit',-330,-80+k*72,'right',{num:k+8,tight:true});   // and round the corner
+    bld('office',200,110,'left');
+    pad(-300,-160,300,-60,'concrete',BIT);   // parking in front of the rooms
+    dec('pool',120,0,'front');fence([[60,-40],[180,-40],[180,40],[60,40],[60,-40]],'iron');
+    sign('MOTEL',-150,470,120,40,70,'front');sign('VACANCY',-150,470,90,18,48,'front');
+    break;}
+  case 'roadhouse':{
+    bld('store',-180,-90,'front');bld('servo',150,-110,'front');
+    pad(-140,20,140,180,'concrete',CONC);dec('canopy',0,100,'front',{w:200,d:100});for(const u of [-50,50])dec('pump',u,100,'front');
+    pad(220,-230,470,230,'none',GRAV,{lift:1});   // where the road trains parked
+    bld('shed',340,-300,'left');st('raintank',-330,-180,52,52,'front');
+    sign('ROADHOUSE',-170,460,170,40,64,'front');
+    break;}
+  case 'servo':{
+    bld('servo',0,-160,'front');pad(-170,-90,170,140,'concrete',CONC);dec('canopy',0,40,'front',{w:190,d:100});for(const u of [-45,45])dec('pump',u,40,'front');
+    bld('shed',220,-120,'left');dec('tyres',-200,60,'front');dec('drums',230,40,'front');
+    sign('PETROL',-130,330,110,36,56,'front');
+    break;}
+  case 'pub':{
+    bld('pub',0,-200,'front');bld('shed',230,-130,'left');bld('booth',-230,-220,'front');
+    fence([[-250,-60],[-80,-60],[-80,70],[-250,70],[-250,-60]],'iron');dec('tables',-165,5,'front');   // the beer garden
+    pad(80,-40,330,180,'none',GRAV,{lift:1});
+    sign('HOTEL',-130,330,110,36,56,'front');
+    break;}
+  case 'shearing':{
+    bld('barn',0,-200,'front',{shearing:true});   // the shed
+    for(let k=0;k<3;k++)bld('unit',-300,-60+k*76,'right',{tight:true});bld('shed',-260,240,'front');   // shearers' quarters and the cook house
+    for(let i=0;i<3;i++)for(let j=0;j<2;j++){const u0=140+i*110,v0=-40+j*110;fence([[u0,v0],[u0+100,v0],[u0+100,v0+100],[u0,v0+100],[u0,v0]],'iron');}   // the sheep yards
+    fence([[110,-120],[110,-40]],'iron');st('windmill',470,-200,36,36,'front');dec('trough',430,-160,'front');
+    break;}
+  case 'telegraph':{
+    bld('office',-120,-140,'front',{stone:true});bld('house',140,-150,'front',{stone:true});bld('house',-260,80,'right',{stone:true});
+    st('raintank',30,-280,50,50,'front');
+    dec('telepoles',0,-380,'right',{len:1120});   // the line
+    for(let k=0;k<5;k++)dec('cross',260+(k%3)*28,170+Math.floor(k/3)*36,'front');fence([[235,145],[335,145],[335,235],[235,235],[235,145]],'iron');   // a few graves
+    fence([[-330,-230],[230,-230]],'stone');
+    break;}
+  case 'watertower':{
+    st('watertower',0,-170,104,104,'front');bld('shed',-170,-110,'right');
+    for(let k=0;k<3;k++)st('raintank',160,-200+k*62,52,52,'front',{tight:true});
+    st('windmill',220,170,36,36,'front');dec('trough',170,150,'front');
+    {const a=W(220,170),b=W(0,-170);o.pipes.push([{x:a.x,y:a.y},{x:b.x,y:b.y}]);}
+    fence([[-260,-300],[260,-300],[260,60],[-260,60],[-260,-300]],'wire');
+    break;}}
+}
+
 /* ===== derelict hamlets along the roads, and the clutter of life in every place =====
    A hamlet is a short row of houses either side of a road, 5 to 10 of them, mostly ruins with the odd one still standing,
    a few crates with little left in them. They behave like small places (walls you can't walk through, roofs that lift,
@@ -998,7 +1177,7 @@ function streetClear(o,x,y,pad){for(const t of o.streets||[]){const dx=t.x2-t.x1
 // Run once the towns are laid out, and again once the factions have built theirs (a refinery); the ground is then made afresh.
 function levelIndex(){LEVEL_GRID.clear();
   for(const o of LOCS.concat(HAMLETS))for(const b of o.bld||[])if(!b.L){const c=Math.cos(b.rot||0),s=Math.sin(b.rot||0);b.L=(lx,ly)=>({x:b.x+lx*c-ly*s,y:b.y+lx*s+ly*c});}   // the helper every building has
-  const all=[];for(const o of LOCS.concat(typeof HAMLETS!=='undefined'?HAMLETS:[])){for(const b of o.bld||[])all.push(b);for(const q of o.yards||[])all.push(q);}
+  const all=[];for(const o of LOCS.concat(typeof HAMLETS!=='undefined'?HAMLETS:[])){for(const b of o.bld||[])all.push(b);for(const q of o.yards||[])all.push(q);for(const q of o.flats||[])all.push(q);}   /* (v11.8) runways and car parks too */
   for(const b of all)b.baseH=heightRaw(b.x,b.y);
   // buildings almost touching share a level (else the ground between can't be level for both); the rest keep their own, like terraces
   {const par=all.map((_,i)=>i),f=i=>par[i]===i?i:(par[i]=f(par[i])),gap=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)-(Math.hypot(a.w,a.h)+Math.hypot(b.w,b.h))/2;
@@ -1043,7 +1222,7 @@ function levelIndex(){LEVEL_GRID.clear();
     const plots=[];for(const q of o.yards)if(q.kind==='scrapyard')plots.push({x:q.x,y:q.y,rot:q.rot,hw:q.w/2,hh:q.h/2});   // the industrial yard's fence counts as a plot too
     for(const b of o.bld){if(b.kind!=='house'||r()<0.15)continue;const c=Math.cos(b.rot),s=Math.sin(b.rot),L=(u,v)=>({x:b.x+u*c-v*s,y:b.y+u*s+v*c}),gap=b.door/2+14,kind=r()<0.6?'wire':'iron',ex=r();
       for(const [mx,my] of [[22+ex*16,18+ex*14],[16,13],[11,9]]){const hw=b.w/2+mx,hh=b.h/2+my,P={x:b.x,y:b.y,rot:b.rot,hw,hh};
-        const corners=[L(hw,hh),L(hw,-hh),L(-hw,-hh),L(-hw,hh)];if(!corners.every(p=>Math.hypot(p.x-o.x,p.y-o.y)<wr+20))continue;
+        const corners=[L(hw,hh),L(hw,-hh),L(-hw,-hh),L(-hw,hh)];if(!corners.every(p=>inTown(o,p.x,p.y,30)))continue;
         if(plots.some(q=>obbHit(P,q,8)))continue;if(o.bld.some(q=>q!==b&&obbHit(P,{x:q.x,y:q.y,rot:q.rot||0,hw:q.w/2,hh:q.h/2},6)))continue;if(o.yards.some(q=>obbHit(P,{x:q.x,y:q.y,rot:q.rot,hw:q.w/2,hh:q.h/2},6)))continue;
         let clear=true;for(let k=0;k<4&&clear;k++){const a=corners[k],e=corners[(k+1)%4];for(let t=0;t<=1.001&&clear;t+=0.1){const x=a.x+(e.x-a.x)*t,y=a.y+(e.y-a.y)*t;if(!streetClear(o,x,y,4))clear=false;const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<ri.w/2+6)clear=false;}}if(!clear)continue;
         plots.push(P);o.fences.push({pts:[L(gap,hh),L(hw,hh),L(hw,-hh),L(-hw,-hh),L(-hw,hh),L(-gap,hh)],kind,plot:P});break;}}}
@@ -1149,10 +1328,10 @@ function pushOutBox(lx,ly,r,x0,y0,x1,y1){const qx=clamp(lx,x0,x1),qy=clamp(ly,y0
   return [nx/d*(r-d),ny/d*(r-d)];}
 function wallBoxes(b){if(b._walls)return b._walls;const hw=b.w/2,hh=b.h/2,t=4,g=b.door/2;
   b._walls=b.tank?[[-hw,-hh,hw,hh]]:[[-hw-t,-hh-t,hw+t,-hh+t],[-hw-t,-hh,-hw+t,hh+t],[hw-t,-hh,hw+t,hh+t],[-hw-t,hh-t,-g,hh+t],[g,hh-t,hw+t,hh+t]];return b._walls;}
-function collideWalls(b,o){if(!o.wall.length)return;const wr=o.rad-40,dx=b.x-o.x,dy=b.y-o.y,dist=Math.hypot(dx,dy);
-  if(Math.abs(dist-wr)>b.r+24)return;const ang=Math.atan2(dy,dx),span=(b.r+40)/wr;
+function collideWalls(b,o){if(!o.wall.length)return;const dx=b.x-o.x,dy=b.y-o.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx),wr=wallRadAt(o,ang);   // (v11.8) the outline here
+  if(Math.abs(dist-wr)>b.r+60)return;const span=(b.r+60)/wr;
   if(b.kind!=='npc'&&townClosed(o)&&dist>wr-b.r-12&&o.gates.some(g=>Math.abs(angDiff(g.a,ang))<g.half+0.02)){const nd=wr+b.r+14;if(dist<nd){b.x=o.x+dx/dist*nd;b.y=o.y+dy/dist*nd;bounce(b,dx/dist,dy/dist);}return;}   // barricaded
-  for(const w of o.wall){if(Math.abs(angDiff(w.a,ang))>span)continue;const R=wr+w.j,cx=o.x+Math.cos(w.a)*R,cy=o.y+Math.sin(w.a)*R,rot=w.a+Math.PI/2,c=Math.cos(rot),s=Math.sin(rot);
+  for(const w of o.wall){if(Math.abs(angDiff(w.a,ang))>span)continue;const R=(w.R||wr)+w.j,cx=o.x+Math.cos(w.a)*R,cy=o.y+Math.sin(w.a)*R,rot=w.rot!=null?w.rot:w.a+Math.PI/2,c=Math.cos(rot),s=Math.sin(rot);
     const ex=b.x-cx,ey=b.y-cy,lx=ex*c+ey*s,ly=-ex*s+ey*c,p=pushOutBox(lx,ly,b.r,-26,-9,26,9);if(!p)continue;
     const wx=p[0]*c-p[1]*s,wy=p[0]*s+p[1]*c,l=Math.hypot(wx,wy)||1;b.x+=wx;b.y+=wy;bounce(b,wx/l,wy/l);}}
 function collideBuildings(b){const o=nearLoc(b.x,b.y,200);if(!o)return;const person=b.kind!=='car';collideWalls(b,o);
@@ -2415,7 +2594,7 @@ function chooseTarget(n){const o=n.loc,d=n.def,h=hourNow(),night=h<6||h>=21,r=Ma
 // ---- path-finding in a city: a walkability map of every wall, tank and tower (doorways kept open), searched with A* ----
 const NAV=24;
 function navGrid(o){if(o.nav)return o.nav;const R=o.rad,N=Math.ceil(2*R/NAV),g=new Uint8Array(N*N),ox=o.x-R,oy=o.y-R,pad=15;   // keep a body's width off every wall
-  for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(Math.hypot(ox+(i+0.5)*NAV-o.x,oy+(j+0.5)*NAV-o.y)>R-70)g[j*N+i]=1;   // stay inside the town wall
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(!inTown(o,ox+(i+0.5)*NAV,oy+(j+0.5)*NAV,30))g[j*N+i]=1;   // stay inside the town wall
   for(const b of o.bld){const boxes=b.tank?[[-b.w/2,-b.h/2,b.w/2,b.h/2]]:wallBoxes(b),reach=Math.hypot(b.w,b.h)/2+pad+NAV;
     const i0=Math.max(0,Math.floor((b.x-reach-ox)/NAV)),i1=Math.min(N-1,Math.floor((b.x+reach-ox)/NAV)),j0=Math.max(0,Math.floor((b.y-reach-oy)/NAV)),j1=Math.min(N-1,Math.floor((b.y+reach-oy)/NAV));
     for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const [lx,ly]=bLocal(b,ox+(i+0.5)*NAV,oy+(j+0.5)*NAV);
@@ -2924,7 +3103,7 @@ function learnFac(f){if(!FACTIONS[f]||facKnown(f))return;G.flags['know_'+f]=true
   const fk=cities.slice(1,3);for(const c of fk)c.faction='fuelkings';
   // the Kings' cities have an oil refinery in their outer ring
   for(const c of fk){if(!c.clearArc)continue;const r=rng(hash2(c.id*17+3,99));for(let t=0;t<60;t++){const a=r()*TAU;if(!c.clearArc(a,0.42))continue;c.ringTaken.push(a);
-      layoutRefinery(c,a,c.ringR,r,c.fits);c.carSpawns=c.carSpawns.filter(sp=>!c.bld.some(b=>b.struct&&Math.hypot(b.x-sp.x,b.y-sp.y)<b.w/2+60));break;}}
+      layoutRefinery(c,a,c.ringR*(typeof shapeAt==='function'?shapeAt(c,a):1),r,c.fits);   /* (v11.8) the ring follows the wall's outline */c.carSpawns=c.carSpawns.filter(sp=>!c.bld.some(b=>b.struct&&Math.hypot(b.x-sp.x,b.y-sp.y)<b.w/2+60));break;}}
   for(const l of LOCS){if(l.type!=='outpost'||l.id===START)continue;let best=null,bd=1e18;for(const c of LOCS)if(c.type==='city'){const d=Math.hypot(c.x-l.x,c.y-l.y);if(d<bd){bd=d;best=c;}}
     if(best&&best.faction==='fuelkings'&&bd<230000)l.faction='fuelkings';}
 })();
@@ -2980,7 +3159,7 @@ const ROLE_EXTRA={wanderer:'drifter',companion:'companion'};
   const cx=LOCS.filter(l=>l.camp&&zoneAt(l.x,l.y).biome!=='ranges').map(l=>l.x).sort((a,b)=>a-b),midX=cx[Math.floor(cx.length/2)]||0;
   for(const l of LOCS)if(l.camp)l.faction=zoneAt(l.x,l.y).biome==='ranges'?'blackhands':l.x<midX?'raiders':'scourge';   // west of the middle, the Devils; east, the Scourge
   // gatekeepers outside the gates of towns that make strangers prove themselves; drifters of the wandering factions in the pubs
-  for(const l of LOCS){const F=FACTIONS[l.faction];if(F&&F.gate&&l.gates&&l.gates.length){const g=l.gates[0],R=l.rad-40+70;
+  for(const l of LOCS){const F=FACTIONS[l.faction];if(F&&F.gate&&l.gates&&l.gates.length){const g=l.gates[0],R=wallRadAt(l,g.a)+70;
       l.npcs.push({id:'gk'+l.id,name:NPC_NAMES[(l.id*7+3)%NPC_NAMES.length],role:'gatekeeper',post:{x:l.x+Math.cos(g.a)*R,y:l.y+Math.sin(g.a)*R},seed:l.id*53+11,fac:l.faction});}
     const pub=l.bld.findIndex(b=>b.kind==='pub');if(pub>=0&&l.faction!=='ironlegion'&&!l.camp){const r=rng(hash2(l.id*91,7));if(r()<0.7){const f=r()<0.55?'drovers':'pilgrims';
       const key='dr'+l.id,nm=NPC_NAMES[(l.id*13+5)%NPC_NAMES.length];COMPANIONS[key]={name:nm,title:f==='drovers'?'drover':'pilgrim',ability:f==='drovers'?'scrounger':'medic',price:f==='drovers'?{durries:1}:{water:1},drifter:true,
@@ -3648,6 +3827,19 @@ function stealCar(c,o){c.owned=true;c.stolen=o.id;const day=Math.floor(G.clock/D
 // getting out in time: no harm done
 function theftExit(){if(G.theft){G.theft=null;showMsg('You got out in time. Nobody saw a thing',1.6);}}
 
+// (v11.8) towns are laid out afresh (walls of every shape, so buildings sit elsewhere). A save from before keeps what it owned by the
+// building's place in the town's list, which may now be the pub, or somebody's home. Anything that no longer matches moves, with all
+// that's stored in it, to one of the town's free buildings of the same kind (the nearest to where its marker was), and the marker follows.
+function relayoutProps(){const P=props();for(const key of Object.keys(P)){const p=P[key],o=LOCS[p.loc];if(!o||!o.bld)continue;const b=o.bld[p.bi];
+    const used=new Set();for(const d of o.npcs||[]){if(d.home!=null)used.add(d.home);if(d.work!=null)used.add(d.work);}
+    const mk=G.markers.find(m=>m.text==='Your '+PROP[p.type].name&&Math.hypot(m.x-o.x,m.y-o.y)<o.rad+200&&!m._moved);
+    const fine=b&&b.kind===p.type&&!b.struct&&!used.has(p.bi);
+    if(!fine){const cands=o.bld.map((q,i)=>i).filter(i=>{const q=o.bld[i];return q.kind===p.type&&!q.struct&&!q.ruined&&!used.has(i)&&!P[propKey(o,i)];});
+      if(!cands.length)continue;const ref=mk||{x:o.x,y:o.y};cands.sort((a,c)=>Math.hypot(o.bld[a].x-ref.x,o.bld[a].y-ref.y)-Math.hypot(o.bld[c].x-ref.x,o.bld[c].y-ref.y));
+      delete P[key];p.bi=cands[0];P[propKey(o,p.bi)]=p;}
+    const nb=o.bld[p.bi];if(mk&&nb){mk.x=Math.round(nb.x);mk.y=Math.round(nb.y);mk._moved=true;}}
+  for(const m of G.markers)delete m._moved;}
+
 /* ===== game state, saving and loading =====
    Everything that matters lives in G. The world itself is rebuilt from fixed seeds,
    so a save only stores what the player changed. */
@@ -3666,7 +3858,7 @@ function newGame(save){
     G.visited=new Set(save.visited);G.known=new Set(save.known||[]);G.wiped=save.wiped||0;G.dist=save.dist||0;G.time=save.time||0;G.legsDone=save.legs||0;
     G.atOutpost=save.at;G.lastNode=save.lastNode??save.at;G.markers=save.markers||[];G.markerSeq=save.markerSeq||G.markers.length+1;G.waypoint=save.waypoint??null;G.stock=save.stock||{};G.removed=new Set(save.removed||[]);G.lastCar=save.lastCar||null;
     G.dest=typeof save.dest==='number'?save.dest:null;
-    G.clock=save.clock||8*60;G.boxDelta=save.boxDelta||{};G.flags=save.flags||{};G.rep=save.rep||{};G.townJobs=save.townJobs||{};G.foraged=save.foraged||{};G.townRep=save.townRep||{};
+    G.clock=save.clock||8*60;G.boxDelta=save.boxDelta||{};G.flags=save.flags||{};G.rep=save.rep||{};G.townJobs=save.townJobs||{};G.foraged=save.foraged||{};if(save.layout!==2)relayoutProps();   /* (v11.8) towns were laid out afresh: put what you own back on the right buildings */G.townRep=save.townRep||{};
     for(const s of save.cars||[])if(CARS[s.type])G.cars.push(makeCar(s.type,s.x,s.y,s.a,{id:s.id,fuel:s.fuel,cond:s.cond,engine:s.engine??100,tyres:s.tyres??100,tw:s.tw,susp:s.susp??100,items:s.items||{},ups:s.ups||{},touched:true,owned:s.owned??true}));
     for(const s of save.cars||[]){const c=carById(s.id);if(c&&s.canFill)setFill(c.items,s.canFill);}
     G.wreckState=save.wreckState||{};
@@ -3711,7 +3903,7 @@ function syncCars(){
 }
 function saveData(){
   const cp=G.comp;
-  return {v:5,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},foraged:G.foraged||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
+  return {v:5,layout:2,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers,markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},foraged:G.foraged||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
     removed:[...G.removed].slice(-800),lastCar:G.lastCar,
     kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,ill:G.hero.ill||null,dryT:G.hero.dryT||0,meds:G.hero.meds||null,buffs:G.hero.buffs||null,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
     cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items),owned:!!c.owned}))};
@@ -5557,7 +5749,7 @@ function buildMesa3(m){if(m.kind==='mountain')return buildMountain3(m);if(m.mode
 const MAT3={iron:['#7d6e60','#8a7a68','#6e5f52','#8f5a3a','#7a4a32','#9a8a78','#6a5a4c'],board:['#a08a6c','#8f7a5e','#b09a78','#7a6a54','#9a8466'],brick:['#8a5a42','#7a4a36','#94634a','#6e4434'],
   ply:['#a8926e','#97835f','#8a7656'],sheet:['#6f7470','#5f645f','#7c7f78','#6a6a62']};
 const MIX3={house:['board','iron','ply'],shed:['iron','iron','sheet'],pub:['brick','board','iron'],garage:['iron','sheet','sheet'],clinic:['board','ply','sheet'],
-  servo:['sheet','iron','brick'],store:['brick','ply','iron'],warehouse:['iron','sheet','iron'],barn:['iron','board','iron'],office:['brick','sheet','ply']};
+  servo:['sheet','iron','brick'],store:['brick','ply','iron'],warehouse:['iron','sheet','iron'],barn:['iron','board','iron'],office:['brick','sheet','ply'],booth:['board','iron','ply'],unit:['brick','board','ply'],hangar:['iron','iron','sheet']};
 const RUST3=['#7a4a32','#8f5a3a','#6e5f52','#8a7a68','#5f645f','#9a6a48','#7d6e60','#6a3e2a'];
 // wall panels along one wall of a building, in its own frame (lx along the width, lz along the depth, +lz is the front)
 function wallRun3(gb,b,o,x0,z0,x1,z1,nx,nz,doorSide){const {r,y,WH,t,rui,mix}=o,len=Math.hypot(x1-x0,z1-z0),alongX=Math.abs(z1-z0)<1e-6,dark=col3('#1e1814');let u=0;
@@ -5761,6 +5953,7 @@ function yard3(gb,q){const r=rng(q.seed||13),y=heightAt(q.x,q.y),hw=q.w/2,hh=q.h
     for(let k=0;k<10;k++){const p=L((r()-0.5)*q.w*0.9,0,(r()-0.5)*q.h*0.9);if(r()<0.5)gb.cyl(p[0],y,p[2],3.6,9,9,dcol3(r,[DIRT3.rust,'#3f5a6a']),col3('#3a332c'));else gb.cyl(p[0],y,p[2],4.6,2.6,10,col3('#1e1a17'),col3('#2a2622'));}}}
 // fences round plots and yards: wire on posts, or old iron sheets nailed up
 function fence3(gb,f,seed){const r=rng(seed);for(let k=1;k<f.pts.length;k++){const a=f.pts[k-1],b=f.pts[k],len=Math.hypot(b.x-a.x,b.y-a.y),n=Math.max(1,Math.round(len/(f.kind==='iron'?10:14))),ang=Math.atan2(b.y-a.y,b.x-a.x);
+    if(f.kind==='stone'){for(let i=0;i<n;i++){if(r()<0.25)continue;const x=a.x+(b.x-a.x)*(i+0.5)/n,y=a.y+(b.y-a.y)*(i+0.5)/n;gb.lump(x,heightAt(x,y)-1,y,9,5+r()*6,ang,col3(['#9a8a72','#8a7a62','#a89878'][Math.floor(r()*3)]));}continue;}   // a low dry-stone wall, tumbling down (v11.8)
     if(f.kind==='wire'){const pts=[];for(let i=0;i<=n;i++)pts.push([a.x+(b.x-a.x)*i/n,a.y+(b.y-a.y)*i/n]);fenceRun3(gb,pts,seed+k*7,(x,y)=>heightAt(x,y));}
     else for(let i=0;i<n;i++){if(r()<0.06)continue;const x=a.x+(b.x-a.x)*(i+0.5)/n,y=a.y+(b.y-a.y)*(i+0.5)/n,gy=heightAt(x,y),h=14+r()*4;gb.box(x,gy-1,y,len/n+0.6,h,0.8,ang,dcol3(r,[DIRT3.iron,DIRT3.rust,DIRT3.ironD,'#6a6052']));}}}
 /* ---- image textures (v9.5): small JPEGs in the textures/ folder, cut from David's texture sheets. Each is laid on in world units so
@@ -5825,7 +6018,7 @@ function texCap3(gb,dest,ox,oz){const w=Object.create(gb),buf=[],OX=Math.round(o
   return w;}
 // a ruined wall panel's material, as a texture
 function kindTex3(kind,cl,b){const rusty=cl&&cl[0]-cl[2]>0.18;return kind==='iron'?(rusty?'corr_rusty':'corrugated'):kind==='board'?'weatherboard':kind==='ply'?'wood_panel':kind==='sheet'?'st_grime':
-  kind==='brick'?['masonry_brick','masonry_stone','masonry_render'][hash2(Math.round(b.x),Math.round(b.y))%3]:null;}
+  kind==='brick'?(b&&b.stone?'masonry_stone':['masonry_brick','masonry_stone','masonry_render'][hash2(Math.round(b.x),Math.round(b.y))%3]):null;}
 // which places get it: every one: towns, cities, outposts and camps (v9.9), the ruins and roadside hamlets (v9.8)
 const ruinTex3=o=>!!o;
 // the buildings with textures, and what each is made of (v9.6 pub, v9.7 garage): the walls, the floor, and the metal; a garage is a
@@ -5873,7 +6066,7 @@ function texWall3(gb,b,o,L,x0,z0,x1,z1,nx,nz,win){const {y,WH,t,r}=o,len=Math.hy
     for(let k=0;k<3;k++){const yy=wy+1+k*4.2,tilt=(r()-0.5)*1.6,P=(u,v)=>L(cx+dx*u+nx*(f+0.2*k),yy+v,cz+dz*u+nz*(f+0.2*k));tq3('wood_panel',P(-ww/2-2,tilt),P(ww/2+2,-tilt),P(ww/2+2,3.4-tilt),P(-ww/2-2,3.4+tilt),r()*20,k*7,on,[[.9,.9,.9],[.9,.9,.9],[1,1,1],[1,1,1]]);}}}
 function building3(gb,rb,b){const THM=!b.ruined&&TEXTHEME3[b.kind];if(THM){TEX3.th=THM(b);gb=texGB3(gb,'body');rb=texGB3(rb,'roof');}   // textured buildings: the pub (v9.6), the garage (v9.7)
   const y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,t=5,g=b.door/2,r=rng(hash2(Math.round(b.x),Math.round(b.y))),rui=b.ruined,WH=WALLH3[b.kind]||34;
-  const mix=MIX3[b.kind]||['iron','board','sheet'],o={r,y,WH,t,rui,mix},cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],wood=col3('#4e3a2c');
+  const mix=b.stone?['brick','brick','brick']:MIX3[b.kind]||['iron','board','sheet'],o={r,y,WH,t,rui,mix},   /* (v11.8) the telegraph station's stone */cs=Math.cos(b.rot),sn=Math.sin(b.rot),L=(lx,ly,lz)=>[b.x+lx*cs-lz*sn,ly,b.y+lx*sn+lz*cs],wood=col3('#4e3a2c');
   if(THM)gb.force=TEX3.th.floor;else if(gb.cap)gb.force=['store','servo'].includes(b.kind)?'concrete':'el_floor';gb.lbox(b,0,0,y-4,b.w,6.5,b.h,col3(rui?'#5e4c3c':FLOOR[b.kind]||'#7a6a58'));gb.force=null;
   if(rui&&r()<0.55){const sd=r()<0.5?1:-1,lx=(r()-0.5)*b.w*0.5,lz=sd*(hh+1),top=y+WH*(0.45+r()*0.3),A=L(lx-9,top,lz),B2=L(lx+9,top-2,lz);   // a torn canvas sheet hanging off a broken wall
     gb.cloth(A,B2,[-sn*sd*0.25,-1,cs*sd*0.25],WH*0.4+r()*8,col3(['#8a7a5a','#7a6a50','#6a6a52','#9a8a6a'][Math.floor(r()*4)]),r,{rows:3,cols:3});}
@@ -5970,8 +6163,8 @@ function buildShell3(s){const gb0=new GB(),gb=texCap3(gb0,'body',s.x,s.y),y=heig
   const g=new THREE.Group(),m=gb0.mesh(V3.mats.vc,s.x,s.y);if(m)g.add(m);texFlush3(g,s.x,s.y);return g;}   // (a plain group holds both: the textured pieces are placed in the world already)
 
 /* ---- towns, cities and ruins: buildings, the town wall, streets, the square, paddocks, tanks and towers ---- */
-const WALLH3={house:34,shed:30,pub:46,garage:40,clinic:34,servo:32,store:36,warehouse:56,barn:58,office:42};
-function struct3(gb,b){if(b.kind==='townhouse')return townhouse3(gb,b);if(b.kind==='warehouse2')return warehouse23(gb,b);if(b.kind==='shedx')return shedx3(gb,b);if(b.kind==='greenhouse')return greenhouse3(gb,b);if(b.kind==='works')return works3(gb,b);if(b.kind==='chimney')return chimney3(gb,b);
+const WALLH3={house:34,shed:30,pub:46,garage:40,clinic:34,servo:32,store:36,warehouse:56,barn:58,office:42,booth:28,unit:30,hangar:74};
+function struct3(gb,b){if(ruinStruct3(gb,b))return;if(b.kind==='townhouse')return townhouse3(gb,b);if(b.kind==='warehouse2')return warehouse23(gb,b);if(b.kind==='shedx')return shedx3(gb,b);if(b.kind==='greenhouse')return greenhouse3(gb,b);if(b.kind==='works')return works3(gb,b);if(b.kind==='chimney')return chimney3(gb,b);
   const y=heightAt(b.x,b.y)-2,r=b.w/2;
   if(b.kind==='oiltank'){gb.cyl(b.x,y,b.y,r,82,16,col3('#c9c5bc'),col3('#b8b2a6'));gb.cyl(b.x,y+82,b.y,r*0.3,6,10,col3('#a8a296'));}
   else if(b.kind==='column'){gb.cyl(b.x,y,b.y,r,210,10,col3('#8d877c'),col3('#6d675c'));for(let k=1;k<4;k++)gb.cyl(b.x,y+k*52,b.y,r+3,4,10,col3('#5a544c'));}
@@ -5984,7 +6177,7 @@ function struct3(gb,b){if(b.kind==='townhouse')return townhouse3(gb,b);if(b.kind
 /* ---- the mess of a place people live (or lived): litter blown into drifts, scrap, tyres, planks, bottles and tins, a refuse heap
    or two, drums standing about or tipped over. Visual only (you walk through it); kept off the roads and out of the buildings. ---- */
 function clutter3(gb,o){const r=rng(hash2(Math.round(o.x),Math.round(o.y))+5),big=o.type==='city',R=big?Math.min(o.rad,1500):o.rad*0.95;
-  const free=(x,y,pad)=>{if(o.bld.some(b=>bInside(b,x,y,-(pad||6))))return false;const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<ri.w/2+4)return false;return true;};
+  const free=(x,y,pad)=>{if(o.wall&&o.wall.length&&!inTown(o,x,y,25))return false;if(o.bld.some(b=>bInside(b,x,y,-(pad||6))))return false;const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<ri.w/2+4)return false;return true;};
   const spot=pad=>{for(let t=0;t<12;t++){const a=r()*TAU,d=Math.sqrt(r())*R,x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(free(x,y,pad))return [x,y];}return null;};
   // hug the walls: a lot of rubbish ends up against buildings
   const nearWall=()=>{const b=o.bld[Math.floor(r()*o.bld.length)];if(!b||b.tank)return null;const side=Math.floor(r()*4),u=(r()-0.5),lx=side<2?u*b.w:(side===2?-1:1)*(b.w/2+5+r()*10),ly=side<2?(side===0?-1:1)*(b.h/2+5+r()*10):u*b.h;if(side>=2&&Math.abs(ly)>b.h/2)return null;const p=b.L(lx,ly);return free(p.x,p.y,4)?[p.x,p.y]:null;};
@@ -6032,22 +6225,23 @@ function buildLoc3(o){let gb=new GB(),rb=new GB();const wr=o.rad-40,gb0=gb,rb0=r
   if(o.square){const q=o.square,c=Math.cos(q.rot),s=Math.sin(q.rot),h=q.size/2,Q=(u,v)=>[q.x+u*c-v*s,q.y+u*s+v*c];
     for(let k=-2;k<=2;k++){const a=Q(-h-6,k*h*0.4),b=Q(h+6,k*h*0.4);dirtStrip3(sgb,a[0],a[1],b[0],b[1],h*0.4+10,o.id*13+k);}const y=heightAt(q.x,q.y);   /* the yard: broad bands of packed dirt */gb.cyl(q.x,y,q.y,26,10,14,col3('#6b5a44'));gb.cyl(q.x,y,q.y,18,10.6,14,col3('#4f8aa8'));}
   if(o.pipes)for(const pp of o.pipes)for(let i=1;i<pp.length;i++){const a=pp[i-1],b=pp[i],len=Math.hypot(b.x-a.x,b.y-a.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;gb.box(mx,heightAt(mx,my)+8,my,len,7,7,Math.atan2(b.y-a.y,b.x-a.x),col3('#8d877c'));}
-  {const rW=rng(o.id*131+7),half=wallGeo3().len*WALLS3.S*0.5;for(const w of o.wall){const ang=w.a+Math.PI/2,cx=o.x+Math.cos(w.a)*(wr+w.j),cy=o.y+Math.sin(w.a)*(wr+w.j);   // each wall run: two of David's wall sections side by side
+  {const rW=rng(o.id*131+7),half=wallGeo3().len*WALLS3.S*0.5;for(const w of o.wall){const ang=w.rot!=null?w.rot:w.a+Math.PI/2,R=(w.R||wr)+w.j,cx=o.x+Math.cos(w.a)*R,cy=o.y+Math.sin(w.a)*R;   // each wall run: two of David's wall sections side by side
     for(const sg of [-1,1]){const x=cx+Math.cos(ang)*sg*half*0.98,y=cy+Math.sin(ang)*sg*half*0.98;wallSection3(gb,x,y,ang,rW,col3(w.c),rW()<0.5);}}}
   for(const q of o.yards||[])yard3(gb,q);(o.fences||[]).forEach((f,i)=>fence3(gb,f,o.id*53+i*7));   // workshops, scrap yards, fences
   for(const b of o.bld){if(b.struct)struct3(gb,b);else if(b.tank){const y=heightAt(b.x,b.y);gb.cyl(b.x,y-2,b.y,29,34,14,col3('#9c958a'),col3('#7d766c'));}else building3(gb,rb,b);
     if(!b.struct&&!b.tank)baseDress3(gb,b,b.door/2,false,b.ruined?1.2:1);else if(b.kind==='townhouse'||b.kind==='warehouse2')baseDress3(gb,b,b.w*0.18,true);}   // grass and debris round the foot (v10.0)
+  if(o.theme)ruinSite3(gb,o);const signM=signsMesh3(o,gb);   // what the ruin was: runway, screen, car park, signs (v11.8)
   clutter3(gb,o);
   // barricades across the gates, shown while the town is shut to you
   let barr=null;if(o.wall.length&&o.gates&&o.gates.length&&o.faction&&FACTIONS[o.faction]&&FACTIONS[o.faction].kind!=='raider'){const bb=new GB(),r=rng(o.id*77+5);
-    for(const g of o.gates){const R=wr+4,n=Math.ceil(g.half*2*R/18);for(let k=0;k<=n;k++){const a=g.a-g.half+(k/n)*g.half*2,x=o.x+Math.cos(a)*R,y=o.y+Math.sin(a)*R,gy=landY3(x,y),q=r();
+    for(const g of o.gates){const R=wallRadAt(o,g.a)+4,n=Math.ceil(g.half*2*R/18);for(let k=0;k<=n;k++){const a=g.a-g.half+(k/n)*g.half*2,x=o.x+Math.cos(a)*R,y=o.y+Math.sin(a)*R,gy=landY3(x,y),q=r();
         if(q<0.4){const c=col3(['#3f5a6a','#6a3a2a','#5a5a4a'][Math.floor(r()*3)]);bb.cyl(x,gy,y,6,15,10,c,c.map(v=>v*0.75));}
         else if(q<0.75){for(let s2=0;s2<3;s2++)bb.lump(x+(r()-0.5)*6,gy+s2*4,y+(r()-0.5)*6,7,4,a,col3('#a8946e'));}   // sandbags
         else bb.cyl(x,gy,y,7,3.4,10,col3('#1e1a17'),col3('#2a2622'));}
       const a0=g.a-g.half,a1=g.a+g.half,p0=[o.x+Math.cos(a0)*R,landY3(o.x+Math.cos(a0)*R,o.y+Math.sin(a0)*R)+16,o.y+Math.sin(a0)*R],p1=[o.x+Math.cos(a1)*R,landY3(o.x+Math.cos(a1)*R,o.y+Math.sin(a1)*R)+16,o.y+Math.sin(a1)*R];
       bb.beam(p0,p1,3,col3('#6a4a30'));}
     barr=bb.mesh(V3.mats.vc,o.x,o.y);}
-  const grp=new THREE.Group();if(barr){grp.add(barr);grp.userData.barr=barr;barr.visible=townClosed(o);}const m=gb0.mesh(V3.mats.vc,o.x,o.y),roofs=rb0.mesh(V3.mats.vc,o.x,o.y),sm=sgb.mesh(V3.mats.road,o.x,o.y);if(m)grp.add(m);if(sm)grp.add(sm);if(roofs){grp.add(roofs);grp.userData.roofs=roofs;}
+  const grp=new THREE.Group();if(barr){grp.add(barr);grp.userData.barr=barr;barr.visible=townClosed(o);}const m=gb0.mesh(V3.mats.vc,o.x,o.y),roofs=rb0.mesh(V3.mats.vc,o.x,o.y),sm=sgb.mesh(V3.mats.road,o.x,o.y);if(m)grp.add(m);if(sm)grp.add(sm);if(signM)grp.add(signM);if(roofs){grp.add(roofs);grp.userData.roofs=roofs;}
   texFlush3(grp,o.x,o.y);grp.matrixAutoUpdate=false;return grp;}
 
 /* ---- vehicles and people: models built once each, moved every frame ---- */
@@ -6978,8 +7172,8 @@ function buildLocFar3(o){const gb=new GB(),H=(x,y)=>heightRaw(x,y);
       else{gb.quad(L(hw,ey,-hh),L(hw,ey,hh),L(0,ey+rh,hh),L(0,ey+rh,-hh),rc,ref);gb.quad(L(-hw,ey,-hh),L(-hw,ey,hh),L(0,ey+rh,hh),L(0,ey+rh,-hh),rc.map(v=>v*0.8),ref);}}
     else gb.box(b.x,ey,b.y,b.w+8,3,b.h+8,b.rot,rc,rc);}
   // the town wall in long runs
-  const wr=o.rad-40;for(let k=0;k<o.wall.length;k+=4){const run=o.wall.slice(k,k+4),a=run.reduce((m,w)=>m+w.a,0)/run.length,j=run[0].j,x=o.x+Math.cos(a)*(wr+j),y=o.y+Math.sin(a)*(wr+j);
-    gb.box(x,H(x,y)-4,y,53*run.length,40,18,a+Math.PI/2,col3(run[0].c),col3(run[0].c,0.8));}
+  const wr=o.rad-40;for(let k=0;k<o.wall.length;k+=4){const run=o.wall.slice(k,k+4);for(const w of run){const R=(w.R||wr)+w.j,x=o.x+Math.cos(w.a)*R,y=o.y+Math.sin(w.a)*R;   /* (v11.8) one box a section, following the outline */
+    gb.box(x,H(x,y)-4,y,54,40,18,w.rot!=null?w.rot:w.a+Math.PI/2,col3(run[0].c),col3(run[0].c,0.8));}}
   return gb.mesh(V3.mats.vc,o.x,o.y);}
 function buildShellsFar3(list){const gb=new GB();for(const s of list){const y=heightRaw(s.x,s.y)-3,col=col3(s.mat==='stone'?'#8a7a66':'#7a5a3c');
     for(const w of s.walls){const len=Math.hypot(w.x2-w.x1,w.y2-w.y1);gb.box((w.x1+w.x2)/2,y,(w.y1+w.y2)/2,len,26,SHELL_T,Math.atan2(w.y2-w.y1,w.x2-w.x1),col);}
@@ -7325,7 +7519,7 @@ function gndMask3(x,y,biome){const M=GND3.macro;if(!M)return [0,0];const N=M.N,D
 function onStreet3(o,x,y){if(!o.streets)return false;for(const t of o.streets){const dx=t.x2-t.x1,dy=t.y2-t.y1,l2=dx*dx+dy*dy||1,u=clamp(((x-t.x1)*dx+(y-t.y1)*dy)/l2,0,1);if(Math.hypot(t.x1+dx*u-x,t.y1+dy*u-y)<t.w/2+4)return true;}return false;}
 function grassOpen3(x,y,locs){if(terrainRaw(x,y)!==T.GROUND)return false;const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<ri.w/2+14)return false;
   if(fieldAt(x,y))return false;if(insideMesa(x,y,6))return false;
-  for(const o of locs){const d=Math.hypot(x-o.x,y-o.y);if(d>o.rad+40)continue;if(o.wall&&o.wall.length&&d<o.rad-20)return false;   // inside a town's walls: only round the buildings
+  for(const o of locs){const d=Math.hypot(x-o.x,y-o.y);if(d>o.rad+40)continue;if(o.wall&&o.wall.length&&inTown(o,x,y,20))return false;   // inside a town's walls: only round the buildings
     if(onStreet3(o,x,y))return false;if(bldBlock3(o,x,y))return false;for(const b of o.bld)if(bInside(b,x,y,-8))return false;}
   return true;}
 const ALL_LOCS3=()=>LOCS.concat(HAMLETS);
@@ -7335,10 +7529,11 @@ function bldBlock3(o,x,y){for(const b of o.bld){if(bInside(b,x,y,-4))return true
     if(Math.abs(lx)<door+10&&(Math.abs(lz-b.h/2-6)<10||(b.struct&&Math.abs(lz+b.h/2+6)<10)))return true;}return false;}
 function grassCell3(i,j){const S=GRASS3.cell,ox=i*S,oy=j*S,r=rng(hash2(i*7919+13,j*104729+7)),out=[],locs=ALL_LOCS3().filter(o=>Math.abs(o.x-ox-S/2)<o.rad+S&&Math.abs(o.y-oy-S/2)<o.rad+S);
   const zc=zoneAt(ox+S/2,oy+S/2).biome,Bc=GRASS_B[zc]||GRASS_B.mallee,area=S*S/10000;
-  for(const [kind,ki] of [['tussock',0],['spinifex',1]]){const n=Math.round(Bc.d[ki]*area*2.2);
+  const ruin=locs.some(o=>o.type==='ruin'&&Math.hypot(o.x-ox-S/2,o.y-oy-S/2)<o.rad+S*0.7);   // (v11.8) abandoned places are overgrown, whatever the country
+  for(const [kind,ki] of [['tussock',0],['spinifex',1]]){const n=Math.round((ruin&&ki===0?Math.max(14,Bc.d[0]*2.2):Bc.d[ki])*area*2.2);
     for(let k=0;k<n;k++){const x=ox+r()*S,y=oy+r()*S,q=r(),sz=r(),rot=r()*TAU,cq=r();
       const pn=vnoise3(x/700,y/700,ki*31+5)*0.65+vnoise3(x/190,y/190,ki*17+3)*0.35;if(q>clamp((pn-0.32)*2.4,0,1)/2.2)continue;   // patchy: open ground between the clumps
-      const B=GRASS_B[zoneAt(x,y).biome]||Bc;if(r()*Math.max(1e-3,Bc.d[ki])>B.d[ki])continue;   // the biome edge, thinned clump by clump
+      const B=GRASS_B[zoneAt(x,y).biome]||Bc;if(!ruin&&r()*Math.max(1e-3,Bc.d[ki])>B.d[ki])continue;   // the biome edge, thinned clump by clump
       const [rock,sand]=gndMask3(x,y);if(r()<rock*(ki?0.3:0.9)+sand*0.55)continue;   // spinifex doesn't mind stony ground
       if(!grassOpen3(x,y,locs))continue;
       const pal=kind==='spinifex'?SPIN_C:B.c,c=lin3(col3(pal[Math.floor(cq*pal.length)],0.74+r()*0.22));
@@ -7494,6 +7689,106 @@ function rocksMesh3(c){const ox=c.cx*CH+CH/2,oy=c.cy*CH+CH/2,rb=new RB(),rf=new 
 // the far scatter's rock (one shape, instanced): a smooth one too
 function rockGeoUnit3(){const rb=new RB();rb.rock(0,-0.12,0,1,0.85,0,[1,1,1],[1,0.85,1.1,0.9,1.05,0.8,1,0.95],4242,{lo:true});return rb.geometry(0,0,false);}
 
+/* ---- what the ruins were (v11.8), in 3D: the pieces that make a drive-in a drive-in and an airstrip an airstrip ----
+   Drawn into the place's own builder, so the game's textures go on by colour (texCap3): weathered timber, rusty iron,
+   concrete, masonry. Surfaces (runway, car park, forecourt) are draped over the levelled ground, cracked and patched. */
+const RS3={dark:'#2a2420',timber:'#6a4a30',timberL:'#8a6a48',rust:'#7a4a2e',iron:'#8a8478',steel:'#9a968c',white:'#c8c2b2',concrete:'#a8a396'};
+// a local box on a frame centred at (x,y) turned rot: lx across, lz forward (the way it faces), y up from the ground there
+function rbox3(gb,f,lx,lz,y0,sx,sy,sz,col){gb.lbox(f,lx,lz,y0,sx,sy,sz,col3(col));}
+function rpt3(f,lx,lz){const c=Math.cos(f.rot),s=Math.sin(f.rot);return [f.x+lx*c-lz*s,f.y+lx*s+lz*c];}
+function ruinStruct3(gb,b){const r=rng(b.seed||17),y=heightAt(b.x,b.y),hw=b.w/2,hh=b.h/2,P=(lx,ly,lz)=>{const p=rpt3(b,lx,lz);return [p[0],y+ly,p[1]];};
+  switch(b.kind){
+  case 'screen':{   // a drive-in screen: a tall timber-and-iron face on a frame of posts and braces, sheets torn away, the paint long gone grey
+    const H=165,base=22;for(let k=0;k<=6;k++){const lx=-hw+k*(b.w/6);rbox3(gb,b,lx,-6,y-2,7,H+base+4,7,RS3.timber);gb.beam(P(lx,0,-6),P(lx,H*0.7,-hh-34),4,col3(RS3.timber));}   // posts, and raking braces behind
+    if(gb.cap)gb.force='masonry_render';   /* the face: painted sheet, weathered pale */
+    for(let row=0;row<8;row++)for(let k=0;k<12;k++){if(r()<0.13)continue;const lx=-hw+(k+0.5)*(b.w/12),y0=y+base+row*(H/8),tilt=(r()<0.08)?(r()-0.5)*0.4:0;   // the face, in panels; some missing, a few hanging askew
+      const c=['#b8b2a2','#a8a292','#c4beae','#9a9484'][Math.floor(r()*4)];gb.box(...rpt3(b,lx,2).slice(0,1),y0+(tilt?-6:0),rpt3(b,lx,2)[1],b.w/12+0.4,H/8+0.4,2,b.rot+tilt*0.2,col3(c));}
+    if(gb.cap)gb.force=null;rbox3(gb,b,0,2,y+base-4,b.w+6,5,6,RS3.timber);rbox3(gb,b,0,2,y+base+H,b.w+6,5,6,RS3.timber);   // top and bottom rails
+    for(const sg of [-1,1])rbox3(gb,b,sg*(hw*0.55),-14,y-2,40,base,20,RS3.concrete);   // concrete footings
+    return true;}
+  case 'windsock':{const top=P(0,62,0);gb.cyl(b.x,y-1,b.y,1.8,64,6,col3(RS3.steel));const a=r()*TAU,dir=[Math.cos(a)*0.9,-0.35,Math.sin(a)*0.9];   // a pole and a faded orange sock, limp and torn
+    gb.cloth([top[0]-2,top[1],top[2]],[top[0]+2,top[1],top[2]],dir,26,col3('#c8783a'),r,{rows:3,cols:2});return true;}
+  case 'headframe':{const H=110,leg=col3(RS3.timber);for(const [dx,dz] of [[-1,-1],[1,-1],[1,1],[-1,1]])gb.beam(P(dx*hw*0.8,0,dz*hh*0.8),P(dx*8,H,dz*8),5,leg);   // the poppet head
+    for(let k=1;k<5;k++){const t=k/5,s=1-t*0.85;rbox3(gb,b,0,0,y+H*t,b.w*0.8*s*2*0.5+4,3,3,RS3.timber);rbox3(gb,b,0,0,y+H*t,3,3,b.h*0.8*s+4,RS3.timber);}
+    gb.beam(P(0,0,hh*2.4),P(0,H*0.95,0),4,leg);   // the back leg, toward the winding house
+    gb.cyl(...P(0,H+2,0).slice(0,1),y+H-6,P(0,H+2,0)[2],13,4,14,col3(RS3.rust));   // the sheave wheel (lying flat, seized)
+    rbox3(gb,b,0,0,y-1,26,6,26,RS3.dark);return true;}   // the shaft, boarded
+  case 'hopper':{for(const [dx,dz] of [[-1,-1],[1,-1],[1,1],[-1,1]])rbox3(gb,b,dx*hw*0.8,dz*hh*0.7,y-1,5,40,5,RS3.timber);
+    rbox3(gb,b,0,0,y+38,b.w,22,b.h,RS3.rust);rbox3(gb,b,0,0,y+28,b.w*0.6,10,b.h*0.6,RS3.rust);return true;}
+  case 'heap':{const R=hw,col=col3(['#8a6a4a','#9a7a58','#7a5a3e'][Math.floor(r()*3)]),f=gb.force;if(gb.cap)gb.force='none';   // a mullock heap: spoil and broken rock in a long flat-topped mound
+    gb.lump(b.x,y-3,b.y,R,R*0.42,r()*TAU,col);for(let k=0;k<6;k++){const a=r()*TAU,d=R*(0.3+r()*0.5);gb.lump(b.x+Math.cos(a)*d,y-2,b.y+Math.sin(a)*d,R*(0.25+r()*0.2),R*0.22,r()*TAU,col3(['#7a5a3e','#6a4a32','#8a6a4a'][k%3]));}gb.force=f;return true;}
+  case 'platform':{rbox3(gb,b,0,0,y-2,b.w,12,b.h,RS3.concrete);rbox3(gb,b,0,-hh+2,y+9,b.w,1.5,4,RS3.white);   // a concrete platform, its edge once painted white
+    for(let k=0;k<6;k++){const lx=-hw+30+k*((b.w-60)/5);if(r()<0.3)continue;rbox3(gb,b,lx,6,y+10,3,32,3,RS3.timber);}   // the posts of a long-gone awning
+    rbox3(gb,b,-hw*0.4,0,y+10,40,8,8,RS3.timber);return true;}   // a bench
+  }return false;}
+// surfaces: cracked and patched, draped over the ground in small pieces so they follow it
+function ruinPad3(gb,p){const [A,B,C,D]=p.pts,L1=Math.hypot(B[0]-A[0],B[1]-A[1]),L2=Math.hypot(D[0]-A[0],D[1]-A[1]),nu=Math.max(1,Math.ceil(L1/60)),nv=Math.max(1,Math.ceil(L2/60)),lift=p.lift||0.7,r=rng(hash2(Math.round(A[0]),Math.round(A[1])));
+  const Q=(u,v)=>{const x=(A[0]*(1-u)+B[0]*u)*(1-v)+(D[0]*(1-u)+C[0]*u)*v,y=(A[1]*(1-u)+B[1]*u)*(1-v)+(D[1]*(1-u)+C[1]*u)*v;return [x,landY3(x,y)+lift,y];};
+  const gc=groundCol3((A[0]+C[0])/2,(A[1]+C[1])/2),b0=p.tex==='none'?mix3(col3(p.col),gc,0.55).map(q=>q*0.82):col3(p.col),l0=(b0[0]+b0[1]+b0[2])/3,base=p.tex==='none'||l0<0.3?b0:b0.map(q=>q*0.26/l0);   /* gravel: packed dirt, a shade darker than the ground; concrete: textured, mid-toned (the texture's own grey is light) */if(gb.cap)gb.force=p.tex==='none'?'none':p.tex;
+  for(let i=0;i<nu;i++)for(let j=0;j<nv;j++){const v=0.95+r()*0.08,c=base.map(q=>q*v);gb.quadUp(Q(i/nu,j/nv),Q((i+1)/nu,j/nv),Q((i+1)/nu,(j+1)/nv),Q(i/nu,(j+1)/nv),c);}
+  if(gb.cap)gb.force='none';
+  if(p.tex!=='none')for(let k=0;k<nu*nv*0.6;k++){const u=r(),v=r(),a=r()*TAU,l=10+r()*30,p0=Q(u,v),w=1+r()*1.5;   // cracks
+      const p1=[p0[0]+Math.cos(a)*l,0,p0[2]+Math.sin(a)*l];p1[1]=landY3(p1[0],p1[2])+lift+0.2;const nx=-Math.sin(a)*w/2,nz=Math.cos(a)*w/2;
+      gb.quadUp([p0[0]-nx,p0[1]+0.2,p0[2]-nz],[p0[0]+nx,p0[1]+0.2,p0[2]+nz],[p1[0]+nx,p1[1],p1[2]+nz],[p1[0]-nx,p1[1],p1[2]-nz],col3('#2a2622'));}
+  for(let k=0;k<nu*nv*0.12;k++){const q=Q(r(),r()),rr=8+r()*14;gb.cyl(q[0],q[1]-0.1,q[2],rr,0.3,8,col3(p.tex==='none'?'#a89070':'#8a7a62'));}   // drifts of sand across it
+  if(gb.cap)gb.force=null;}
+function ruinDecor3(gb,d){const r=rng(hash2(Math.round(d.x*3),Math.round(d.y*3))),y=heightAt(d.x,d.y),P=(lx,ly,lz)=>{const p=rpt3(d,lx,lz);return [p[0],y+ly,p[1]];};
+  switch(d.k){
+  case 'speaker':{if(d.gone){rbox3(gb,d,0,0,y-1,3,6,3,RS3.steel);return;}const lean=d.lean||0,t=P(lean*14,22,0);gb.beam(P(0,-1,0),t,2.2,col3(RS3.steel));   // a post, a speaker box hooked on each side
+    for(const sg of [-1,1])gb.box(t[0]+Math.cos(d.rot)*sg*5,t[1]-6,t[2]+Math.sin(d.rot)*sg*5,5,6,3,d.rot,col3(['#5a6a5a','#6a5a4a','#4a4a48'][Math.floor(r()*3)]));return;}
+  case 'mark':{if(gb.cap)gb.force='none';const len=d.len||30,wid=d.wid||3,a=d.rot,c=Math.cos(a),s=Math.sin(a),pts=[[-wid/2,-len/2],[wid/2,-len/2],[wid/2,len/2],[-wid/2,len/2]].map(([lx,lz])=>{const x=d.x+lx*c-lz*s,z=d.y+lx*s+lz*c;return [x,landY3(x,z)+1.1,z];});
+    if(r()>0.25)gb.quadUp(...pts,col3('#c2bcaa').map(v=>v*(0.8+r()*0.2)));if(gb.cap)gb.force=null;return;}   // faded white paint, flaking
+  case 'rlight':{if(d.gone)return;rbox3(gb,d,0,0,y-1,3,7,3,RS3.dark);rbox3(gb,d,0,0,y+6,5,4,5,r()<0.5?'#8a7a3a':'#4a5a6a');return;}
+  case 'plane':{const t=d.tilt||0,cs=Math.cos(d.rot),sn=Math.sin(d.rot),Lp=(lx,ly,lz)=>[d.x+lx*cs-lz*sn,y+ly+lz*t,d.y+lx*sn+lz*cs],white=col3('#b8b4a8'),stripe=col3('#7a3a2a');   // an old high-wing single: faded white, a red stripe
+    gb.beam(Lp(0,12,-38),Lp(0,13,34),14,white);gb.beam(Lp(0,9,-38),Lp(0,10,-30),10,col3('#3a3a38'));   // fuselage, engine cowl at the front
+    rbox3(gb,{x:Lp(0,0,-4)[0],y:Lp(0,0,-4)[2],rot:d.rot},0,0,y+20+t*-4,110,2.4,18,'#c0bcb0');   // the wing
+    gb.beam(Lp(0,14,30),Lp(0,26,40),2,white);rbox3(gb,{x:Lp(0,0,40)[0],y:Lp(0,0,40)[2],rot:d.rot},0,0,y+12,40,2,10,'#b8b4a8');   // tail
+    gb.beam(Lp(0,12,-12),Lp(0,12,24),15,stripe);for(const sg of [-1,1])gb.beam(Lp(sg*6,9,-8),Lp(sg*30,20,-6),1.5,col3(RS3.steel));   // stripe, struts
+    gb.cyl(...Lp(-10,0,-10).slice(0,1),y,Lp(-10,0,-10)[2],4,3,10,col3('#1c1814'));return;}   // one wheel left
+  case 'rail':{const len=d.len||1000,n=Math.ceil(len/16);for(let k=0;k<=n;k++){const lz=-len/2+k*len/n;if(r()<0.06)continue;const p=rpt3(d,lz,0),gy=landY3(p[0],p[1]);
+      gb.box(p[0],gy-0.6,p[1],5,2,30,d.rot+(r()-0.5)*0.08,col3(['#5a4430','#4a3828','#6a5038'][Math.floor(r()*3)]));}   // sleepers
+    for(const sg of [-1,1])for(let k=0;k<n;k+=2){const a=rpt3(d,-len/2+k*len/n,sg*10),b=rpt3(d,-len/2+Math.min(n,k+2)*len/n,sg*10);gb.beam([a[0],landY3(a[0],a[1])+2,a[1]],[b[0],landY3(b[0],b[1])+2,b[1]],2,col3(RS3.rust));}
+    return;}
+  case 'signal':{gb.cyl(d.x,y-1,d.y,2,70,6,col3(RS3.iron));rbox3(gb,d,8,0,y+58,18,4,2,'#7a3a2a');return;}
+  case 'trough':{rbox3(gb,d,0,0,y-1,40,8,12,RS3.iron);return;}
+  case 'tractor':{rbox3(gb,d,0,0,y+6,18,12,34,'#8a3a22');rbox3(gb,d,0,-8,y+16,12,10,12,'#7a3420');for(const [lx,lz,rr] of [[-11,10,9],[11,10,9],[-9,-12,5],[9,-12,5]]){const p=rpt3(d,lx,lz);gb.cyl(p[0],y,p[1],rr,4,10,col3('#1c1814'));}return;}
+  case 'pool':{if(gb.cap)gb.force='concrete';rbox3(gb,d,0,0,y-1,96,2.4,56,RS3.concrete);if(gb.cap)gb.force='none';rbox3(gb,d,0,0,y+0.6,84,1.2,44,'#3a4440');rbox3(gb,d,0,-8,y+1.0,50,0.6,20,'#6a5a3a');if(gb.cap)gb.force=null;return;}   // empty, with a slick of mud and leaves
+  case 'canopy':{const w=d.w||180,dp=d.d||90;for(const [sx,sz] of [[-1,-1],[1,-1],[1,1],[-1,1]])rbox3(gb,d,sx*(w/2-8),sz*(dp/2-8),y-1,5,44,5,RS3.iron);
+    for(let k=0;k<6;k++){if(r()<0.2)continue;rbox3(gb,d,-w/2+(k+0.5)*w/6,0,y+44+(r()<0.15?-4:0),w/6+0.5,3,dp,r()<0.4?RS3.rust:RS3.iron);}return;}   // a forecourt roof, sheets missing
+  case 'pump':{rbox3(gb,d,0,0,y-1,10,26,8,['#8a3a2a','#3a5a6a','#9a8a6a'][Math.floor(r()*3)]);rbox3(gb,d,0,0,y+25,12,6,9,RS3.white);return;}
+  case 'tyres':{for(let k=0;k<7;k++){const p=rpt3(d,(k%3)*14-14,Math.floor(k/3)*14);gb.cyl(p[0],y-1+((k*7)%3)*0,p[1],6,4+((k%2)?4:0),10,col3('#1c1814'));}return;}
+  case 'drums':{for(let k=0;k<4;k++){const p=rpt3(d,(k%2)*12,Math.floor(k/2)*12);if(k===3){gb.box(p[0],y+4,p[1],16,9,9,d.rot+0.4,col3(RS3.rust));continue;}gb.cyl(p[0],y-1,p[1],5,16,10,col3(['#7a4a2e','#3a5a3a','#5a4a3a'][k%3]));}return;}
+  case 'tables':{for(let k=0;k<3;k++){const lx=(k-1)*44;rbox3(gb,d,lx,0,y+12,30,2,16,RS3.timberL);for(const sg of [-1,1])rbox3(gb,d,lx,sg*14,y+6,30,2,6,RS3.timber);}return;}
+  case 'telepoles':{const len=d.len||1000,n=Math.ceil(len/90),tops=[];for(let k=0;k<=n;k++){const p=rpt3(d,-len/2+k*len/n,0),gy=landY3(p[0],p[1]),lean=r()<0.15?(r()-0.5)*14:0;
+      if(r()<0.1){tops.push(null);gb.box(p[0],gy,p[1],4,4,60,d.rot+r(),col3(RS3.timber));continue;}   // one down
+      gb.beam([p[0],gy-1,p[1]],[p[0]+lean,gy+68,p[1]],4,col3(RS3.timber));gb.box(p[0]+lean,gy+62,p[1],22,2.4,2.4,d.rot,col3(RS3.timber));tops.push([p[0]+lean,gy+62,p[1]]);}
+    for(let k=1;k<tops.length;k++){const a=tops[k-1],b=tops[k];if(!a||!b||r()<0.3)continue;const m=[(a[0]+b[0])/2,(a[1]+b[1])/2-7,(a[2]+b[2])/2];gb.beam(a,m,0.5,col3('#3a3632'));gb.beam(m,b,0.5,col3('#3a3632'));}   // the wire, sagging
+    return;}
+  case 'cross':{rbox3(gb,d,0,0,y-1,2.4,20,2.4,RS3.timberL);rbox3(gb,d,0,0,y+13,10,2.4,2.4,RS3.timberL);if(r()<0.5)gb.lump(d.x,y-1,d.y,7,2,d.rot,col3('#8a7a62'));return;}
+  }}
+// the painted signs: one shared sheet of words, faded and flaking; each sign a board on posts with its word in front
+const SIGN_WORDS=['DRIVE-IN','MOTEL','VACANCY','ROADHOUSE','PETROL','HOTEL'];
+function signAtlas3(){if(V3.signTex)return V3.signTex;const cv=document.createElement('canvas');cv.width=512;cv.height=SIGN_WORDS.length*64;const g=cv.getContext('2d'),r=rng(4242);
+  g.fillStyle='#d8d0bc';g.fillRect(0,0,cv.width,cv.height);
+  SIGN_WORDS.forEach((w,i)=>{const y=i*64;g.fillStyle=['#9a2a1e','#1e3a6a','#9a2a1e','#2a4a2a','#9a5a1a','#3a2a1a'][i];g.font='bold 50px "Arial Black", Impact, sans-serif';g.textAlign='center';g.textBaseline='middle';
+    g.save();g.translate(256,y+33);const m=g.measureText(w).width;g.scale(Math.min(1,480/m),1);g.fillText(w,0,0);g.restore();
+    for(let k=0;k<160;k++){g.fillStyle='rgba(216,208,188,'+(0.4+r()*0.6)+')';g.beginPath();g.arc(r()*512,y+r()*64,1+r()*4,0,TAU);g.fill();}   // flaking
+    g.fillStyle='rgba(120,70,40,0.25)';for(let k=0;k<6;k++)g.fillRect(r()*512,y+40+r()*20,3+r()*4,10+r()*20);});   // rust streaks
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;V3.signTex=t;return t;}
+function signsMesh3(o,gb){if(!o.signs||!o.signs.length)return null;const P=[],UV=[],N=[],I=[],n=SIGN_WORDS.length;
+  for(const s of o.signs){const i=SIGN_WORDS.indexOf(s.word);if(i<0)continue;const y=heightAt(s.x,s.y),cs=Math.cos(s.rot),sn=Math.sin(s.rot),L=(lx,ly,lz)=>[s.x+lx*cs-lz*sn-o.x,y+ly,s.y+lx*sn+lz*cs-o.y];
+    // the board and its posts (textured like the rest, from the builder)
+    gb.lbox(s,0,-1.5,y+s.elev-s.h/2-2,s.w+6,s.h+4,2.4,col3(RS3.timber));for(const sg of [-1,1])gb.lbox(s,sg*s.w*0.35,-3,y-1,4,s.elev-s.h/2,4,col3(RS3.timber));
+    const b=P.length/3,v0=1-(i+1)/n,v1=1-i/n,z=0.4,dn=r=>[s.x+0,0,0];
+    P.push(...L(-s.w/2,s.elev-s.h/2,z),...L(s.w/2,s.elev-s.h/2,z),...L(s.w/2,s.elev+s.h/2,z),...L(-s.w/2,s.elev+s.h/2,z));
+    UV.push(0,v0,1,v0,1,v1,0,v1);for(let k=0;k<4;k++)N.push(-sn,0,cs);I.push(b,b+1,b+2,b,b+2,b+3);}
+  if(!P.length)return null;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(P),3));g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(UV),2));
+  g.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(N),3));g.setIndex(I);
+  if(!V3.mats.sign)V3.mats.sign=stdMat3({map:signAtlas3(),roughness:0.9,side:THREE.DoubleSide});
+  const m=new THREE.Mesh(g,V3.mats.sign);m.position.set(o.x,0,o.y);m.receiveShadow=true;return m;}
+// all of a ruin's own pieces: surfaces first (under everything), then the small things
+function ruinSite3(gb,o){for(const p of o.pads||[])ruinPad3(gb,p);for(const d of o.decor||[])ruinDecor3(gb,d);}
+
 /* ===== main loop ===== */
 // thirst, hunger and tiredness. Rates are per game hour; one game day lasts 45 real minutes.
 function survival(dt,car){const h=G.hero,gm=dt*CLOCK_RATE/60;G.clock+=gm;
@@ -7629,7 +7924,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
