@@ -88,6 +88,7 @@ canvas{position:fixed;inset:0;display:block}
 .basket .tot b{color:var(--ember)}
 .basket .lines{font-size:16px;opacity:.9;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px}
 .basket .lines button{padding:3px 8px;font-size:15px}
+.jobx{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:7px 0 4px;font-size:16px}.jobx button.go{border-color:#e8c070;color:#e8c070}   /* giving a job up (v12.4) */
 .price{min-width:44px;text-align:right;opacity:.85;font-size:16px}
 .note{grid-column:1 / span 2;font-size:16px;font-weight:500;opacity:.92}
 .leg{grid-column:1 / span 2;margin-top:2px;font-size:18px;line-height:1.15}
@@ -241,24 +242,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=12.3"></script>
-<script src="models/84-hero-model.js?v=12.3"></script>
-<script src="models/84b-hero-body.js?v=12.3"></script>
-<script src="models/84c-buggy-model.js?v=12.3"></script>
-<script src="models/84d-tarona-model.js?v=12.3"></script>
-<script src="models/84e-wall-model.js?v=12.3"></script>
-<script src="models/84f-plant-models.js?v=12.3"></script>
-<script src="models/84g-kestrel-model.js?v=12.3"></script>
-<script src="models/84h-building-models.js?v=12.3"></script>
-<script src="models/84i-building-models2.js?v=12.3"></script>
-<script src="models/84j-f100-model.js?v=12.3"></script>
-<script src="models/84l-kingsford-model.js?v=12.3"></script>
-<script src="models/84m-wagon-model.js?v=12.3"></script>
+<script src="models/21b-mesa-models.js?v=12.4"></script>
+<script src="models/84-hero-model.js?v=12.4"></script>
+<script src="models/84b-hero-body.js?v=12.4"></script>
+<script src="models/84c-buggy-model.js?v=12.4"></script>
+<script src="models/84d-tarona-model.js?v=12.4"></script>
+<script src="models/84e-wall-model.js?v=12.4"></script>
+<script src="models/84f-plant-models.js?v=12.4"></script>
+<script src="models/84g-kestrel-model.js?v=12.4"></script>
+<script src="models/84h-building-models.js?v=12.4"></script>
+<script src="models/84i-building-models2.js?v=12.4"></script>
+<script src="models/84j-f100-model.js?v=12.4"></script>
+<script src="models/84l-kingsford-model.js?v=12.4"></script>
+<script src="models/84m-wagon-model.js?v=12.4"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='12.3';
+const VERSION='12.4';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -3371,7 +3372,7 @@ const STORY={loc:{},station:null,mirra:null};
 function storyJob(c,key,spec){const n=c.n,o=n.loc;const J=Object.assign({id:'js_'+key,giver:n.def.id,giverName:n.def.name,town:o.id,fac:n.def.fac||o.faction||'settlers',rep:8,story:key},spec);return J;}
 function storyItemJob(c,key,item,locId,title,desc,reward){const pl=LOCS[locId];if(!pl)return null;const b=pl.bld&&pl.bld[0],sp=b&&b.L?b.L(0,0):{x:pl.x,y:pl.y};
   return storyJob(c,key,{type:'item',item,x:sp.x,y:sp.y,place:pl.name,guarded:true,title,desc,reward});}
-function offerStory(c,J){if(!J)return '“Not now.”';if(jobs().length>=3)return '“You’ve your hands full. Come back when you’ve less on.”';if(acceptJob(J))return null;return '“Not now.”';}
+function offerStory(c,J){if(!J)return '“Not now.”';if(acceptJob(J))return null;return '“Not now.”';}
 const _payJob=payJob;payJob=function(J,c){_payJob(J,c);if(!J.story)return;G.flags['story_'+J.story]=true;
   if(J.story==='tapes'){readDoc('tapes');meet('marsh');addClues('dry_rainmaker','dry_marsh','sec_engine');}
   if(J.story==='log'){readDoc('log');meet('clancy');addClues('burn_bulletin','sec_kade');}
@@ -3628,7 +3629,7 @@ function compTick(){const c=G.comp;if(!c||c.state==='down')return;const h=G.hero
    Some townsfolk (and drifters) have a job going: kill a wanted raider or a rival faction's enforcer (on foot, or in a car),
    wipe out a raider camp, take a passenger somewhere, fetch someone back, deliver a package, find a lost item (somewhere
    described, sometimes guarded), or bring back supplies. They pay in what's hard to come by: fuel, water, ammo, medicine,
-   parts. Up to three jobs at a time; the Gear screen lists them; targets are marked on the map. */
+   parts. As many jobs at a time as you like (v12.4; it was three); the Work screen lists them, and you can give one up there; targets are marked on the map. */
 Object.assign(ITEMS,{package:{name:'Sealed package',kg:2,icon:'#8a6a44'},locket:{name:'Silver locket',kg:0.1,icon:'#c9c5bc'},radio:{name:'Radio valve set',kg:1.5,icon:'#5a5650'},
   medcase:{name:'Doctor’s case',kg:3,icon:'#8a2a1e'},ledger:{name:'Leather-bound ledger',kg:1,icon:'#6a4a30'},seeds:{name:'Tin of seed stock',kg:1,icon:'#a8946e'}});
 Object.assign(VALUE,{package:2,locket:4,radio:4,medcase:4,ledger:2,seeds:3});   // worth little to a trader: they're someone else's
@@ -3677,6 +3678,18 @@ function escortTick(J){if(!ESCORTS[J.id]&&!J.arrived){escortStart(J);return;}   
   if(!heroCar()){if(!C.waitSaid&&live.some(c=>Math.hypot(c.x-b.x,c.y-b.y)<1500)){C.waitSaid=true;showMsg((J.type==='escort_car'?J.who+' pulls over':'The convoy pulls over')+' and waits for you',2.2);}C.lostT=0;return;}C.waitSaid=false;   /* out of your car: they wait */
   if(live.every(c=>Math.hypot(c.x-b.x,c.y-b.y)>2600)){C.lostT=(C.lostT||0)+1;if(C.lostT===10)showMsg('You’ve fallen behind the '+(J.type==='escort_car'?'car':'convoy')+'. Catch up!',2.4);if(C.lostT>=60){for(const c of C.cars)c.gone=true;C.dead=true;}}else C.lostT=0;}
 function jobFail(J,msg){if(J.marker)G.markers=G.markers.filter(m=>m.id!==J.marker);if(J.huntMarker)G.markers=G.markers.filter(m=>m.id!==J.huntMarker);G.flags.jobs=jobs().filter(j=>j!==J);changeRep(J.fac,-3);showMsg(msg,3);}
+// giving a job up (v12.4), from the Work screen: its marks come off the map; whoever was waiting for you, or riding with you, goes their own way;
+// a package goes back; a convoy or car you were escorting carries on without you. The one who gave it you thinks a little less of you, but
+// it's not held against you like a failure, and they may offer it again.
+function cancelJob(J){if(!jobs().includes(J))return false;
+  for(const id of [J.marker,J.huntMarker])if(id!=null){G.markers=G.markers.filter(m=>m.id!==id);if(G.waypoint===id)G.waypoint=null;}
+  if(J.type==='escort_convoy'||J.type==='escort_car'){const C=ESCORTS[J.id];if(C){C.escortJob=null;C.hold=false;C.waitSaid=true;}delete ESCORTS[J.id];}
+  let note='';
+  if(J.pax==='aboard'){const o=nearLoc(body().x,body().y,300);if(o)paxGetOut(J,o);else{const c=heroCar();if(c)popText(c.x,c.y-30,J.who+' climbs out','#efe2c4');}note=' '+J.who+' gets out and goes their own way.';}
+  J.pax='cancelled';   // someone waiting for you to pick them up goes home
+  if(J.type==='package'&&(G.hero.inv.package||0)>0){invTake(G.hero.inv,'package',1);note=' The package goes back to '+J.giverName+'.';}
+  G.flags.jobs=jobs().filter(j=>j!==J);changeRep(J.fac,-1);G.flags.jobsCancelled=(G.flags.jobsCancelled||0)+1;
+  showMsg('You give up the job: '+J.title+'.'+note,3);return true;}
 // someone with nothing for you can tell you who has
 function whoIsHiring(n){const o=n.loc;if(!o)return '“Couldn’t tell you.”';const who=(o.npcs||[]).filter(d=>d.id!==n.def.id&&!d.comp).find(d=>{const J=jobOffer({def:d,loc:o});return !!J;});
   if(who){G.hint={id:who.id,until:G.clock+180};return '“Try '+who.name+', the '+(who.role==='settler'?'settler':who.role)+'. They were after a hand with something.”';}
@@ -3736,7 +3749,7 @@ function payJob(J,c){skillPoints(3,'job done');for(const k in J.reward){if(k==='
   {const n=G.townJobs[J.town],cap=townJobCap(J.town),nm=LOCS[J.town].name;setTimeout(()=>showMsg(n>=cap?nm+' has nothing more for you. Time to move on':n===1?nm+' trusts you a little now: better work there':n===5?'You’re one of '+nm+'’s own now: their best work is yours':nm+': standing '+townStanding(J.town)+'%',2.6),1600);}
   G.flags['jobdone_'+J.giver+'_'+J.id.split('_').pop()]=true;if(J.marker){G.markers=G.markers.filter(m=>m.id!==J.marker);if(G.waypoint===J.marker)G.waypoint=null;}if(J.huntMarker)G.markers=G.markers.filter(m=>m.id!==J.huntMarker);if(J.payMarker){G.markers=G.markers.filter(m=>m.id!==J.payMarker);if(G.waypoint===J.payMarker)G.waypoint=null;}
   G.flags.jobs=jobs().filter(j=>j!==J);G.flags.jobsDone=(G.flags.jobsDone||0)+1;}
-function acceptJob(J){const L=jobs();if(L.length>=3)return false;L.push(J);
+function acceptJob(J){const L=jobs();L.push(J);
   if(J.x!==undefined){const m={id:G.markerSeq++,x:Math.round(J.x),y:Math.round(J.y),text:J.title};G.markers.push(m);J.marker=m.id;}
   if(J.camp!==undefined){G.known.add(J.camp);}if(J.dest!==undefined)G.known.add(J.dest);
   if(J.type==='escort_convoy'||J.type==='escort_car'){if(!escortStart(J)){L.pop();return false;}showMsg(J.type==='escort_car'?J.who+' waits by the road outside town (marked)':'The convoy waits by the road outside town (marked)',2.6);}
@@ -3787,7 +3800,7 @@ Object.assign(DLG,{job_who:{text:c=>whoIsHiring(c.n),opts:[{t:'Thanks',go:'__sta
   job_none:{text:c=>'“You’ve done more than enough for '+c.n.loc.name+'. There’s nothing left here that needs doing. Try another town.”',opts:[{t:'Fair enough',go:'__start'}]},
   passenger_start:{text:c=>{const J=c.n.job;return J&&J.pax==='waiting'?'“Ready when you are. Bring the car round and I’ll hop in.”':'“Thanks for the ride.”';},opts:[{t:'Bye',go:null}]},
   job_offer:{text:c=>{const J=jobOffer(c.n);if(!J)return '“Nothing right now. Try me in a few days.”';c.set('offer_'+c.n.def.id,J.id);return '“'+J.desc+'” ('+c.name+' will pay: '+rewardText(J.reward)+'.)';},
-    opts:[{t:'I’ll do it',if:c=>!!jobOffer(c.n),do:c=>{const J=jobOffer(c.n);if(!acceptJob(J))return '“You’ve got your hands full already. Come back when you’ve finished something.” (Three jobs at a time.)';
+    opts:[{t:'I’ll do it',if:c=>!!jobOffer(c.n),do:c=>{const J=jobOffer(c.n);if(!acceptJob(J))return '“Hang on. Not now after all.”';
         return '“Good. '+(J.type==='passenger'?J.who+' will ride with you.':J.type==='package'?'Here’s the package.':J.x!==undefined?'I’ve marked it on your map.':'Don’t be long.')+'”';}},
       {t:'Not right now',go:'__start'}]},
   job_turnin:{text:c=>{const J=jobs().find(j=>j.giver===c.n.def.id);if(!J)return '“Nothing between us.”';return jobReady(J)?'“You did it?”':'“'+J.title+'. '+(J.type==='fetch'&&!J.aboard?'Still waiting on '+J.who+'.':'Still waiting.')+'”';},
@@ -4409,8 +4422,9 @@ function openWork(){if(state!=='play')return;invOther=null;workMode=true;state='
 // a standing bar: factions run from -100% (hated: the bar runs left, red) to +100% (friends: right, green); towns from 0 to 100%
 function standBar(name,v,two,note){const pc=Math.round(v),col=two?(v<-15?'#c2381f':v<15?'#c9a24a':'#7aa860'):(v<35?'#c9a24a':'#7aa860'),w=two?Math.abs(v)/2:v,left=two?(v<0?50-w:50):0;
   return '<div class="sbar"><span class="nm">'+name+'</span><span class="tr">'+(two?'<i class="mid"></i>':'')+'<i class="fl" style="left:'+left+'%;width:'+w+'%;background:'+col+'"></i></span><span class="pc">'+(two&&pc>0?'+':'')+pc+'%'+(note?' '+note:'')+'</span></div>';}
+let jobConfirm=null;   // the job you've asked to give up, waiting on a yes
 function renderWork(){let html='';
-  html+='<h3>Jobs</h3>'+(jobs().length?jobs().map(J=>'<div class="stats"><b>'+J.title+'</b> for '+J.giverName+' in '+LOCS[J.town].name+'. '+J.desc+(jobReady(J)?' <i>Done: go back for your pay.</i>':'')+(J.pax==='aboard'?' ('+J.who+' is with you.)':J.pax==='waiting'?' ('+J.who+' is waiting for you in '+LOCS[J.paxTown].name+'.)':'')+' Pays: '+rewardText(J.reward)+'.</div>').join(''):'<div class="stats">No jobs on. Ask around in the towns: “Got any work?”</div>');
+  html+='<h3>Jobs</h3>'+(jobs().length?jobs().map(J=>'<div class="stats"><b>'+J.title+'</b> for '+J.giverName+' in '+LOCS[J.town].name+'. '+J.desc+(jobReady(J)?' <i>Done: go back for your pay.</i>':'')+(J.pax==='aboard'?' ('+J.who+' is with you.)':J.pax==='waiting'?' ('+J.who+' is waiting for you in '+LOCS[J.paxTown].name+'.)':'')+' Pays: '+rewardText(J.reward)+'.'+(jobConfirm===J.id?'<div class="jobx">Give this job up? <button data-a="jobcancel" data-k="'+J.id+'">Yes, give it up</button><button data-a="jobkeep" data-k="'+J.id+'" class="go">Keep it</button></div>':'<div class="jobx"><button data-a="jobask" data-k="'+J.id+'">Cancel job</button></div>')+'</div>').join(''):'<div class="stats">No jobs on. Ask around in the towns: “Got any work?”</div>');
   html+='<h3>Standing with the factions</h3><div class="stats">How their people treat you: below −15% they’re unfriendly (their towns won’t serve you, their convoys and gangs come for you); above +15%, friendly.</div>';
   html+=Object.keys(FACTIONS).filter(facKnown).map(f=>standBar(FACTIONS[f].name,rep(f),true,'('+repTier(rep(f)).toLowerCase()+')')).join('');
   const towns=Object.keys(G.townRep||{}).map(Number).filter(id=>LOCS[id]);
@@ -4475,6 +4489,8 @@ function invClick(e){const btn=e.target.closest&&e.target.closest('button');if(!
   const a=btn.dataset.a,k=btn.dataset.k,h=G.hero,o=otherInv(),car=invCar();
   if(a==='wstore'){if(storeCar(invOther.prop,carById(k)))showMsg('Put away safe in the warehouse',1.4);renderInv();return;}
   if(a==='wtake'){const c=takeCar(invOther.prop,+k);if(c)showMsg(c.def.name+': parked outside the warehouse',1.6);renderInv();return;}
+  if(a==='jobask'){jobConfirm=k;renderInv();return;}if(a==='jobkeep'){jobConfirm=null;renderInv();return;}   // (v12.4) giving a job up, from the Work screen
+  if(a==='jobcancel'){jobConfirm=null;const J=jobs().find(j=>j.id===k);if(J){cancelJob(J);SFX.pick();}renderInv();return;}
   if(a==='skill'){const s=SKILLS.find(q=>q.id===k);if(raiseSkill(k)){SFX.pick();showMsg(s.name+': level '+skill(k),1.6);}renderInv();return;}
   if(a==='use'){const inv=btn.dataset.s==='me'?h.inv:o;if(useItem(k,inv,car)&&btn.dataset.s!=='me')otherTouched();}
   else if(a==='cook'){const r=COOK[+k];if(r)cook(r);}   /* (v11.6) */
@@ -8144,7 +8160,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
