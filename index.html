@@ -242,24 +242,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=12.7"></script>
-<script src="models/84-hero-model.js?v=12.7"></script>
-<script src="models/84b-hero-body.js?v=12.7"></script>
-<script src="models/84c-buggy-model.js?v=12.7"></script>
-<script src="models/84d-tarona-model.js?v=12.7"></script>
-<script src="models/84e-wall-model.js?v=12.7"></script>
-<script src="models/84f-plant-models.js?v=12.7"></script>
-<script src="models/84g-kestrel-model.js?v=12.7"></script>
-<script src="models/84h-building-models.js?v=12.7"></script>
-<script src="models/84i-building-models2.js?v=12.7"></script>
-<script src="models/84j-f100-model.js?v=12.7"></script>
-<script src="models/84l-kingsford-model.js?v=12.7"></script>
-<script src="models/84m-wagon-model.js?v=12.7"></script>
+<script src="models/21b-mesa-models.js?v=12.8"></script>
+<script src="models/84-hero-model.js?v=12.8"></script>
+<script src="models/84b-hero-body.js?v=12.8"></script>
+<script src="models/84c-buggy-model.js?v=12.8"></script>
+<script src="models/84d-tarona-model.js?v=12.8"></script>
+<script src="models/84e-wall-model.js?v=12.8"></script>
+<script src="models/84f-plant-models.js?v=12.8"></script>
+<script src="models/84g-kestrel-model.js?v=12.8"></script>
+<script src="models/84h-building-models.js?v=12.8"></script>
+<script src="models/84i-building-models2.js?v=12.8"></script>
+<script src="models/84j-f100-model.js?v=12.8"></script>
+<script src="models/84l-kingsford-model.js?v=12.8"></script>
+<script src="models/84m-wagon-model.js?v=12.8"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='12.7';
+const VERSION='12.8';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -2089,6 +2089,8 @@ function getActions(){
     if(h.inv.billy_full)acts.push({k:'N',label:'Boil the billy ('+(skBoilMins(skill('bush'))>=60?'1 hour':skBoilMins(skill('bush'))+' min')+')',alt:true,fn:boilBilly});
     const bed=!c?nearestBed(22):null;if(bed)acts.push({k:'Z',label:'Rest on the bed',fn:()=>bedPanel(bed)});
     const sv=salvageTarget();if(sv){acts.push({k:'J',label:'Siphon fuel',alt:true,fn:()=>siphonPanel(sv)});acts.push({k:'K',label:'Strip parts',alt:true,fn:()=>stripPanel(sv)});}
+    if(G.stray&&Math.hypot(G.stray.x-h.x,G.stray.y-h.y)<(h.crouch?110:80)){const lc=carById(G.lastCar),fk=dogFoodKey(h.inv)||(lc&&Math.hypot(lc.x-h.x,lc.y-h.y)<300?dogFoodKey(lc.items):null);acts.push({k:'X',label:fk?'Offer the dog '+(ITEMS[fk].kg<0.5?'some ':'the ')+ITEMS[fk].name.toLowerCase():'The dog wants food (raw meat, jerky or beans)',fn:()=>{if(fk)strayOffer();}});}   /* (v12.8) */
+    {const dg=dogObj(),D=dogState();if(dg&&!dg.inCar&&Math.hypot(dg.x-h.x,dg.y-h.y)<70)acts.push({k:'X',label:D.name,alt:true,fn:dogPanel});}
     const n=nearestNPC(46),cp=compActive()&&!G.comp.inCar?G.comp:null,cpd=cp?Math.hypot(cp.x-h.x,cp.y-h.y):1e9;
     const hk=h.inv.medkit&&cp&&cp.maxHp-cp.hp>=30?'medkit':h.inv.bandage?'bandage':h.inv.medkit?'medkit':null;
     if(cp&&cpd<60)acts.push({k:'G',label:cp.def.name+'’s pack',alt:true,fn:()=>openInv({kind:'comp'})});
@@ -2946,7 +2948,7 @@ function updateFoe(f,dt){
   f.cd-=dt;f.flash=Math.max(0,f.flash-dt*5);
   if(f.stun>0){f.stun-=dt;if(f.wind>0)f.wind-=dt*0.5;f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=Math.exp(-6*dt);f.vy*=Math.exp(-6*dt);collideBuildings(f);collideWorld(f);return;}
   const hb=body(),h=G.hero,cp=compOnFoot()?G.comp:null;let t=hb,sees=canSee(f,hb);if(f.state!=='alert'&&raidersTolerate(f.fac||(f.loc&&f.loc.faction)))sees=false;
-  if(cp&&canSee(f,cp)&&(!sees||Math.hypot(cp.x-f.x,cp.y-f.y)<Math.hypot(hb.x-f.x,hb.y-f.y))){t=cp;sees=true;}
+  if(cp&&canSee(f,cp)&&(!sees||Math.hypot(cp.x-f.x,cp.y-f.y)<Math.hypot(hb.x-f.x,hb.y-f.y))){t=cp;sees=true;}{const dg=dogFoeTarget(f);if(dg){t=dg;sees=true;}}   // (the dog, v12.8)
   const dx=t.x-f.x,dy=t.y-f.y,d=Math.hypot(dx,dy),W=WEAPONS[f.weapon];
   if(sees){const rate=Math.max(0.25,1.5-d/sightRange(t))*(h.crouch&&!h.inCar?0.5:1)*(f.state==='investigate'||f.state==='search'?1.8:1)*(t.speed>75?1.4:1);
     f.detect=Math.min(1,f.detect+rate*dt*1.3);if(f.detect>=1&&f.state!=='flee')becomeAlert(f,t);if(f.state==='alert')f.lastSeen={x:t.x,y:t.y};}
@@ -2968,7 +2970,7 @@ function updateFoe(f,dt){
         if(W.melee){if(toward>80&&d<260){const px=-dy/d,py=dx/d,s=(px*(f.x-t.x+t.vx)+py*(f.y-t.y+t.vy))>0?1:-1;foeMove(f,f.x+px*s*60,f.y+py*s*60,FOE_SPEED.run,dt);}
           else if(d>90)foeMove(f,t.x,t.y,FOE_SPEED.run*0.7,dt);else f.speed=0;break;}}
       if(W.melee){if(f.wind>0){f.wind-=dt;f.speed=0;f.a=Math.atan2(dy,dx);if(f.wind<=0){f.cd=W.cd*1.15;
-            if(t.kind!=='car'&&d<W.range+t.r+6){const kx=dx/(d||1),ky=dy/(d||1);if(t.kind==='comp')hurtComp(W.dmg*1.35);else{hurtHero(W.dmg*1.35,'melee');h.vx+=kx*W.knock*0.8;h.vy+=ky*W.knock*0.8;}SFX.punch();sparks(t.x,t.y,4);}}}
+            if(t.kind!=='car'&&d<W.range+t.r+6){const kx=dx/(d||1),ky=dy/(d||1);if(t.kind==='comp')hurtComp(W.dmg*1.35);else if(t.kind==='dog')dogHurt(W.dmg*0.9,'a raider');else{hurtHero(W.dmg*1.35,'melee');h.vx+=kx*W.knock*0.8;h.vy+=ky*W.knock*0.8;}SFX.punch();sparks(t.x,t.y,4);}}}
         else if(d>W.range+h.r-2)foeMove(f,t.x,t.y,FOE_SPEED.run,dt);
         else{f.speed=0;f.a=Math.atan2(dy,dx);if(f.cd<=0)f.wind=0.3;}}   // a short wind-up you can react to
       else{const want=W.range*0.45;if(d<110)foeMove(f,f.x-dx/d*80,f.y-dy/d*80,FOE_SPEED.walk*1.4,dt);
@@ -3054,7 +3056,7 @@ function stepBullets(dt){const h=G.hero,hc=heroCar();
         if(!b.dead)for(const c of G.cars){if(c.driver==='convoy'&&!c.wrecked&&carCircles(c).some(([x,y])=>Math.hypot(x-b.x,y-b.y)<c.r+2)){b.dead=true;sparks(b.x,b.y,4);c.flash=1;c.cond-=b.dmg*0.1/c.def.armor;if(c.cond<=0)wreckCar(c);convoyProvoked(c);break;}   // a shot at a convoy truck
           if(c.driver!=='raider'||Math.hypot(c.x-b.x,c.y-b.y)>c.r+2)continue;b.dead=true;c.lastBy=b.by;sparks(b.x,b.y,4);c.flash=1;
           c.engaged=true;c.stab-=b.dmg*0.9;if(Math.random()<0.25){c.stab-=40;popText(c.x,c.y-24,'Tyre shot out','#f2a03d');}break;}}
-      else if(epBulletAlly(b)){}else{const cp=compOnFoot()?G.comp:null;if(cp&&Math.hypot(cp.x-b.x,cp.y-b.y)<cp.r+3){hurtComp(b.dmg*0.55);b.dead=true;sparks(b.x,b.y,4);}
+      else if(epBulletAlly(b)||dogBullet(b)){}else{const cp=compOnFoot()?G.comp:null;if(cp&&Math.hypot(cp.x-b.x,cp.y-b.y)<cp.r+3){hurtComp(b.dmg*0.55);b.dead=true;sparks(b.x,b.y,4);}
         else if(!hc&&Math.hypot(h.x-b.x,h.y-b.y)<h.r+3){hurtHero(b.dmg*0.55,'shot');b.dead=true;sparks(b.x,b.y,4);}
         else if(hc&&Math.hypot(hc.x-b.x,hc.y-b.y)<hc.r+2){b.dead=true;sparks(b.x,b.y,4);hc.flash=1;hc.cond-=b.dmg*0.12;SFX.hit(0.25);epPassengerHit(b.dmg);
           if(Math.random()<0.17)hitTyre(hc,rand(35,60));}}}}
@@ -3913,6 +3915,119 @@ function compTick(){const c=G.comp;if(!c||c.state==='down')return;const h=G.hero
     if(car[p]<80){addPart(car,p,15);car.touched=true;c.abilityT=180;popText(car.x,car.y-30,c.def.name+' fixes the '+PARTS[p].toLowerCase(),'#efe2c4');}}
   if(compAbility(c)==='scrounger'&&Math.random()<0.004){const k=Math.random()<0.5?'water':'jerky';if(invWeight(h.inv)+ITEMS[k].kg<=heroCap()){invAdd(h.inv,k,1);c.abilityT=240;popText(h.x,h.y-30,c.def.name+' found '+ITEMS[k].name.toLowerCase(),'#f2a03d');}}
 }
+
+/* ===== the dog (v12.8): a cattle dog of your own =====
+   Now and then a stray turns up at a ruin or a derelict hamlet: a blue or red heeler, all ribs, that won't let you near.
+   Crouch, and offer it food (raw meat, jerky, beans) three times, and it's yours: you name it.
+   It follows you on foot and hops into the car when you stop beside it (stay put if you tell it to; drive off without it and it
+   waits where you left it, marked on the map). It barks when raiders are coming and growls at an ambush lying in wait, or at a
+   broken-down car that isn't what it seems. It goes for raiders on foot, dingoes and snakes; when you're not sneaking it runs
+   down rabbits and pulls down roos for you to butcher. It eats once a day from your supplies and leaves after three hungry days.
+   It can be hurt; bandage it. If it dies, that's that, though in time another stray may turn up.
+   Kept in G.flags.dog (who it is, where it is, how it's doing); the dog you see is rebuilt from that. */
+const DOG_NAMES=['Bluey','Red','Digger','Tilly','Rusty','Patch','Jess','Ned','Sheila','Dusty','Bob','Nugget','Lou','Snowy','Kelpie','Scout'];
+const DOG_COATS=[{name:'blue heeler',fur:'#626a74',lt:'#a3a9b0',mk:'#2e2b2a',tan:'#a8743e'},{name:'red heeler',fur:'#9c5a36',lt:'#d0a27c',mk:'#5a2e1c',tan:'#c48a52'}];
+const DOG_FOOD=['rabbitmeat','snakemeat','dingomeat','roomeat','jerky','beans'];
+const DOG_HP=70;
+function dogFoodKey(inv){if(!inv)return null;for(const k of DOG_FOOD)if(inv[k]>0)return k;return null;}
+function dogState(){const D=G.flags.dog;return D&&!D.dead&&!D.gone?D:null;}
+function dogObj(){return dogState()?G.dogObj||null:null;}
+function makeDogBody(x,y,coat){return {kind:'dog',sp:'dog',S:{r:11,name:'dog'},x,y,vx:0,vy:0,a:Math.random()*TAU,r:11,hp:DOG_HP,maxHp:DOG_HP,state:'follow',coat,hop:0,flash:0,cd:0,walk:0,speed:0,stuck:0,butchered:false,inCar:false};}
+// ---- the stray: turns up at an empty place, keeps its distance, comes round to you with food
+function strayTick(dt){const b=body();
+  if(!G.stray){if(dogState()||G.clock<(G.flags.dogNext||0))return;G.strayT=(G.strayT||0)-dt;if(G.strayT>0)return;G.strayT=2;
+    let pl=null,bd=1600;for(const l of LOCS){if(l.type!=='ruin'||l.camp)continue;const d=Math.hypot(l.x-b.x,l.y-b.y);if(d<bd){bd=d;pl={key:'l'+l.id,x:l.x,y:l.y,name:l.name};}}
+    for(const h of HAMLETS){if(h.lone)continue;const d=Math.hypot(h.x-b.x,h.y-b.y);if(d<bd){bd=d;pl={key:'h'+Math.round(h.x)+','+Math.round(h.y),x:h.x,y:h.y,name:'the old hamlet'};}}
+    if(!pl)return;G.flags.strayPl=G.flags.strayPl||{};if(G.flags.strayPl[pl.key])return;G.flags.strayPl[pl.key]=1;if(Math.random()>0.3)return;
+    for(let t=0;t<12;t++){const a=Math.random()*TAU,r=rand(60,170),x=pl.x+Math.cos(a)*r,y=pl.y+Math.sin(a)*r;if(blockedAt(x,y)||obstacleAt(x,y,14)||insideMesa(x,y,20))continue;
+      const s=makeDogBody(x,y,Math.random()<0.6?0:1);s.stray=true;s.trust=0;s.state='idle';s.home={x,y};s.place=pl.name;G.stray=s;break;}
+    return;}
+  const s=G.stray,h=G.hero,onFoot=!h.inCar,d=Math.hypot(h.x-s.x,h.y-s.y);s.cd-=dt;s.flash=Math.max(0,s.flash-dt*4);
+  if(!s.seen&&d<800){s.seen=true;showMsg('A '+DOG_COATS[s.coat].name+' watches you from '+s.place+', all ribs. It backs off when you come closer. Maybe it’s hungry',3.6);}
+  if(Math.hypot(b.x-s.x,b.y-s.y)>2600){G.stray=null;return;}
+  const keep=h.crouch?40:110+(3-s.trust)*25,car=heroCar();
+  if(car&&car.speed>60&&Math.hypot(car.x-s.x,car.y-s.y)<350||G.noises.some(n=>n.r>500&&Math.hypot(n.x-s.x,n.y-s.y)<n.r)){s.fleeT=3;}
+  if(s.fleeT>0){s.fleeT-=dt;const a=Math.atan2(s.y-b.y,s.x-b.x);foeMove(s,s.x+Math.cos(a)*100,s.y+Math.sin(a)*100,150,dt);return;}
+  if(onFoot&&d<keep){const a=Math.atan2(s.y-h.y,s.x-h.x);foeMove(s,s.x+Math.cos(a)*60,s.y+Math.sin(a)*60,h.crouch?40:90,dt);}
+  else if(Math.hypot(s.home.x-s.x,s.home.y-s.y)>260)foeMove(s,s.home.x,s.home.y,50,dt);else{s.speed=0;s.vx=s.vy=0;if(onFoot&&d<500)s.a+=angDiff(Math.atan2(h.y-s.y,h.x-s.x),s.a)*Math.min(1,dt*3);}}
+function strayOffer(){const s=G.stray,h=G.hero,car=heroCar()||carById(G.lastCar),k=dogFoodKey(h.inv)||(car&&Math.hypot(car.x-h.x,car.y-h.y)<300?dogFoodKey(car.items):null);if(!s||!k)return;
+  if(!invTake(h.inv,k,1))invTake(car.items,k,1);s.trust++;SFX.pick();
+  if(s.trust<3){s.home={x:(s.home.x+h.x)/2,y:(s.home.y+h.y)/2};showMsg(s.trust===1?'You toss it the '+ITEMS[k].name.toLowerCase()+'. It snatches it and backs off, watching you':'It eats closer this time. Its tail is low, but it’s moving',2.8);return;}
+  const names=DOG_NAMES.slice().sort(()=>Math.random()-0.5).slice(0,4);state='paused';
+  showPanel({title:'A dog of your own',sub:'It eats from your hand, then sits down against your boot as if it’s always been there. A '+DOG_COATS[s.coat].name+', young, scarred across the muzzle. What will you call it?',
+    buttons:names.map((nm,i)=>({label:nm,primary:i===0,fn:()=>{hidePanel();state='play';dogAdopt(nm);}}))});}
+function dogAdopt(name){const s=G.stray;if(!s)return;G.flags.dog={name,coat:s.coat,hp:DOG_HP,mode:'follow',fedDay:Math.floor((G.clock-6*60)/DAY),missed:0,x:s.x,y:s.y,since:G.clock};
+  const d=makeDogBody(s.x,s.y,s.coat);d.a=s.a;G.dogObj=d;G.stray=null;skillPoints(2,'a dog');showMsg(name+' is yours. '+name+' will follow you, and ride with you in the car',3);}
+// ---- your dog: where it is, what it's doing
+function dogSync(){const D=dogState();if(!D){G.dogObj=null;return null;}let d=G.dogObj;
+  if(!d){const car=heroCar(),b=body();if(D.inCar&&car){d=makeDogBody(car.x,car.y,D.coat);d.inCar=true;}else{const near=Math.hypot(D.x-b.x,D.y-b.y)<3000;d=makeDogBody(near?D.x:b.x+30,near?D.y:b.y+30,D.coat);}d.hp=D.hp;G.dogObj=d;}
+  return d;}
+function dogSay(t,col){const d=G.dogObj;if(d)popText(d.x,d.y-22,t,col||'#efe2c4');}
+function dogBark(msg){const d=G.dogObj,D=dogState();if(!d||!D)return;if((G.time-(D.barkAt||-99))<14)return;D.barkAt=G.time;SFX.bark();dogSay('Woof!','#f2a03d');if(msg)showMsg(D.name+' '+msg,2.8);}
+function dogHurt(n,why){const D=dogState(),d=G.dogObj;if(!D||!d||n<=0)return;d.hp-=n;d.flash=1;dogSay('Yelp!','#ff7a5a');if(d.hp<=0){d.hp=0;dogDie(why);}}
+function dogDie(why){const D=G.flags.dog,d=G.dogObj;D.dead=true;D.hp=0;G.flags.dogNext=G.clock+3*DAY;if(d){d.state='dead';d.vx=d.vy=0;G.dogCorpse=d;}G.dogObj=null;
+  const mk=G.markers.find(m=>m.dog);if(mk){G.markers=G.markers.filter(m=>m!==mk);if(G.waypoint===mk.id)G.waypoint=null;}
+  showMsg(D.name+' is dead'+(why?' ('+why+')':'')+'. You bury '+D.name+' under a cairn of stones',4);}
+function dogLeave(why){const D=G.flags.dog;D.gone=true;G.flags.dogNext=G.clock+2*DAY;G.dogObj=null;const mk=G.markers.find(m=>m.dog);if(mk)G.markers=G.markers.filter(m=>m!==mk);showMsg(why,3.4);}
+// what it goes for: raiders on foot coming at you, a dingo or a snake after you; or, when there's no fight, something to hunt
+function dogTarget(d){const h=G.hero;let best=null,bd=300;
+  for(const f of G.foes){if(f.dead||f.townGuard||f.state!=='alert')continue;const dd=Math.min(Math.hypot(f.x-h.x,f.y-h.y),Math.hypot(f.x-d.x,f.y-d.y));if(dd<bd){bd=dd;best=f;}}
+  for(const a of G.animals){if(a.state==='dead')continue;if(!((a.sp==='dingo'&&a.state==='chase')||(a.sp==='snake'&&a.state==='attack')))continue;const dd=Math.hypot(a.x-h.x,a.y-h.y);if(dd<bd+60){bd=dd;best=a;}}
+  if(best)return best;if(h.crouch||G.fightT>0)return null;   // sneaking: it stays at heel and lets you take the shot
+  bd=360;for(const a of G.animals){if(a.state==='dead'||(a.sp!=='rabbit'&&a.sp!=='roo'))continue;const dd=Math.hypot(a.x-d.x,a.y-d.y);if(dd<bd&&Math.hypot(a.x-h.x,a.y-h.y)<500){bd=dd;best=a;}}
+  return best;}
+function dogTick(dt){strayTick(dt);if(G.dogCorpse&&Math.hypot(G.dogCorpse.x-body().x,G.dogCorpse.y-body().y)>3000)G.dogCorpse=null;
+  const D=dogState();if(!D)return;const d=dogSync(),h=G.hero,car=heroCar(),b=body();d.cd-=dt;d.flash=Math.max(0,d.flash-dt*4);
+  // the daily feed, at dawn, from your pockets or the car
+  const day=Math.floor((G.clock-6*60)/DAY);if(day>D.fedDay){D.fedDay=day;const cc=car||carById(G.lastCar);let k=dogFoodKey(h.inv),inv=h.inv;if(!k&&cc&&Math.hypot(cc.x-d.x,cc.y-d.y)<600){k=dogFoodKey(cc.items);inv=cc.items;}
+    if(k&&D.mode!=='left'){invTake(inv,k,1);D.missed=0;showMsg(D.name+' wolfs down '+(ITEMS[k].kg<0.5?'some ':'the ')+ITEMS[k].name.toLowerCase(),2.2);}
+    else{D.missed++;if(D.missed>=3)return dogLeave(D.name+' has gone hungry too long and slinks off into the scrub to fend for itself');showMsg(D.name+' goes without today'+(D.missed===2?'. Another day of this and '+D.name+' will leave you':''),2.8);}}
+  // healing slowly, out of a fight
+  if(!(G.fightT>0)&&d.hp<DOG_HP)d.hp=Math.min(DOG_HP,d.hp+dt*0.15);D.hp=d.hp;
+  // in the car with you
+  if(d.inCar){if(!car){const lc=carById(G.lastCar)||{x:h.x,y:h.y,a:h.a,def:{wid:20}};d.inCar=false;d.x=lc.x-Math.sin(lc.a)*((lc.def.wid||20)/2+14);d.y=lc.y+Math.cos(lc.a)*((lc.def.wid||20)/2+14);collideWorld(d);D.inCar=false;}
+    else{d.x=car.x;d.y=car.y;d.a=car.a;D.x=d.x;D.y=d.y;D.inCar=true;dogWatch(d,D);return;}}
+  D.inCar=false;D.x=d.x;D.y=d.y;
+  // you've driven off without it: it waits where it is (marked) until you come back
+  if(car&&D.mode!=='left'&&Math.hypot(car.x-d.x,car.y-d.y)>900&&car.speed>80){D.mode='left';G.markers.push({id:G.markerSeq++,x:Math.round(d.x),y:Math.round(d.y),text:D.name,dog:true});showMsg(D.name+' is left behind. '+D.name+' will wait there (marked on your map)',3);}
+  if(D.mode==='left'||D.mode==='stay'){const near=Math.hypot(b.x-d.x,b.y-d.y);
+    if(D.mode==='left'&&near<260&&(!car||car.speed<40)){D.mode='follow';const mk=G.markers.find(m=>m.dog);if(mk){G.markers=G.markers.filter(m=>m!==mk);if(G.waypoint===mk.id)G.waypoint=null;}dogSay(D.name+' bounds up to you','#f2a03d');}
+    else{d.speed=0;d.vx=d.vy=0;if(near<500)d.a+=angDiff(Math.atan2(b.y-d.y,b.x-d.x),d.a)*Math.min(1,dt*3);dogWatch(d,D);if(D.mode==='stay'&&!car){const t=dogTarget(d);if(t&&Math.hypot(t.x-d.x,t.y-d.y)<200)dogFight(d,t,dt);}return;}}
+  // you're in the car, stopped close by: it runs over and jumps in
+  if(car){const dd=Math.hypot(car.x-d.x,car.y-d.y);if(car.speed<40&&dd<420){if(dd<car.r+16){d.inCar=true;D.inCar=true;dogSay(D.name+' hops in','#efe2c4');}else foeMove(d,car.x,car.y,170,dt);}
+    else if(dd>60)foeMove(d,car.x-Math.cos(car.a)*car.def.len*0.7,car.y-Math.sin(car.a)*car.def.len*0.7,Math.min(190,dd*1.2),dt);dogWatch(d,D);return;}
+  // on foot with you: a fight, a hunt, or at your heel
+  const t=dogTarget(d);if(t&&d.hp>DOG_HP*0.25){dogFight(d,t,dt);dogWatch(d,D);return;}
+  const dh=Math.hypot(h.x-d.x,h.y-d.y);if(dh>2200){d.x=h.x-30;d.y=h.y+30;}
+  if(dh>(h.crouch?30:55)){const bx=h.x-Math.cos(h.a)*28+Math.sin(h.a)*18,by=h.y-Math.sin(h.a)*28-Math.cos(h.a)*18;foeMove(d,bx,by,dh>140?FOE_SPEED.run*1.15:h.crouch?26:70,dt);}else{d.speed=0;d.vx=d.vy=0;}
+  dogWatch(d,D);}
+function dogFight(d,t,dt){const dx=t.x-d.x,dy=t.y-d.y,dd=Math.hypot(dx,dy);
+  if(dd>t.r+d.r+4){foeMove(d,t.x,t.y,t.kind==='animal'&&t.sp==='rabbit'?185:175,dt);return;}
+  d.speed=0;d.a=Math.atan2(dy,dx);if(d.cd>0)return;d.cd=0.8;SFX.punch();
+  if(t.kind==='animal'){const k=dd||1;hitAnimal(t,t.sp==='rabbit'?99:t.sp==='roo'?13:12,dx/k,dy/k);if(t.state==='dead'&&(t.sp==='rabbit'||t.sp==='roo'))dogSay(dogState().name+' brings it down','#f2a03d');
+    if(t.sp==='dingo'&&t.state!=='dead'&&Math.random()<0.5){dogHurt(t.S.bite*0.7,'a dingo');}if(t.sp==='snake'&&t.state!=='dead'&&Math.random()<0.35)dogHurt(9,'snakebite');}
+  else{t.lastBy='dog';hitFoe(t,12,dx/(dd||1),dy/(dd||1),70);t.dogBit=(t.dogBit||0)+1;}}
+// keeping watch: barks at raiders coming, growls at what's lying in wait
+function dogWatch(d,D){if(G.time<(d.watchAt||0))return;d.watchAt=G.time+0.5;
+  for(const e of G.cars){if(e.driver!=='raider'||e.wipe>0||e.dogSeen)continue;const dd=Math.hypot(e.x-d.x,e.y-d.y);
+    if(e.ambush&&!e.ambush.go&&dd<1500){e.dogSeen=true;for(const o of G.cars)if(o.ambush&&Math.hypot(o.x-e.x,o.y-e.y)<600)o.dogSeen=true;D.barkAt=-99;dogBark('growls at the scrub up ahead, hackles up. Someone’s lying in wait');return;}
+    if(!e.ambush&&dd<2200){e.dogSeen=true;for(const o of G.cars)if(o.driver==='raider'&&Math.hypot(o.x-e.x,o.y-e.y)<900)o.dogSeen=true;dogBark('starts barking: something’s coming');return;}}
+  const E=typeof evActive==='function'?evActive():null;if(E&&E.trap&&E.phase==='waiting'&&!E.dogSeen&&Math.hypot(E.x-d.x,E.y-d.y)<1100){E.dogSeen=true;D.barkAt=-99;dogBark('growls at the broken-down car ahead. Its hackles are right up');return;}
+  for(const f of G.foes){if(f.dead||f.state==='alert'||f.dogSeen||f.townGuard)continue;if(Math.hypot(f.x-d.x,f.y-d.y)<520){f.dogSeen=true;dogSay('Grrr…','#ff9a7a');return;}}
+  for(const a of G.animals){if(a.sp!=='snake'||a.state==='dead'||a.dogSeen)continue;if(Math.hypot(a.x-d.x,a.y-d.y)<160){a.dogSeen=true;dogBark('barks at something in the grass. A snake');return;}}}
+// a raider being bitten turns on the dog now and then
+function dogFoeTarget(f){const d=G.dogObj;if(!d||d.inCar||!dogState()||!(f.dogBit>0))return null;if(Math.hypot(d.x-f.x,d.y-f.y)>70)return null;if((f.dogAggroT=(f.dogAggroT??(Math.random()<0.55?1:0)))<1)return null;return d;}
+function dogBullet(b){const d=G.dogObj;if(!d||d.inCar||!dogState())return false;if(Math.hypot(d.x-b.x,d.y-b.y)<d.r+2){dogHurt(b.dmg*0.5,'shot');b.dead=true;sparks(b.x,b.y,3);return true;}return false;}
+// the dog's own menu: stay, come, a scratch behind the ears, a bandage
+function dogPanel(){const D=dogState(),d=G.dogObj;if(!D||!d)return;state='paused';endStick();const h=G.hero,hurt=d.hp<DOG_HP-12;
+  const btn=[];if(D.mode==='follow')btn.push({label:'Stay here',fn:()=>{D.mode='stay';hidePanel();state='play';dogSay(D.name+' sits')}});else btn.push({label:'Come on, '+D.name,primary:true,fn:()=>{D.mode='follow';hidePanel();state='play';dogSay('Tail going');}});
+  btn.push({label:'Give '+D.name+' a scratch behind the ears',fn:()=>{hidePanel();state='play';dogSay('♥','#f2a03d');}});
+  if(hurt&&(h.inv.bandage||h.inv.medkit))btn.push({label:'Bandage '+D.name,fn:()=>{const k=h.inv.bandage?'bandage':'medkit';invTake(h.inv,k,1);d.hp=Math.min(DOG_HP,d.hp+(k==='medkit'?60:35));SFX.pick();hidePanel();state='play';dogSay('+ '+D.name,'#b9d27a');}});
+  if(D.missed>0&&dogFoodKey(h.inv))btn.push({label:'Feed '+D.name+' now',fn:()=>{const k=dogFoodKey(h.inv);invTake(h.inv,k,1);D.missed=0;hidePanel();state='play';dogSay('Gone in a gulp');}});
+  btn.push({label:'Back',fn:()=>{hidePanel();state='play';}});
+  showPanel({title:D.name,sub:'Your '+DOG_COATS[D.coat].name+'. '+(d.hp<DOG_HP*0.4?'Badly hurt, and limping.':hurt?'A bit knocked about.':'Fit and keen.')+' '+(D.missed?'Hungry: '+D.missed+' day'+(D.missed>1?'s':'')+' without a feed.':'Fed today.')+' '+(D.mode==='stay'?'Staying put.':'Following you.')+' (Eats raw meat, jerky or beans, once a day.)',buttons:btn});}
+SFX.bark=function(){if(!this.c)return;this.noise(0.09,'bandpass',900,0.32,4);this.tone(520,300,0.09,0.12,'sawtooth');setTimeout(()=>{this.noise(0.08,'bandpass',820,0.28,4);this.tone(480,280,0.08,0.1,'sawtooth');},170);};
+function dogShown(){const out=[];if(G.dogObj&&!G.dogObj.inCar&&dogState())out.push(G.dogObj);if(G.stray)out.push(G.stray);if(G.dogCorpse)out.push(G.dogCorpse);return out;}
 
 /* ===== jobs: work people in towns want doing =====
    Some townsfolk (and drifters) have a job going: kill a wanted raider or a rival faction's enforcer (on foot, or in a car),
@@ -4967,6 +5082,7 @@ function toolsPanel(){if(state!=='play')return;state='paused';endStick();SFX.eng
       {label:'Put me right in the middle of one',fn:()=>{G.storm={phase:'in',a:W.a,d:-300,speed:60,len:rand(140,260),t:200,k:1};done('You’re in a dust storm');}},
       {label:'Clear it away',fn:()=>{G.storm={phase:'none',t:rand(500,1000),k:0,d:0};G.parts=G.parts.filter(p=>!p.gustDust);done('The dust clears');}},
       {label:'Back',fn:()=>{hidePanel();toolsPanel();}}]});}},
+    {label:'Spawn a stray dog nearby',fn:()=>{const p=b(),a=h.a+Math.PI*0.5,s=makeDogBody(p.x+Math.cos(a)*220,p.y+Math.sin(a)*220,Math.random()<0.6?0:1);s.stray=true;s.trust=0;s.state='idle';s.home={x:s.x,y:s.y};s.place='nearby';G.flags.dog=null;G.dogObj=null;G.stray=s;done('A stray: crouch and offer it food');}},
     {label:'Roadside encounter…',fn:()=>{if(!heroCar())return done('Get in a car and drive along a road first');hidePanel();state='paused';const go=k=>()=>{if(G.roadEv)evEnd(G.roadEv);const E=spawnRoadEv(k);done(E?null:'No room for one here: try further along the road');};   /* (v12.6) */
       showPanel({title:'Roadside encounter',sub:'Something up the road ahead of you.',buttons:[{label:'Stranded traveller',primary:true,fn:go('stranded')},{label:'A fake breakdown (raiders)',fn:()=>{if(G.roadEv)evEnd(G.roadEv);const E=spawnRoadEv('stranded');if(E&&E.npc){E.trap=true;}done(E?null:'No room for one here');}},{label:'Hitchhiker',fn:go('hitch')},{label:'Travelling trader',fn:go('trader')},{label:'Distress flare',fn:go('flare')},{label:'Back',fn:()=>{hidePanel();toolsPanel();}}]});}},
     {label:'Spawn a raider car with a shooter',fn:()=>{if(!heroCar())return done('Get in a car first');spawnEncounter();for(const c of G.cars)if(c.driver==='raider')c.gunner=true;done();}},
@@ -8009,12 +8125,15 @@ function animalModel3(a){const gb=new GB(),dead=a.state==='dead',k=dead?0.78:1,C
     for(const z of [-1.6,1.6])gb.beam([4.5,23,z*0.7],[3,28,z*1.4],1.1,dk);gb.beam([-4,5,0],[-22,1,0],2.4,dk);   // ears, tail
     for(const z of [-2.4,2.4]){gb.box(2,0,z,9,2.2,2.4,0,dk);gb.beam([3,12,z*0.8],[7,8,z],1.2,fur);}}   // big hind feet, little arms
   else if(a.sp==='rabbit'){const fur=C('#8d806c');gb.lump(0,0,0,4.6,5.5,0,fur);gb.lump(4.4,3.2,0,2.6,3.6,0,fur);for(const z of [-1,1])gb.beam([4,6,z],[1,11,z*1.6],0.9,C('#7a6e5c'));gb.lump(-4.4,2,0,1.4,1.6,0,col3('#d8cfba'));}
+  else if(a.sp==='dog'){const K=DOG_COATS[a.coat||0],fur=C(K.fur),lt=C(K.lt),mk=C(K.mk),tan=C(K.tan);   // a cattle dog: stocky, speckled, a dark mask, tan legs (v12.8)
+    gb.box(0,6,0,15,6.5,6.4,0,fur,lt);gb.box(1,5.4,0,10,1.4,5.2,0,lt);gb.box(-4,9.6,0,5,1.6,6.6,0,mk);gb.box(9,9.2,0,5.6,5,5,0,fur);gb.box(12.4,8.4,0,3.6,2.6,3,0,tan);gb.box(10.6,10.6,0,2.4,2,5.2,0,mk);   // body, belly, saddle patch, head, muzzle, mask
+    for(const z of [-1.7,1.7])gb.beam([9,13.5,z],[8.6,17.4,z*1.25],1.3,fur);for(const [x,z] of [[5.5,2.1],[5.5,-2.1],[-5.5,2.1],[-5.5,-2.1]])gb.box(x,0,z,2,6.4,2,0,tan);gb.beam([-7.5,9.5,0],[-13,10.5,0],1.4,fur);}
   else if(a.sp==='dingo'){const fur=C('#b8864e'),lt=C('#d8b47e');gb.box(0,6,0,17,6.5,6,0,fur,fur);gb.box(1,5.6,0,12,1.4,5,0,lt);gb.box(10,9,0,6,5,4.6,0,fur);gb.box(14,9,0,4,2.6,3,0,lt);   // body, belly, head, snout
     for(const z of [-1.6,1.6])gb.beam([10,14,z],[9.5,17.5,z*1.2],1.2,fur);for(const [x,z] of [[6,2],[6,-2],[-6,2],[-6,-2]])gb.box(x,0,z,1.8,6.5,1.8,0,fur);gb.beam([-8.5,10,0],[-15,13,0],1.6,fur);}
   else{const sk=C('#5a4a30');let px=-14,pz=0;for(let j=1;j<=7;j++){const x=-14+j*4.4,z=Math.sin(j*1.3)*3;gb.beam([px,1.2,pz],[x,1.2,z],2.4-j*0.15,sk);px=x;pz=z;}}   // a snake, in a few bends
   return gb;}
 function animals3(b){const sc=V3.scene,seen=new Set(),now=performance.now(),dt=Math.min(0.1,FX3.rooT?(now-FX3.rooT)/1000:0.016);FX3.rooT=now;
-  for(const a of G.animals){if(Math.abs(a.x-b.x)>2200||Math.abs(a.y-b.y)>2200)continue;seen.add(a);
+  for(const a of G.animals.concat(dogShown())){if(Math.abs(a.x-b.x)>2200||Math.abs(a.y-b.y)>2200)continue;seen.add(a);
     if(a.sp==='roo'&&roo3(a,b,dt)){const e0=FX3.animals.get(a);if(e0){drop3(e0.m);FX3.animals.delete(a);}continue;}   // the animated kangaroo (86c)
     if(a.sp==='roo')dropRoo3(a);
     const dead=a.state==='dead',key=(dead?'d':'a')+(a.butchered?'b':'');let e=FX3.animals.get(a);
@@ -8616,6 +8735,7 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
   if(G.encActive&&!raidingNow&&!G.encWarn){G.encActive=false;showMsg(pickLine(RAID_CLEAR),2.4);G.calmT=rand(180,300);G.encT=Math.max(G.encT,G.calmT);}
   roadEvTick(dt,car,b,raidingNow);   // roadside encounters (v12.6)
   epicTick(dt);   // epic quests (v12.7)
+  dogTick(dt);   // the dog (v12.8)
   // route guidance
   if(G.leg){const L=G.leg,onVia=!!L.via&&b.ri.r===L.via.road&&b.ri.d<300;G.onLeg=(b.ri.r===L.road&&b.ri.d<300)||onVia;
     G.nearT-=dt;if(!G.onLeg&&G.nearT<=0){G.nearT=0.4;let bd=1e18,bx=0,by=0;for(const rr of L.via?[L.road,L.via.road]:[L.road]){const R=roads[rr];
@@ -8661,7 +8781,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
 window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
-  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,get RAID_TGT(){return RAID_TGT;}};
+  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
 
