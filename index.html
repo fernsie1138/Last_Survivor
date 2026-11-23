@@ -242,24 +242,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=12.4"></script>
-<script src="models/84-hero-model.js?v=12.4"></script>
-<script src="models/84b-hero-body.js?v=12.4"></script>
-<script src="models/84c-buggy-model.js?v=12.4"></script>
-<script src="models/84d-tarona-model.js?v=12.4"></script>
-<script src="models/84e-wall-model.js?v=12.4"></script>
-<script src="models/84f-plant-models.js?v=12.4"></script>
-<script src="models/84g-kestrel-model.js?v=12.4"></script>
-<script src="models/84h-building-models.js?v=12.4"></script>
-<script src="models/84i-building-models2.js?v=12.4"></script>
-<script src="models/84j-f100-model.js?v=12.4"></script>
-<script src="models/84l-kingsford-model.js?v=12.4"></script>
-<script src="models/84m-wagon-model.js?v=12.4"></script>
+<script src="models/21b-mesa-models.js?v=12.5"></script>
+<script src="models/84-hero-model.js?v=12.5"></script>
+<script src="models/84b-hero-body.js?v=12.5"></script>
+<script src="models/84c-buggy-model.js?v=12.5"></script>
+<script src="models/84d-tarona-model.js?v=12.5"></script>
+<script src="models/84e-wall-model.js?v=12.5"></script>
+<script src="models/84f-plant-models.js?v=12.5"></script>
+<script src="models/84g-kestrel-model.js?v=12.5"></script>
+<script src="models/84h-building-models.js?v=12.5"></script>
+<script src="models/84i-building-models2.js?v=12.5"></script>
+<script src="models/84j-f100-model.js?v=12.5"></script>
+<script src="models/84l-kingsford-model.js?v=12.5"></script>
+<script src="models/84m-wagon-model.js?v=12.5"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='12.4';
+const VERSION='12.5';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -759,7 +759,8 @@ function getChunk(cx,cy){
   // the debris pile in an outback ruin, if it has one
   for(const s of shellsNear(ox+CH/2,oy+CH/2,CH))if(s.box&&s.box.x>=ox&&s.box.y>=oy&&s.box.x<ox+CH&&s.box.y<oy+CH)c.boxes.push(Object.assign({},s.box));
   // scree: boulders fallen from the cliffs lie round the foot of every mesa and butte
-  for(const m of mesasNear(ox+CH/2,oy+CH/2,CH)){const n=m.butte?7:m.big?Math.round(m.maxR/9):16;const rm=rng(m.seed);for(let k=0;k<n;k++){const a=rm()*TAU,d=mesaR(m,a)+16+rm()*60,x=m.x+Math.cos(a)*d,y=m.y+Math.sin(a)*d,rad=8+rm()*18;
+  for(const m of mesasNear(ox+CH/2,oy+CH/2,CH)){if(m.kind==='mountain'&&MTN.shapes.length)continue;   /* (mountains are ground now: no ring of scree round the old outline) */
+    const n=m.butte?7:m.big?Math.round(m.maxR/9):16;const rm=rng(m.seed);for(let k=0;k<n;k++){const a=rm()*TAU,d=mesaR(m,a)+16+rm()*60,x=m.x+Math.cos(a)*d,y=m.y+Math.sin(a)*d,rad=8+rm()*18;
     if(x<ox||y<oy||x>=ox+CH||y>=oy+CH)continue;const pts=[];for(let j=0;j<8;j++)pts.push(0.78+rm()*0.32);if(roadInfo(x,y).d>120)c.rocks.push({x,y,r:rad,pts,rot:rm()*TAU});}}
   for(let i=0;i<4;i++)c.patches.push({x:ox+r()*CH,y:oy+r()*CH,rx:80+r()*220,ry:40+r()*120,rot:r()*TAU,light:r()<0.5});
   for(let i=0;i<7;i++)c.ripples.push({x:ox+r()*CH,y:oy+r()*CH,len:60+r()*140,rot:-0.5+r()*0.4,bend:10+r()*18});
@@ -824,7 +825,8 @@ function terrainFactors(x,y){const fx=x/CH,fy=y/CH,ix=Math.floor(fx),iy=Math.flo
   const a=cornerTerrain(ix,iy),b=cornerTerrain(ix+1,iy),c=cornerTerrain(ix,iy+1),d=cornerTerrain(ix+1,iy+1),w0=(1-tx)*(1-ty),w1=tx*(1-ty),w2=(1-tx)*ty,w3=tx*ty;
   const mix=k=>a[k]*w0+b[k]*w1+c[k]*w2+d[k]*w3;return {m:mix('m'),mesa:mix('mesa'),can:mix('can'),hill:mix('hill'),flow:mix('flow')};}
 function ridge(n,x,y,s,o){return 1-Math.abs(2*fbm(n,x/s,y/s,o)-1);}
-function heightRaw(x,y,f){f=f||terrainFactors(x,y);if(!f.hill)return 0;
+function heightRaw(x,y,f){return hillHeight(x,y,f)+(typeof MTN!=='undefined'&&MTN&&MTN.shapes.length?mtnHeight(x,y):0);}   // (v12.5: and the mountains, part of the ground now)
+function hillHeight(x,y,f){f=f||terrainFactors(x,y);if(!f.hill)return 0;
   let h=f.hill*((fbm(nHill,x/5000,y/5000,3)-0.5)*2+0.35*(fbm(nHill2,x/1600,y/1600,2)-0.5)*2);
   // rivers (and dry creeks) run at a steady level: the hills don't carry them up and down. Near one the land falls away
   // into a broad valley with gentle sides (about 600 m out from the water), down to the river's level at its banks.
@@ -836,7 +838,7 @@ function riverLevel(f){return -1.1*f.hill-6;}
 // how wide a river runs here: narrow stretches, broad reaches (up to about three times the width), changing slowly along it
 function rivT(x,y){return 0.9978-0.0042*clamp((fbm(nRivW,x/26000,y/26000,2)-0.42)*2.6,0,1);}
 function terrainRaw(x,y,f){f=f||terrainFactors(x,y);
-  const rv=ridge(nRiv,x,y,70000,3);if(rv>0.9936&&rv>rivT(x,y))return fbm(nRivF,x/90000,y/90000,2)>(f||terrainFactors(x,y)).flow?T.RIVER:T.DRY;
+  const rv=ridge(nRiv,x,y,70000,3);if(rv>0.9936&&rv>rivT(x,y)){const fl=fbm(nRivF,x/90000,y/90000,2)>(f||terrainFactors(x,y)).flow;if(!fl&&typeof MTN!=='undefined'&&MTN&&MTN.shapes.length&&mtnCore(x,y)>15)return T.GROUND;return fl?T.RIVER:T.DRY;}   /* (a dry creek doesn't run up a mountain: v12.5) */
   if(f.can>0.3&&fbm(nCanM,x/90000,y/90000,2)>0.56&&ridge(nCan,x,y,45000,3)>0.9972)return T.CANYON;
   return T.GROUND;}
 const TN=CH/32;   // 20 cells a side
@@ -938,9 +940,9 @@ function makeBig(x,y,kind,R,stretch,rot,r,H){const o=bigOutline(R,stretch,rot,r,
   // 1. valleys: a stretch of road through the hills with a line of peaks either side
   for(let ri=0;ri<roads.length;ri++){const R=roads[ri];for(let i=80;i<R.n-80;i+=900+Math.floor(r()*900)){if(r()>0.55)continue;const x0=R.xs[i],y0=R.ys[i];if(!hilly(x0,y0)||LOCS.some(o=>Math.hypot(o.x-x0,o.y-y0)<o.rad+4000))continue;
       const a=Math.atan2(R.ys[i+8]-R.ys[i-8],R.xs[i+8]-R.xs[i-8]),ux=Math.cos(a),uy=Math.sin(a),H0=650+r()*450;
-      for(const sg of [-1,1])for(let k=-2;k<=2;k++){const Rl=2200+r()*1300,st=0.42+r()*0.14,lat=Rl*st*1.1+700+r()*500,j=clamp(i+Math.round(k*Rl*1.5/40),2,R.n-3);   // long along the road, narrower across it
+      for(const sg of [-1,1])for(let k=-2;k<=2;k++){const vid='vl'+ri+'_'+i+'_'+sg;const Rl=2200+r()*1300,st=0.42+r()*0.14,lat=Rl*st*1.1+700+r()*500,j=clamp(i+Math.round(k*Rl*1.5/40),2,R.n-3);   // long along the road, narrower across it
         const px=R.xs[j],py=R.ys[j],tx=R.xs[j+2]-R.xs[j-2],ty=R.ys[j+2]-R.ys[j-2],tl=Math.hypot(tx,ty)||1,nx=-ty/tl*sg,ny=tx/tl*sg;
-        const m=makeBig(px+nx*lat,py+ny*lat,'mountain',Rl,st,Math.atan2(ty,tx),r,H0*(0.75+r()*0.4));if(bigFits(m,null))addBig(m);}}}
+        const m=makeBig(px+nx*lat,py+ny*lat,'mountain',Rl,st,Math.atan2(ty,tx),r,H0*(0.75+r()*0.4));m.range=vid;if(bigFits(m,null))addBig(m);}}}
   // 2. ranges: chains of overlapping peaks along a gently bending line, highest toward the middle
   for(let t=0;t<220&&BIG.filter(m=>m.range).length<160;t++){const x=(r()*2-1)*WX*0.95,y=(r()*2-1)*WY*0.95;if(!hilly(x,y)||landValue(x,y)<0.1)continue;
     let a=r()*TAU,cx=x,cy=y;const n=4+Math.floor(r()*6),rid='rg'+t,H0=700+r()*500;
@@ -952,15 +954,53 @@ function makeBig(x,y,kind,R,stretch,rot,r,H){const o=bigOutline(R,stretch,rot,r,
     const m=kind==='mountain'?makeBig(x,y,kind,2600+r()*3600,0.6+r()*0.35,r()*TAU,r,600+r()*650):makeBig(x,y,kind,1400+r()*2400,0.55+r()*0.4,r()*TAU,r,380+r()*260);
     if(bigFits(m,BIG))addBig(m);}
   BIG.layoutMs=Date.now()-t0;})();
+/* ---- mountains as ground (v12.5): no longer separate objects, they're part of the land's height ----
+   Each mountain is a peak over its outline: a broken summit, steeper near the top, its lower slopes long and gentle out to the foot.
+   Neighbouring peaks of a range (or of a line beside a valley road) are joined by a ridge along the line between them, dipping to a
+   saddle midway, so a range is one landform, not a string of separate hills. A ridge is only laid where its whole width keeps clear
+   of roads, towns, rivers and canyons. Ridged noise carves spurs, gullies and crags into them, the more so higher up.
+   The upper slopes are too steep to drive or climb (mtnCore, used by insideMesa and the collisions); the lower ones you can, slowly. */
+var MTN={shapes:[],grid:new Map(),G:4000,K:1.2,SOLID:300};const nMtnR=vnoise(163),nMtnF=vnoise(167);
+function smax(a,b,k){k=Math.min(k,a,b);if(k<=0)return Math.max(a,b);const q=Math.max(k-Math.abs(a-b),0)/k;return Math.max(a,b)+q*q*k*0.25;}   /* (the blend fades out where either is low: a plain smooth max lifted the plain by k/4 at a shape's very edge, a bank round every range) */
+function mtnProf(u){return u>=1?0:Math.pow(1-u,1.6);}
+(function(){if(TEST_MODE)return;const t0=Date.now(),chains={};
+  for(const m of BIG){if(m.kind!=='mountain')continue;m.mH=m.H*MTN.K;
+    {const N=m.rad.length,sm=new Float32Array(N);for(let i=0;i<N;i++){let t=0,w=0;for(let k=-4;k<=4;k++){const q=Math.exp(-k*k/8);t+=m.rad[(i+k+N)%N]*q;w+=q;}sm[i]=t/w*0.97;}m.radS=sm;}   /* a smoothed outline for its height (the gully notches would make straight trenches) */MTN.shapes.push({n:m,x0:m.x-m.maxR,x1:m.x+m.maxR,y0:m.y-m.maxR,y1:m.y+m.maxR});if(m.range)(chains[m.range]=chains[m.range]||[]).push(m);}
+  const ok=(x,y,W)=>{if(landValue(x,y)<0.05||nearLoc(x,y,W+1300))return false;const ri=roadInfo(x,y);if(ri.r>=0&&ri.d<W+(ri.w||60)/2+450)return false;const t=terrainRaw(x,y);return t===T.GROUND||t===T.DRY;};
+  let joined=0;for(const id in chains){const c=chains[id];for(let k=0;k+1<c.length;k++){const A=c[k],B=c[k+1],d=Math.hypot(B.x-A.x,B.y-A.y);if(d>(A.R+B.R)*1.6)continue;
+      const WA=A.R*A.stretch*0.95,WB=B.R*B.stretch*0.95;let fine=true;
+      for(let s=0;s<=d&&fine;s+=180){const t=s/d,x=A.x+(B.x-A.x)*t,y=A.y+(B.y-A.y)*t,W=WA+(WB-WA)*t,nx=-(B.y-A.y)/d,ny=(B.x-A.x)/d;   // along the ridge line, and out to either side of it
+        for(const f of [0,0.6,0.95,-0.6,-0.95])if(!ok(x+nx*W*f,y+ny*W*f,f?W*(1-Math.abs(f)):W)){fine=false;break;}}
+      if(!fine)continue;const W=Math.max(WA,WB);MTN.shapes.push({a:A,b:B,d,WA,WB,x0:Math.min(A.x,B.x)-W,x1:Math.max(A.x,B.x)+W,y0:Math.min(A.y,B.y)-W,y1:Math.max(A.y,B.y)+W});joined++;}}
+  for(const sh of MTN.shapes)for(let gx=Math.floor(sh.x0/MTN.G);gx<=Math.floor(sh.x1/MTN.G);gx++)for(let gy=Math.floor(sh.y0/MTN.G);gy<=Math.floor(sh.y1/MTN.G);gy++){const k=gx+','+gy;if(!MTN.grid.has(k))MTN.grid.set(k,[]);MTN.grid.get(k).push(sh);}
+  MTN.joined=joined;MTN.ms=Date.now()-t0;
+  // any ground already made before the mountains were (while the world was being laid out): give it its mountains now
+  for(const c of chunks.values()){const ox=c.cx*CH,oy=c.cy*CH;let any=false;for(let j=0;j<=4&&!any;j++)for(let i=0;i<=4&&!any;i++)if(mtnCore(ox+i*CH/4,oy+j*CH/4)>0)any=true;if(any&&c.hgt)buildTerrain(c);}})();
+// the smooth shape of the mountains here (no crags): the highest of the peaks and ridges over this point
+function mtnCore(x,y){const L=MTN.grid.get(Math.floor(x/MTN.G)+','+Math.floor(y/MTN.G));if(!L)return 0;let h=0;
+  for(const sh of L){if(x<sh.x0||x>sh.x1||y<sh.y0||y>sh.y1)continue;
+    if(sh.n){const m=sh.n,dx=x-m.x,dy=y-m.y,d=Math.hypot(dx,dy);if(d>=m.maxR)continue;const u=d/mesaR({rad:m.radS},Math.atan2(dy,dx));if(u<1)h=smax(h,m.mH*mtnProf(u),140);}
+    else{const A=sh.a,B=sh.b,ux=(B.x-A.x)/sh.d,uy=(B.y-A.y)/sh.d,px=x-A.x,py=y-A.y,s=px*ux+py*uy,t=clamp(s/sh.d,0,1),lat=s<0?Math.hypot(px,py):s>sh.d?Math.hypot(x-B.x,y-B.y):Math.abs(-px*uy+py*ux),W=sh.WA+(sh.WB-sh.WA)*t;if(lat>=W)continue;   /* rounded ends (a ridge that stopped dead at each peak left a wall through it) */
+      const H=(A.mH+(B.mH-A.mH)*t)*(1-0.3*Math.sin(Math.PI*t));h=smax(h,H*mtnProf(lat/W),140);}}   // a saddle midway along the ridge; peaks and ridges blend where they meet (no crease)
+  return h;}
+// and with its crags, spurs and gullies (the height the ground takes)
+function mtnHeight(x,y){const h=mtnCore(x,y);if(h<=0)return 0;const rd=ridge(nMtnR,x,y,1500,3),fn=fbm(nMtnF,x/620,y/620,2)-0.5;return h*(0.6+0.4*rd)+h*0.07*fn;}   /* (no detail finer than the distant ground can follow, so near and far meet without a step) */
+// too steep to get onto: the upper slopes (pad: keep this far clear, roughly)
+function mtnSolid(x,y,pad){return mtnCore(x,y)>Math.max(60,MTN.SOLID-(pad||0)*0.45);}
 function bigAt(){return null;}   // (old per-cell lookup, kept so nothing that still asks for it breaks)
 function bigNear(x,y,range,out){const seen=new Set(),R0=range;   /* each landform is filed in every grid cell it covers, so only the cells the range touches need looking in */for(let gx=Math.floor((x-R0)/BIG_G);gx<=Math.floor((x+R0)/BIG_G);gx++)for(let gy=Math.floor((y-R0)/BIG_G);gy<=Math.floor((y+R0)/BIG_G);gy++){const a=bigGrid.get(gx+','+gy);if(!a)continue;
     for(const m of a){if(seen.has(m))continue;seen.add(m);if(Math.hypot(m.x-x,m.y-y)-m.maxR<range)out.push(m);}}return out;}
 function mesasNear(x,y,range){const out=[],i0=Math.floor((x-range)/MESA_CELL),i1=Math.floor((x+range)/MESA_CELL),j0=Math.floor((y-range)/MESA_CELL),j1=Math.floor((y+range)/MESA_CELL);
   for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const m=mesaAt(i,j);if(m)out.push(m);}return bigNear(x,y,range,out);}
 // is this point on (or within pad of) a mesa's cliffs?
-function insideMesa(x,y,pad){pad=pad||0;for(const m of mesasNear(x,y,500)){const dx=x-m.x,dy=y-m.y,d=Math.hypot(dx,dy);if(d>m.maxR+pad)continue;if(d<mesaR(m,Math.atan2(dy,dx))+pad)return m;}return null;}
+function insideMesa(x,y,pad){pad=pad||0;for(const m of mesasNear(x,y,500)){if(m.kind==='mountain'&&MTN.shapes.length)continue;const dx=x-m.x,dy=y-m.y,d=Math.hypot(dx,dy);if(d>m.maxR+pad)continue;if(d<mesaR(m,Math.atan2(dy,dx))+pad)return m;}
+  if(mtnSolid(x,y,pad))return MTN_ROCK;return null;}
+const MTN_ROCK={id:'mountain',kind:'mountain',mountainside:true};
 // push a moving thing out of any cliff it has run into; returns the outward normal if it hit
-function collideMesas(b){for(const m of mesasNear(b.x,b.y,500)){const dx=b.x-m.x,dy=b.y-m.y,d=Math.hypot(dx,dy)||1;if(d>m.maxR+b.r+4)continue;
+function collideMesas(b){
+  // a mountain's steep upper slopes: pushed back down the slope to where it's climbable
+  {const lim=MTN.SOLID-b.r*0.45,v=mtnCore(b.x,b.y);if(v>lim){const e=6,gx=(mtnCore(b.x+e,b.y)-mtnCore(b.x-e,b.y))/(2*e),gy=(mtnCore(b.x,b.y+e)-mtnCore(b.x,b.y-e))/(2*e),gl=Math.hypot(gx,gy)||1e-6,nx=-gx/gl,ny=-gy/gl,step=Math.min(40,(v-lim)/gl+0.5);b.x+=nx*step;b.y+=ny*step;return {nx,ny};}}
+  for(const m of mesasNear(b.x,b.y,500)){if(m.kind==='mountain'&&MTN.shapes.length)continue;const dx=b.x-m.x,dy=b.y-m.y,d=Math.hypot(dx,dy)||1;if(d>m.maxR+b.r+4)continue;
     const a=Math.atan2(dy,dx),edge=mesaR(m,a)+b.r*0.9;if(d<edge){const nx=dx/d,ny=dy/d;b.x=m.x+nx*edge;b.y=m.y+ny*edge;return {nx,ny};}}return null;}
 
 /* ===== what the ruins were (v11.8) =====
@@ -4708,7 +4748,8 @@ function mapTile(lv,i,j){const k=lv+':'+i+':'+j;return MAPT.get(k);}
 let mapTjob=null;
 function startMapTile(lv,i,j){const RES=MAPT_LV[lv],S=256,G8=S/8+1,x0=i*S*RES,y0=j*S*RES,cnv=document.createElement('canvas');cnv.width=S;cnv.height=S;const c2=cnv.getContext('2d');
   const grid=[];for(let gy=0;gy<G8;gy++)for(let gx=0;gx<G8;gx++){const x=x0+gx*8*RES,y=y0+gy*8*RES,lv0=landValue(x,y),f=terrainFactors(x,y);grid.push({lv:lv0,col:lv0<0?[31,44,48]:MAP_BIOME[zoneAt(x,y).biome],can:f.can,flow:f.flow});}
-  mapTjob={lv,i,j,RES,S,G8,x0,y0,cnv,c2,img:c2.createImageData(S,S),grid,row:0};}
+  let mtn=false;if(typeof MTN!=='undefined'&&MTN.shapes.length){const G=MTN.G;for(let gy=Math.floor(y0/G)-1;gy<=Math.floor((y0+S*RES)/G)+1&&!mtn;gy++)for(let gx=Math.floor(x0/G)-1;gx<=Math.floor((x0+S*RES)/G)+1;gx++)if(MTN.grid.has(gx+','+gy)){mtn=true;break;}}
+  mapTjob={lv,i,j,RES,S,G8,x0,y0,cnv,c2,img:c2.createImageData(S,S),grid,row:0,mtn};}
 function stepMapTile(budgetEnd){const J=mapTjob,{RES,S,G8,x0,y0,grid,img}=J,wr=Math.min(0.9978,1-3.75e-6*RES*1.4),wc=Math.min(0.9972,1-3.75e-6*RES*1.4),dat=img.data;
   while(J.row<S&&performance.now()<budgetEnd){const y=J.row,gy=Math.min(G8-2,y>>3),ty=(y-gy*8)/8,wy=y0+(y+0.5)*RES;
     for(let x=0;x<S;x++){const gx=Math.min(G8-2,x>>3),tx=(x-gx*8)/8,a=grid[gy*G8+gx],b=grid[gy*G8+gx+1],c=grid[(gy+1)*G8+gx],d=grid[(gy+1)*G8+gx+1];
@@ -4719,6 +4760,9 @@ function stepMapTile(budgetEnd){const J=mapTjob,{RES,S,G8,x0,y0,grid,img}=J,wr=M
         const can=a.can*w0+b.can*w1+c.can*w2+d.can*w3;
         const rv0=ridge(nRiv,wx,wy,70000,3);if(rv0>Math.min(wr,0.9936)&&rv0>Math.min(wr,rivT(wx,wy))){const fl=a.flow*w0+b.flow*w1+c.flow*w2+d.flow*w3;if(fbm(nRivF,wx/90000,wy/90000,2)>fl){R=128;Gc=98;Bc=62;}else{R=201;Gc=180;Bc=138;}}
         else if(can>0.3&&fbm(nCanM,wx/90000,wy/90000,2)>0.56){const cv=ridge(nCan,wx,wy,45000,3);if(cv>wc){R=42;Gc=29;Bc=22;}else if(RES<=400&&cv>wc-0.006){R*=0.72;Gc*=0.62;Bc*=0.55;}}}
+      if(lvv>=0&&J.mtn){const h=mtnCore(wx,wy);if(h>8){const hx=mtnCore(wx+RES,wy),hy=mtnCore(wx,wy+RES),d=Math.max(RES,30),   /* (v12.5) mountains as relief: brown-grey rock, lit from the north-west, edged where they rise from the plain */
+          sh=clamp(1+((h-hx)+(h-hy))/d*0.55,0.55,1.35),t=clamp((h-8)/110,0,1),tone=(1-t)+t*sh;R=(R*(1-t)+138*t)*tone;Gc=(Gc*(1-t)+116*t)*tone;Bc=(Bc*(1-t)+98*t)*tone;
+          if((h-60)*(hx-60)<0||(h-60)*(hy-60)<0){R*=0.55;Gc*=0.5;Bc*=0.45;}}}
       if(dat){const k=(y*S+x)*4;dat[k]=R;dat[k+1]=Gc;dat[k+2]=Bc;dat[k+3]=255;}}
     J.row++;}
   if(J.row>=S){J.c2.putImageData(img,0,0);MAPT.set(J.lv+':'+J.i+':'+J.j,J.cnv);if(MAPT.size>260)MAPT.delete(MAPT.keys().next().value);mapTjob=null;}}
@@ -4799,20 +4843,33 @@ function drawMap(){
 function pnoise(x,y){let h=(x*374761393+y*668265263)|0;h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
 function roadTerrain(R,i){if(!R.tt)R.tt=new Uint8Array(R.n);if(!R.tt[i]){const r=terrainRaw(R.xs[i],R.ys[i]);R.tt[i]=r===T.RIVER?2:r===T.CANYON?3:1;}return R.tt[i];}
 let allMesas=null;
-function drawMapMesas(X,Y,sc){if(!allMesas)return;const pad=40;
+function drawMapMesas(X,Y,sc){if(!allMesas)return;const pad=40,tiles=!(1/sc>1500);   /* tiles show mountains as relief; far out, they're drawn as marks */
   for(const m of allMesas){const px=X(m.x),py=Y(m.y);if(px<-pad||py<-pad||px>W+pad||py>H+pad)continue;const r0=m.R*sc;
     if(r0<1.6){ctx.fillStyle='#4a1e0c';ctx.fillRect(px-1.5,py-1.5,3,3);continue;}   // far out: a small dark dot
     const grow=Math.max(1,3.2/r0);   // never smaller than a mark you can see
     const NN=m.rad.length;ctx.beginPath();for(let k=0;k<=NN;k++){const a=k/NN*TAU,r=m.rad[k%NN]*sc*grow;k?ctx.lineTo(px+Math.cos(a)*r,py+Math.sin(a)*r):ctx.moveTo(px+Math.cos(a)*r,py+Math.sin(a)*r);}
-    if(m.kind==='mountain'){ctx.fillStyle='#8a7462';ctx.fill();ctx.strokeStyle='#2e231c';ctx.lineWidth=1.5;ctx.stroke();   // a mountain: grey-brown, ridges running up to the peak, shadowed to the south-east
+    if(m.kind==='mountain'){if(tiles&&typeof MTN!=='undefined'&&MTN.shapes.length)continue;ctx.fillStyle='#8a7462';ctx.fill();ctx.strokeStyle='#2e231c';ctx.lineWidth=1.5;ctx.stroke();   // a mountain: grey-brown, ridges running up to the peak, shadowed to the south-east
       if(r0>=4){ctx.lineWidth=1.2;for(let k=0;k<NN;k+=2){const a=k/NN*TAU,r=m.rad[k]*sc*0.92,lit=Math.cos(a-Math.PI*1.25)>0;ctx.strokeStyle=lit?'rgba(60,45,35,.45)':'rgba(30,20,14,.9)';
         ctx.beginPath();ctx.moveTo(px+Math.cos(a)*r,py+Math.sin(a)*r);ctx.lineTo(px+Math.cos(a)*r*0.18,py+Math.sin(a)*r*0.18);ctx.stroke();}
-        ctx.fillStyle='#4a382c';ctx.beginPath();ctx.moveTo(px,py-4);ctx.lineTo(px-3.5,py+2.5);ctx.lineTo(px+3.5,py+2.5);ctx.closePath();ctx.fill();}
+        }
       continue;}
     ctx.fillStyle='#d9955d';ctx.fill();ctx.strokeStyle='#3c1a0a';ctx.lineWidth=1.5;ctx.stroke();if(r0<5)continue;
     // hachures: short strokes down the cliffs, heavier on the shadowed south-east
     ctx.lineWidth=1;for(let k=0;k<NN;k++){const a=k/NN*TAU,r=m.rad[k]*sc,l=Math.max(2,Math.min(7,r0*0.3)),lit=Math.cos(a-Math.PI*1.25)>0;
-      ctx.strokeStyle=lit?'rgba(70,35,15,.55)':'rgba(40,15,5,.95)';ctx.beginPath();ctx.moveTo(px+Math.cos(a)*r,py+Math.sin(a)*r);ctx.lineTo(px+Math.cos(a)*(r+l),py+Math.sin(a)*(r+l));ctx.stroke();}}}
+      ctx.strokeStyle=lit?'rgba(70,35,15,.55)':'rgba(40,15,5,.95)';ctx.beginPath();ctx.moveTo(px+Math.cos(a)*r,py+Math.sin(a)*r);ctx.lineTo(px+Math.cos(a)*(r+l),py+Math.sin(a)*(r+l));ctx.stroke();}}
+  drawMapRidges(X,Y,sc,pad,tiles);}
+/* (v12.5) the saddles joining the peaks of a range: a band of mountain from one peak to the next, edged where it meets the plain, with its crest marked;
+   then each peak's mark on top, so a range reads as one long massif */
+function drawMapRidges(X,Y,sc,pad,tiles){if(typeof MTN==='undefined'||!MTN.shapes.length)return;const segs=[],peaks=[];
+  for(const sh of MTN.shapes){if(sh.n){const px=X(sh.n.x),py=Y(sh.n.y);if(px>-pad&&py>-pad&&px<W+pad&&py<H+pad&&sh.n.R*sc>=4)peaks.push([px,py]);continue;}
+    const ax=X(sh.a.x),ay=Y(sh.a.y),bx=X(sh.b.x),by=Y(sh.b.y),m=Math.max(sh.WA,sh.WB)*sc+pad;if(Math.max(ax,bx)<-m||Math.max(ay,by)<-m||Math.min(ax,bx)>W+m||Math.min(ay,by)>H+m)continue;segs.push(sh);}
+  const side=(sh,sg,t0,t1)=>{const ux=(sh.b.x-sh.a.x)/sh.d,uy=(sh.b.y-sh.a.y)/sh.d,pts=[];for(const t of [t0,t1]){const w=(sh.WA+(sh.WB-sh.WA)*t)*0.85*sg;pts.push([X(sh.a.x+ux*sh.d*t-uy*w),Y(sh.a.y+uy*sh.d*t+ux*w)]);}return pts;};
+  if(tiles)segs.length=0;
+  for(const sh of segs){const L=side(sh,1,0,1),R=side(sh,-1,0,1);ctx.fillStyle='#8a7462';ctx.beginPath();ctx.moveTo(L[0][0],L[0][1]);ctx.lineTo(L[1][0],L[1][1]);ctx.lineTo(R[1][0],R[1][1]);ctx.lineTo(R[0][0],R[0][1]);ctx.closePath();ctx.fill();}
+  ctx.strokeStyle='#2e231c';ctx.lineWidth=1.5;
+  for(const sh of segs){const t0=Math.min(0.45,sh.a.R*0.8/sh.d),t1=Math.max(0.55,1-sh.b.R*0.8/sh.d);for(const sg of [1,-1]){const P=side(sh,sg,t0,t1);ctx.beginPath();ctx.moveTo(P[0][0],P[0][1]);ctx.lineTo(P[1][0],P[1][1]);ctx.stroke();}}
+  ctx.strokeStyle='rgba(30,20,14,.85)';ctx.lineWidth=Math.max(1,Math.min(2.5,sc*120));for(const sh of segs){ctx.beginPath();ctx.moveTo(X(sh.a.x),Y(sh.a.y));ctx.lineTo(X(sh.b.x),Y(sh.b.y));ctx.stroke();}
+  ctx.fillStyle='#4a382c';for(const [px,py] of peaks){ctx.beginPath();ctx.moveTo(px,py-4);ctx.lineTo(px-3.5,py+2.5);ctx.lineTo(px+3.5,py+2.5);ctx.closePath();ctx.fill();}}
 
 // ---- wildlife, top-down ----
 
@@ -4942,7 +4999,7 @@ function init3D(){
   far.onBeforeCompile=sh=>{Object.assign(sh.uniforms,far.userData.u);
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying float vHz;').replace('#include <project_vertex>','#include <project_vertex>\nvHz=-mvPosition.z;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vHz;uniform vec3 hzCol;').replace('#include <dithering_fragment>','#include <dithering_fragment>\ngl_FragColor.rgb=mix(gl_FragColor.rgb,hzCol,clamp(1.0-exp(-vHz/6500.0),0.0,0.93));');};
-  V3.mats.far=far;
+  V3.mats.far=far;V3.mats.mesaFar=mesaMat3(far.userData.u);   /* (v12.5) the big mesas: rock-textured like the small ones, in the far haze */
   V3.blob=new THREE.CircleGeometry(1,14);V3.blob.rotateX(-Math.PI/2);
   makeComposer3();
   V3.status='ready';loadHero3();
@@ -5479,12 +5536,22 @@ GB.prototype.lump=function(x,y,z,r,h,rot,col,pts,cap){const n=7,lo=[],mid=[];
 // a draped patch of ground (four corners in world x,y), lifted a little off the terrain
 GB.prototype.drape=function(q,lift,col,n){const P=(u,v)=>{const x=(q[0][0]*(1-u)+q[1][0]*u)*(1-v)+(q[3][0]*(1-u)+q[2][0]*u)*v,y=(q[0][1]*(1-u)+q[1][1]*u)*(1-v)+(q[3][1]*(1-u)+q[2][1]*u)*v;return [x,landY3(x,y)+lift,y];};
   for(let j=0;j<n;j++)for(let i=0;i<n;i++)this.quadUp(P(i/n,j/n),P((i+1)/n,j/n),P((i+1)/n,(j+1)/n),P(i/n,(j+1)/n),col);};
+/* (v12.5) smooth shading across a rock face: each corner's normal is the area-weighted mean of the faces meeting at that point which lean
+   within 'crease' degrees of its own (so a cliff's edge against the top stays sharp, but the facets of one face blend into a curve) */
+GB.prototype.smooth=function(crease){const P=this.p,nT=P.length/9,FN=new Float32Array(nT*3),key=i=>Math.round(P[i]*8)+','+Math.round(P[i+1]*8)+','+Math.round(P[i+2]*8),at=new Map(),K=new Array(nT*3);
+  for(let t=0;t<nT;t++){const i=t*9,ux=P[i+3]-P[i],uy=P[i+4]-P[i+1],uz=P[i+5]-P[i+2],vx=P[i+6]-P[i],vy=P[i+7]-P[i+1],vz=P[i+8]-P[i+2];FN[t*3]=uy*vz-uz*vy;FN[t*3+1]=uz*vx-ux*vz;FN[t*3+2]=ux*vy-uy*vx;   /* length = twice the area */
+    for(let c=0;c<3;c++){const k=key(i+c*3);K[t*3+c]=k;let L=at.get(k);if(!L)at.set(k,L=[]);L.push(t);}}
+  const cs=Math.cos((crease||60)*Math.PI/180),N=new Float32Array(nT*9);
+  for(let t=0;t<nT;t++){const ax=FN[t*3],ay=FN[t*3+1],az=FN[t*3+2],al=Math.hypot(ax,ay,az)||1;
+    for(let c=0;c<3;c++){let nx=0,ny=0,nz=0;for(const u of at.get(K[t*3+c])){const bx=FN[u*3],by=FN[u*3+1],bz=FN[u*3+2],bl=Math.hypot(bx,by,bz)||1;if((ax*bx+ay*by+az*bz)/(al*bl)>=cs){nx+=bx;ny+=by;nz+=bz;}}
+      const l=Math.hypot(nx,ny,nz)||1;N[t*9+c*3]=nx/l;N[t*9+c*3+1]=ny/l;N[t*9+c*3+2]=nz/l;}}
+  this.n=N;return N;};
 GB.prototype.mesh=function(mat,ox,oz){if(!this.p.length)return null;const g=new THREE.BufferGeometry(),p=new Float32Array(this.p.length);ox=ox||0;oz=oz||0;
   for(let i=0;i<p.length;i+=3){p[i]=this.p[i]-ox;p[i+1]=this.p[i+1];p[i+2]=this.p[i+2]-oz;}   // keep the numbers small: positions relative to the object
   g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(this.c2||this.c),3));if(this.uv){g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(this.uv),2));mat=this.tmat||mat;}   // a textured model (the Kingsford, v10.3)
   if(this.f.some(v=>v>0)){const fl=new Float32Array(p.length/3);for(let i=0;i<fl.length&&i<this.f.length;i++)fl[i]=this.f[i];g.setAttribute('aFlow',new THREE.BufferAttribute(fl,1));}   // cloth that flaps
-  g.computeVertexNormals();g.computeBoundingSphere();const m=new THREE.Mesh(g,mat);m.position.set(ox,0,oz);m.matrixAutoUpdate=false;m.updateMatrix();
-  const solid=!(mat===V3.mats.water||mat===V3.mats.far||mat===V3.mats.road);m.castShadow=solid;m.receiveShadow=mat!==V3.mats.water&&mat!==V3.mats.far;return m;};   // real shadows (v9.0)
+  if(this.n&&this.n.length===p.length)g.setAttribute('normal',new THREE.BufferAttribute(this.n,3));else g.computeVertexNormals();g.computeBoundingSphere();const m=new THREE.Mesh(g,mat);m.position.set(ox,0,oz);m.matrixAutoUpdate=false;m.updateMatrix();
+  const solid=!(mat===V3.mats.water||mat===V3.mats.far||mat===V3.mats.road||mat===V3.mats.mesaFar);m.castShadow=solid;m.receiveShadow=mat!==V3.mats.water&&mat!==V3.mats.far&&mat!==V3.mats.mesaFar;return m;};   // real shadows (v9.0)
 // the sky (v9.1): the sun crosses it from east to west through the day (low and long-shadowed at morning and evening, high at noon, off to
 // the north as it is down here), drawn as a glowing disc; at night, stars, coming out as the light goes and fading at dawn
 function sunDir3(){const m=(G.clock%DAY)/60,t=(m-6)/12;   // 0 at 6 am (sunrise, in the east), 1 at 6 pm (sunset, in the west)
@@ -5509,6 +5576,9 @@ const SINK3=[0,70,42,11,165,0,0,0,42,165];
 const n3Patch=vnoise(211);
 function blockCol3(bi,bj){const c=getChunk(Math.floor(bi/4),Math.floor(bj/4));return col3(c.cells[(((bi%4)+4)%4)*4+(((bj%4)+4)%4)]);}
 // the biome's ground colour, blended smoothly between the 160 px blocks the 2D view paints in
+// mountain rock (v12.5): scree at the foot, dark weathered rock up the slopes, paler crags near the tops, in broad streaks
+const MTNC3=[[0,'#8e6a4e'],[160,'#7a5640'],[420,'#6a4a36'],[800,'#7e5a44'],[1200,'#9a7860']].map(([h,c])=>[h,col3(c)]);
+function mtnRock3(h,x,y){let i=0;while(i<MTNC3.length-2&&h>MTNC3[i+1][0])i++;const [h0,c0]=MTNC3[i],[h1,c1]=MTNC3[i+1],t=clamp((h-h0)/(h1-h0),0,1),c=mix3(c0,c1,t),st=0.88+0.24*fbm(n3Patch,x/380+y/900,y/140,2);return [c[0]*st,c[1]*st,c[2]*st];}
 function groundCol3(x,y){const fx=x/160-0.5,fy=y/160-0.5,i=Math.floor(fx),j=Math.floor(fy),tx=fx-i,ty=fy-j;
   const a=blockCol3(i,j),b=blockCol3(i+1,j),c=blockCol3(i,j+1),d=blockCol3(i+1,j+1);
   return mix3(mix3(a,b,tx),mix3(c,d,tx),ty);}
@@ -5556,7 +5626,9 @@ function buildChunk3(c){const ox=c.cx*CH,oy=c.cy*CH,N=V3_TV,E=N+2,hs=new Float32
     if(roadK[k]>0){const ct=cuts[k],rag=fbm(n3Patch,x/55,y/55,2),vk=clamp(roadK[k]*(0.45+1.1*rag)-0.15*(1-roadK[k]),0,1);cl=mix3(cl,col3('#b39470'),0.35*vk);   /* ragged and patchy */if(Math.abs(ct)>2)cl=mix3(cl,col3(ct<0?'#8a5a3c':'#a07c58'),clamp(Math.abs(ct)/14,0,0.5)*(1-Math.abs(roadK[k]-0.5)*1.2));}   // a dusty road verge; raw earth showing in cuttings and on embankments
     for(const lc of near){const d=Math.hypot(x-lc.x,y-lc.y);if(lc.type==='ruin'){const R=lc.rad*0.8;if(d<R)cl=mix3(cl,townC,0.12*clamp((R-d)/150,0,1));}else{const R=lc.rad-30;if(d<R){cl=mix3(cl,col3(ROAD3.dirt.base,0.95+0.08*fbm(n3Patch,x/90,y/90,2)),0.88*clamp((R-d)/60,0,1));nat*=1-clamp((R-d)/60,0,1);}}}   // inside the walls: packed dirt like the streets (a ruin: just a little worn)
     const v=0.92+0.16*fbm(n3Patch,x/700,y/700,2)+(pnoise(x>>3,y>>3)-0.5)*0.05;colr[o]=clamp(cl[0]*v,0,1);colr[o+1]=clamp(cl[1]*v,0,1);colr[o+2]=clamp(cl[2]*v,0,1);
-    {const gk=gkind(x,y);gnd[o]=nat;gnd[o+1]=gk[0];gnd[o+2]=gk[1];}}
+    let mr=0;{const mh=mtnCore(x,y);if(mh>4){const steep=clamp((1-nor[o+1])*5,0,1),hk=clamp(mh/220,0,1);mr=clamp(hk*(0.35+0.65*steep),0,1);   // a mountainside (v12.5): weathered rock, the more so higher and steeper
+        const rc=mtnRock3(mh,x,y);const f=clamp(mh/260,0,0.9)*(1-roadK[k]);   /* the same blend as the far ground's, so no step where they meet */colr[o]=colr[o]*(1-f)+rc[0]*f*v;colr[o+1]=colr[o+1]*(1-f)+rc[1]*f*v;colr[o+2]=colr[o+2]*(1-f)+rc[2]*f*v;}}
+    {const gk=gkind(x,y);gnd[o]=nat;gnd[o+1]=mr>0.02?1+mr:gk[0];gnd[o+2]=gk[1]*(1-mr);}}
   const idx=[];for(let j=0;j<N-1;j++)for(let i=0;i<N-1;i++){const a=j*N+i,b=a+1,d=a+N,cc=d+1;idx.push(a,d,b,b,d,cc);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('normal',new THREE.BufferAttribute(nor,3));
   g.setAttribute('color',new THREE.BufferAttribute(colr,3));g.setAttribute('aGnd',new THREE.BufferAttribute(gnd,3));g.setIndex(idx);g.computeBoundingSphere();
@@ -5841,14 +5913,21 @@ function buildMountain3(m){const gb=new GB(),N=96,r=rng(m.seed+5),H=m.H||(380+m.
 // caprock on top with scrub on it; every face its own shade
 function buildMesaModel3(m){const Mm=MESA_MODELS[m.model],P=mesaTris(Mm),gb=new GB(),rnd=rng(m.seed+11),cs=Math.cos(m.rot||0),sn=Math.sin(m.rot||0),S=m.reach,vs=(m.H||Mm.h*S)/(Mm.h*S);
   let base=1e9;for(let k=0;k<16;k++){const a=k/16*TAU,r=mesaR(m,a)*0.9;base=Math.min(base,heightAt(m.x+Math.cos(a)*r,m.y+Math.sin(a)*r));}base-=Math.max(6,S*0.02);
-  const bands=[[0.06,'#9a7056'],[0.2,'#83583e'],[0.42,'#5e2a14'],[0.55,'#9a5a34'],[0.72,'#74361b'],[0.86,'#a8643a'],[1.01,'#8a4322']];
-  for(let i=0;i<P.length;i+=9){const ax=P[i],ay=P[i+1],az=P[i+2],bx=P[i+3],by=P[i+4],bz=P[i+5],cx=P[i+6],cy=P[i+7],cz=P[i+8];
-    const ux=bx-ax,uy=by-ay,uz=bz-az,vx=cx-ax,vy=cy-ay,vz=cz-az;let ny=uz*vx-ux*vz;const nl=Math.hypot(uy*vz-uz*vy,ny,ux*vy-uy*vx)||1;ny/=nl;
-    const f=((ay+by+cy)/3)/Mm.h;let hex=bands.find(b=>f<b[0])[1];if(ny>0.75&&f>0.8)hex='#c47a48';else if(ny>0.75&&f<0.15)hex='#a07c5a';   // the caprock on top; scree at the foot
-    const v=0.88+rnd()*0.2,c=col3(hex).map(q=>q*v);
-    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]])gb.pushV(m.x+(x*cs-z*sn)*S,base+y*S*vs,m.y+(x*sn+z*cs)*S,c[0],c[1],c[2],0);}
-  const topY=base+Mm.h*S*vs;for(let k=0;k<(m.big?14:Math.round(4+S/150));k++){const a=rnd()*TAU,d=rnd()*mesaR(m,a)*0.35;gb.lump(m.x+Math.cos(a)*d,topY-S*0.03*vs,m.y+Math.sin(a)*d,8+rnd()*10,6+rnd()*6,rnd()*TAU,col3('#7a7a48'));}   // scrub on top
-  return gb.mesh(m.big?V3.mats.far:V3.mats.mesa,m.x,m.y);}
+  for(let i=0;i<P.length;i+=3)gb.pushV(m.x+(P[i]*cs-P[i+2]*sn)*S,base+P[i+1]*S*vs,m.y+(P[i]*sn+P[i+2]*cs)*S,0,0,0,0);
+  const nRock=gb.p.length,topY=base+Mm.h*S*vs;
+  for(let k=0;k<(m.big?14:Math.round(4+S/150));k++){const a=rnd()*TAU,d=rnd()*mesaR(m,a)*0.35;gb.lump(m.x+Math.cos(a)*d,topY-S*0.03*vs,m.y+Math.sin(a)*d,8+rnd()*10,6+rnd()*6,rnd()*TAU,col3('#7a7a48'));}   // scrub on top
+  mesaColour3(gb,gb.smooth(62),base,topY-base,m.seed,nRock);
+  return gb.mesh(m.big?V3.mats.mesaFar:V3.mats.mesa,m.x,m.y);}
+/* (v12.5) a mesa's colours, corner by corner rather than face by face (a colour per face showed every facet): bands of rock by height,
+   blended into each other, mottled by a smooth noise in world space; the caprock on the flat top, scree where the foot levels out */
+var MESA_BANDS3=null;
+function mesaColour3(gb,N,base,H,seed,nRock){if(!MESA_BANDS3)MESA_BANDS3=[[0,'#a07c5a'],[0.06,'#9a7056'],[0.2,'#83583e'],[0.42,'#5e2a14'],[0.55,'#9a5a34'],[0.72,'#74361b'],[0.86,'#a8643a'],[1.0,'#8a4322']].map(([f,h])=>[f,col3(h)]);
+  const B=MESA_BANDS3,P=gb.p,C=gb.c.slice(),cap=col3('#c47a48'),scr=col3('#a07c5a'),nz=vnoise(seed%997+11);
+  for(let i=0;i<nRock;i+=3){const f=clamp((P[i+1]-base)/H,0,1),wob=(fbm(nz,P[i]/700,P[i+2]/700,2)-0.5)*0.08,g=clamp(f+wob,0,1);let k=1;while(k<B.length-1&&B[k][0]<g)k++;
+    const [f0,c0]=B[k-1],[f1,c1]=B[k],t=clamp((g-f0)/Math.max(f1-f0,1e-3),0,1),u=t*t*(3-2*t);let c=[c0[0]+(c1[0]-c0[0])*u,c0[1]+(c1[1]-c0[1])*u,c0[2]+(c1[2]-c0[2])*u];
+    const ny=N[i+1],flat=clamp((ny-0.7)/0.15,0,1);if(flat>0){const tgt=f>0.8?cap:f<0.15?scr:null;if(tgt)c=c.map((v,j)=>v+(tgt[j]-v)*flat);}
+    const v=0.9+fbm(nz,P[i]/180+40,P[i+2]/180+P[i+1]/180,2)*0.2;C[i]=c[0]*v;C[i+1]=c[1]*v;C[i+2]=c[2]*v;}
+  gb.c=C;}
 function buildMesa3(m){if(m.kind==='mountain')return buildMountain3(m);if(m.model!==undefined)return buildMesaModel3(m);const gb=new GB(),N=m.big?128:64,H=m.H||(m.butte?110+m.R*0.7:170+m.R*0.45),cw=Math.min(m.R*0.3,H*0.42);
   let base=1e9;for(let k=0;k<16;k++){const a=k/16*TAU,r=mesaR(m,a)+40;base=Math.min(base,heightAt(m.x+Math.cos(a)*r,m.y+Math.sin(a)*r));}base-=6;
   // rings out from the middle: [how far outside the cliff line, how high up (share of H), colour of the band below it]
@@ -5857,8 +5936,10 @@ function buildMesa3(m){if(m.kind==='mountain')return buildMountain3(m);if(m.mode
   for(let k=1;k<rings.length;k++){const cl=col3(rings[k][2]);for(let i=0;i<N;i++){const a=(i+0.5)/N*TAU,v=0.9+rnd()*0.2,c=[cl[0]*v,cl[1]*v,cl[2]*v];
     const A=pts[k-1][i],B=pts[k-1][i+1],Cc=pts[k][i+1],D=pts[k][i];gb.tri(A,B,Cc,c,Math.cos(a),0.6,Math.sin(a));gb.tri(A,Cc,D,c,Math.cos(a),0.6,Math.sin(a));}}
   const top=pts[rings.length-1],ctr=[m.x,base+H,m.y];for(let i=0;i<N;i++){const v=0.95+rnd()*0.1,cl=col3('#c47a48',v);gb.tri(ctr,top[i],top[i+1],cl,0,1,0);}
+  const nRock=gb.p.length;
   for(let k=0;k<(m.butte?3:9);k++){const a=rnd()*TAU,d=rnd()*mesaR(m,a)*0.6;gb.lump(m.x+Math.cos(a)*d,base+H-1,m.y+Math.sin(a)*d,8+rnd()*8,6+rnd()*5,rnd()*TAU,col3('#7a7a48'));}   // scrub on top
-  return gb.mesh(m.big?V3.mats.far:V3.mats.vc,m.x,m.y);}
+  mesaColour3(gb,gb.smooth(62),base,H,m.seed,nRock);   /* (v12.5) smooth-shaded and textured, as the modelled mesas */
+  return gb.mesh(m.big?V3.mats.mesaFar:V3.mats.mesa,m.x,m.y);}
 
 /* ---- cobbled-together building: walls patched from whatever was to hand (corrugated iron, weatherboard, brick, ply,
    scrap sheet) in uneven panels, boarded-up windows, rough timber corner posts, patchwork roofs weighed down with junk,
@@ -7117,7 +7198,7 @@ function groundMat3(){const m=stdMat3({vertexColors:true,roughness:0.97,envMapIn
       vec4 M1=texture2D(uMacro,vWp/2900.0),M2=texture2D(uMacro,wq/8700.0+0.31);
       float tA=M1.r+M2.g-1.0,tB=M1.g+M2.r-1.0,mk=M1.b*0.65+M2.b*0.35;
       vec3 tint=vec3(1.0)+tA*vec3(0.2,0.05,-0.1)+tB*vec3(0.11,0.12,0.13);   /* redder or browner, paler or deeper: a few per cent */
-      float rock=vGnd.x*vGnd.y*smoothstep(0.52,0.6,mk),sand=vGnd.x*vGnd.z*smoothstep(0.47,0.39,mk);
+      float mtnR=clamp(vGnd.y-1.0,0.0,1.0),rock=max(vGnd.x*min(vGnd.y,1.0)*smoothstep(0.52,0.6,mk),mtnR*0.85),sand=vGnd.x*vGnd.z*smoothstep(0.47,0.39,mk);   /* (mountainsides: rock all over, v12.5) */
       vec3 d1=texture2D(uDet,vWp/150.0).rgb*2.0,d2=texture2D(uDet,wq/410.0+0.37).rgb*2.0;
       vec3 base=mix(vec3(1.0),d1,0.85)*mix(vec3(1.0),d2,0.55);
       vec2 gx=dFdx(vWp),gy=dFdy(vWp);   /* gradients taken outside the branches, so mipmaps stay right at patch edges */
@@ -7136,7 +7217,7 @@ function groundMat3(){const m=stdMat3({vertexColors:true,roughness:0.97,envMapIn
       if(uBump>0.0){float fp=length(fwidth(vWp)),fade=(1.0-smoothstep(220.0,650.0,length(vViewPosition)))*(1.0-smoothstep(0.12,0.4,fp));   /* only while a texel is bigger than a pixel: no sparkle */if(fade>0.0){vec2 dH=vec2(dFdx(gndH),dFdy(gndH))*uBump*fade;
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),R1=cross(sy,normal),R2=cross(normal,sx);float dt=dot(sx,R1)*faceDirection;
         vec3 nb=abs(dt)*normal-sign(dt)*(dH.x*R1+dH.y*R2);if(dot(nb,nb)>1e-12)normal=normalize(nb);   /* (v11.7) never normalise nothing */}}   /* bump from the texture's own light and dark: no UVs needed */`);};
-  m.customProgramCacheKey=()=>'ground2';return m;}
+  m.customProgramCacheKey=()=>'ground3';return m;}
 function detailMat3(m,kind,s1,s2,k1,k2){const tex=detailTex3(kind),u={uDet:{value:tex}};
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWp;').replace('#include <project_vertex>','#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.0)).xz;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWp;uniform sampler2D uDet;').replace('#include <color_fragment>',`#include <color_fragment>
@@ -7157,14 +7238,16 @@ function mesaTex3(kind){const N=256,cv=document.createElement('canvas');cv.width
   else{for(let k=0;k<900;k++){const x=r()*N,yy=r()*N,s=0.6+r()*1.6;g.fillStyle=r()<0.55?'rgb(96,86,78)':'rgb(170,158,146)';g.beginPath();g.arc(x,yy,s,0,TAU);g.fill();}   // grit and pebbles on the caprock
     for(let k=0;k<20;k++){let x=r()*N,yy=r()*N;for(let s=0;s<5;s++){const x2=x+(r()-0.5)*30,y2=yy+(r()-0.5)*30;line(x,yy,x2,y2,1,'rgba(70,50,40,0.5)');x=x2;yy=y2;}}}   // cracks in the cap
   const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
-function mesaMat3(){const m=stdMat3({vertexColors:true,roughness:0.96}),u={uWall:{value:mesaTex3('wall')},uTop:{value:mesaTex3('top')}};
+function mesaMat3(hz){const m=stdMat3(hz?{vertexColors:true,fog:false,roughness:1}:{vertexColors:true,roughness:0.96}),u=Object.assign({uWall:{value:mesaTex3('wall')},uTop:{value:mesaTex3('top')}},hz||{});
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,u);sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWp;varying vec3 vWn;')
       .replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\nvWn=mat3(modelMatrix)*objectNormal;').replace('#include <project_vertex>','#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.0)).xyz;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vWp;varying vec3 vWn;uniform sampler2D uWall;uniform sampler2D uTop;').replace('#include <color_fragment>',`#include <color_fragment>
       vec3 n=abs(vWn/max(length(vWn),1e-5));vec3 w=pow(n,vec3(4.0));w/=max(w.x+w.y+w.z,1e-5);
       vec3 wx=texture2D(uWall,vec2(vWp.z/260.0,vWp.y/150.0)).rgb,wz=texture2D(uWall,vec2(vWp.x/260.0,vWp.y/150.0)).rgb,ty=texture2D(uTop,vWp.xz/180.0).rgb;   // walls by height, the top from above
-      vec3 d=(wx*w.x+ty*w.y+wz*w.z)*2.0;diffuseColor.rgb*=pow(mix(vec3(1.0),d,0.85),vec3(2.2));`);};
-  m.customProgramCacheKey=()=>'mesa1';return m;}
+      vec3 d=(wx*w.x+ty*w.y+wz*w.z)*2.0;diffuseColor.rgb*=pow(mix(vec3(1.0),d,0.85),vec3(2.2));`);
+    if(hz){sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying float vHz;').replace('#include <project_vertex>','#include <project_vertex>\nvHz=-mvPosition.z;');
+      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vHz;uniform vec3 hzCol;').replace('#include <dithering_fragment>','#include <dithering_fragment>\ngl_FragColor.rgb=mix(gl_FragColor.rgb,hzCol,clamp(1.0-exp(-vHz/6500.0),0.0,0.93));');}};
+  m.customProgramCacheKey=()=>hz?'mesa2far':'mesa2';return m;}
 // any material whose meshes may carry flapping cloth: the wind (in world space, turned into each mesh's own frame) pushes it downwind
 // and makes it ripple; a stronger wind, a faster and wilder flap
 const WIND3={uT:{value:0},uW:{value:null},uS:{value:0.5}};
@@ -7189,6 +7272,7 @@ function farMat3(){const m=stdMat3({vertexColors:true,roughness:1});m.userData.u
   return m;}
 function farColour3(x,y,h,lv,t){if(lv<0)return col3('#5f7268');const z=zoneAt(x,y);let c=col3(BIOMES[z.biome].ground);{const fc=fieldCol3(x,y,c);if(fc)c=fc;}
 if(t===T.RIVER)c=col3('#8c7252');else if(t===T.DRY)c=mix3(c,col3('#cdb68a'),0.6);else if(t===T.CANYON)c=col3('#5c2814');
+  {const mh=mtnCore(x,y);if(mh>4){const rc=mtnRock3(mh,x,y);c=mix3(c,rc,clamp(mh/260,0,0.9));}}   // mountainsides in rock (v12.5)
   const v=0.9+0.18*fbm(n3Patch,x/700,y/700,2);return [c[0]*v,c[1]*v,c[2]*v];}
 function farHeight3(x,y,lv,t){if(lv<0)return -60;return heightRaw(x,y)-(t===T.CANYON?120:t===T.RIVER?30:0);}
 function startFarTile3(L,i,j){const F=FARL[L],n=F.size/F.step+1,E=n+2;FAR3.job={L,i,j,F,n,E,row:-1,hs:new Float32Array(E*E),cols:new Float32Array(n*n*3),tt:new Uint8Array(n*n)};}
@@ -7317,7 +7401,7 @@ function stream3(bx,by){const t0=performance.now(),cx=Math.floor(bx/CH),cy=Math.
   V3.scanT-=1;if(V3.scanT>0)return;V3.scanT=15;   // landforms and places: look round every quarter second or so
   const keep=(map,list,build,far)=>{const live=new Set();for(const o of list){live.add(o.id);if(!map.has(o.id)){const m=build(o);if(m)V3.scene.add(m);map.set(o.id,{m,o});}}
     for(const [id,e] of map)if(!live.has(id)&&Math.hypot(e.o.x-bx,e.o.y-by)>far(e.o)){drop3(e.m);map.delete(id);}};
-  const mesaR3=Math.min(V3.fogFar||V3_FOG_FAR,6000);keep(V3.mesas,mesasNear(bx,by,mesaR3+500).filter(m=>!m.big&&Math.hypot(m.x-bx,m.y-by)<mesaR3+m.maxR+300).concat(bigNear(bx,by,V3_BIG_FAR,[])),buildMesa3,m=>m.big?V3_BIG_FAR+m.maxR+1500:mesaR3+m.maxR+900);
+  const mesaR3=Math.min(V3.fogFar||V3_FOG_FAR,6000);keep(V3.mesas,mesasNear(bx,by,mesaR3+500).filter(m=>!m.big&&Math.hypot(m.x-bx,m.y-by)<mesaR3+m.maxR+300).concat(bigNear(bx,by,V3_BIG_FAR,[]).filter(m=>m.kind!=='mountain'||!MTN.shapes.length))   /* (mountains are part of the ground now: v12.5) */,buildMesa3,m=>m.big?V3_BIG_FAR+m.maxR+1500:mesaR3+m.maxR+900);
   keep(V3.shells,shellsNear(bx,by,V3_FOG_FAR).filter(s=>Math.hypot(s.x-bx,s.y-by)<V3_FOG_FAR),buildShell3,()=>V3_FOG_FAR+700);
   keep(V3.locs,LOCS.concat(HAMLETS).filter(l=>Math.hypot(l.x-bx,l.y-by)<l.rad+V3_FOG_FAR+300),buildLoc3,l=>l.rad+V3_FOG_FAR+1200);
   farPlaces3(bx,by);}
@@ -8160,7 +8244,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
