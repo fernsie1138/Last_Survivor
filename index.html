@@ -242,24 +242,24 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=12.6"></script>
-<script src="models/84-hero-model.js?v=12.6"></script>
-<script src="models/84b-hero-body.js?v=12.6"></script>
-<script src="models/84c-buggy-model.js?v=12.6"></script>
-<script src="models/84d-tarona-model.js?v=12.6"></script>
-<script src="models/84e-wall-model.js?v=12.6"></script>
-<script src="models/84f-plant-models.js?v=12.6"></script>
-<script src="models/84g-kestrel-model.js?v=12.6"></script>
-<script src="models/84h-building-models.js?v=12.6"></script>
-<script src="models/84i-building-models2.js?v=12.6"></script>
-<script src="models/84j-f100-model.js?v=12.6"></script>
-<script src="models/84l-kingsford-model.js?v=12.6"></script>
-<script src="models/84m-wagon-model.js?v=12.6"></script>
+<script src="models/21b-mesa-models.js?v=12.7"></script>
+<script src="models/84-hero-model.js?v=12.7"></script>
+<script src="models/84b-hero-body.js?v=12.7"></script>
+<script src="models/84c-buggy-model.js?v=12.7"></script>
+<script src="models/84d-tarona-model.js?v=12.7"></script>
+<script src="models/84e-wall-model.js?v=12.7"></script>
+<script src="models/84f-plant-models.js?v=12.7"></script>
+<script src="models/84g-kestrel-model.js?v=12.7"></script>
+<script src="models/84h-building-models.js?v=12.7"></script>
+<script src="models/84i-building-models2.js?v=12.7"></script>
+<script src="models/84j-f100-model.js?v=12.7"></script>
+<script src="models/84l-kingsford-model.js?v=12.7"></script>
+<script src="models/84m-wagon-model.js?v=12.7"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='12.6';
+const VERSION='12.7';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -1436,8 +1436,8 @@ function carPair(a,b){
     SFX.hit(imp/400);
   } else {
     if(imp>110&&((a===hc&&b.convoy)||(b===hc&&a.convoy))){const o=a===hc?b:a,sg=a===hc?1:-1,vp=hc.vx*nx*sg+hc.vy*ny*sg,vo=-(o.vx*nx*sg+o.vy*ny*sg);if(hc.speed>80&&vp>=vo)convoyProvoked(o);}   // you rammed a convoy (not it running into you)
-    const both=ra&&rb?0.3:1;if(ra&&a.engaged)a.stab-=imp*0.1*a.soft*both;if(rb&&b.engaged)b.stab-=imp*0.1*b.soft*both;   /* not yet met you: no harm done */   // two raiders jostling: they mostly shrug it off
-    const dmg=Math.max(0,imp-80)*0.03;if(!ra)a.cond-=dmg/a.def.armor;if(!rb)b.cond-=dmg/b.def.armor;
+    const both=ra&&rb?0.3:((a.driver==='ally'&&rb)||(b.driver==='ally'&&ra))?4:1;if(both===4){const e=ra?a:b;e.knockT=2.5;e.engaged=true;}   /* one of your crew rams them (v12.7) */if(ra&&a.engaged)a.stab-=imp*0.1*a.soft*both;if(rb&&b.engaged)b.stab-=imp*0.1*b.soft*both;   /* not yet met you: no harm done */   // two raiders jostling: they mostly shrug it off
+    const dmg=Math.max(0,imp-80)*0.03;if(!ra)a.cond-=dmg/a.def.armor*(a.epicTarget?4:1);if(!rb)b.cond-=dmg/b.def.armor*(b.epicTarget?4:1);
     if(a===hc||b===hc){SFX.hit(imp/400);G.shake=Math.max(G.shake,Math.min(10,imp/30));}
   }
 }
@@ -1989,7 +1989,7 @@ function carById(id){if(!id)return null;for(const c of G.cars)if(c.id===id)retur
 function heroCar(){return carById(G.hero.inCar);}
 function body(){return heroCar()||G.hero;}
 function nearestCar(extra){const h=G.hero;let best=null,bd=1e9;
-  for(const c of G.cars){if(c.wrecked||c.driver==='raider'||c.driver==='convoy'||c.dead||c.encLock||c.encDrive)continue;const d=Math.hypot(c.x-h.x,c.y-h.y)-c.r;if(d<extra&&d<bd){bd=d;best=c;}}
+  for(const c of G.cars){if(c.wrecked||c.driver==='raider'||c.driver==='convoy'||c.driver==='ally'||c.driver==='epic'||c.dead||c.encLock||c.encDrive)continue;const d=Math.hypot(c.x-h.x,c.y-h.y)-c.r;if(d<extra&&d<bd){bd=d;best=c;}}
   return best;}
 // getting in or out is ignored for half a second after the last switch, so one tap can never put you in and straight back out
 function swapLocked(){return G.time-(G.swapT??-9)<0.5;}
@@ -2377,7 +2377,7 @@ function bikeThreat(e,p){const car=heroCar();if(!car||e.evadeT>0)return;const dx
 function bikeEvade(e,car){e.evadeT=rand(1.1,1.7);e.side=((e.x-car.x)*-Math.sin(car.a)+(e.y-car.y)*Math.cos(car.a))>=0?1:-1;e.evades=(e.evades||0)+1;e.vx*=0.8;e.vy*=0.8;}   // brake hard and pull away to its own side
 function updateRaider(e,dt){
   if(e.ambush&&e.wipe<=0&&ambushStep(e,dt))return;
-  const h=G.hero,p=body(),onFoot=!heroCar();e.flash=Math.max(0,e.flash-dt*5);e.stagger-=dt;
+  const h=G.hero,p=RAID_TGT||body(),onFoot=!RAID_TGT&&!heroCar();e.flash=Math.max(0,e.flash-dt*5);e.stagger-=dt;   // (RAID_TGT: going for one of your crew's cars, v12.7)
   if(e.wipe>0){e.wipe-=dt;e.a+=e.spin*dt;driveCar(e,0,0,dt,false,false);
     if(Math.random()<0.6)smoke(e.x,e.y,8);
     if(e.wipe<=0)finishWipe(e);return;}
@@ -3050,12 +3050,13 @@ function stepBullets(dt){const h=G.hero,hc=heroCar();
       if(b.owner==='hero'){for(const f of G.foes){if(f.dead||Math.hypot(f.x-b.x,f.y-b.y)>f.r+3)continue;const l=Math.hypot(b.vx,b.vy);f.lastBy=b.by;hitFoe(f,b.dmg,b.vx/l,b.vy/l,60);b.dead=true;break;}
         if(!b.dead)for(const n of G.npcs){if(Math.hypot(n.x-b.x,n.y-b.y)<n.r+3){assault(n);b.dead=true;break;}}
         if(!b.dead)for(const a of G.animals){if(a.state==='dead'||Math.hypot(a.x-b.x,a.y-b.y)>a.r+3)continue;const l=Math.hypot(b.vx,b.vy);hitAnimal(a,b.dmg,b.vx/l,b.vy/l);b.dead=true;break;}
+        if(!b.dead)for(const c of G.cars){if(c.epicTarget&&!c.wrecked&&carCircles(c).some(([x,y])=>Math.hypot(x-b.x,y-b.y)<c.r+2)){b.dead=true;sparks(b.x,b.y,4);c.flash=1;c.cond-=b.dmg*0.22/c.def.armor;break;}}   // the tanker (v12.7)
         if(!b.dead)for(const c of G.cars){if(c.driver==='convoy'&&!c.wrecked&&carCircles(c).some(([x,y])=>Math.hypot(x-b.x,y-b.y)<c.r+2)){b.dead=true;sparks(b.x,b.y,4);c.flash=1;c.cond-=b.dmg*0.1/c.def.armor;if(c.cond<=0)wreckCar(c);convoyProvoked(c);break;}   // a shot at a convoy truck
           if(c.driver!=='raider'||Math.hypot(c.x-b.x,c.y-b.y)>c.r+2)continue;b.dead=true;c.lastBy=b.by;sparks(b.x,b.y,4);c.flash=1;
           c.engaged=true;c.stab-=b.dmg*0.9;if(Math.random()<0.25){c.stab-=40;popText(c.x,c.y-24,'Tyre shot out','#f2a03d');}break;}}
-      else{const cp=compOnFoot()?G.comp:null;if(cp&&Math.hypot(cp.x-b.x,cp.y-b.y)<cp.r+3){hurtComp(b.dmg*0.55);b.dead=true;sparks(b.x,b.y,4);}
+      else if(epBulletAlly(b)){}else{const cp=compOnFoot()?G.comp:null;if(cp&&Math.hypot(cp.x-b.x,cp.y-b.y)<cp.r+3){hurtComp(b.dmg*0.55);b.dead=true;sparks(b.x,b.y,4);}
         else if(!hc&&Math.hypot(h.x-b.x,h.y-b.y)<h.r+3){hurtHero(b.dmg*0.55,'shot');b.dead=true;sparks(b.x,b.y,4);}
-        else if(hc&&Math.hypot(hc.x-b.x,hc.y-b.y)<hc.r+2){b.dead=true;sparks(b.x,b.y,4);hc.flash=1;hc.cond-=b.dmg*0.12;SFX.hit(0.25);
+        else if(hc&&Math.hypot(hc.x-b.x,hc.y-b.y)<hc.r+2){b.dead=true;sparks(b.x,b.y,4);hc.flash=1;hc.cond-=b.dmg*0.12;SFX.hit(0.25);epPassengerHit(b.dmg);
           if(Math.random()<0.17)hitTyre(hc,rand(35,60));}}}}
   G.bullets=G.bullets.filter(b=>!b.dead);}
 
@@ -3529,6 +3530,253 @@ Object.assign(DLG,{
 // story characters can be asked about jobs they've given you, like anyone else; and the hook into who you talk to
 for(const k of Object.keys(DLG))if(k.startsWith('st_')&&DLG[k].opts)DLG[k].opts.unshift({t:'About that job…',if:c=>jobs().some(j=>j.giver===c.n.def.id),go:'job_turnin'});
 const _startNodeFor=startNodeFor;startNodeFor=function(n){if(n.def.story&&DLG['st_'+n.def.story])return 'st_'+n.def.story;return _startNodeFor(n);};
+
+/* ===== epic quests (v12.7): Breaking the Dry =====
+   The end of the Long Dry, made into a campaign. Once you know what the Engine is and how to stop it, June Pell won't send you to
+   Coolibah alone: the Legion holds the station. Four stages:
+     1. The Crew: up to four of the people you've met will ride with you, each once you've done right by them. Rosie Clancy and
+        Lil Vance drive their own vehicles; Benny Ray and Jim Kurrajong ride as gunners (in an ally's car, or in yours).
+     2. The Run to Nowhere: the weekly Fuel King tanker heads west under Legion escort. Stop it, and the Engine's tanks run low.
+     3. Coolibah: the Legion garrison at the station. Marshal Kade comes down in her war rig; wreck it and she fights on foot,
+        calling in what's left of her soldiers. Beaten, she yields, and what happens to her is up to you.
+     4. The Brass Key: cut the fuel and turn the key.
+   Death is final, for anyone: an ally killed is gone from the world for good, their people take it hard, and what only they
+   could do is lost (Jim knows the back way in; Benny can talk two old mates out of the fight; Rosie keeps the cars going).
+   The quest can always go on, even alone. Everything is kept in G.flags.epic, so it saves and loads with the rest. */
+const EP_CREW={
+  rosie:{drives:'ute',carName:'Rosie’s ute',weapon:'revolver',fac:'settlers',
+    job:'mechanic: she keeps every car in the crew running',ask:'“Dad stayed on the radio for us. I can do this much.” She kicks a tyre. “But the Bluebird’s carby’s cactus. Bring me two lots of engine parts and she’ll run.”',
+    need:{parts:2},needText:'two lots of engine parts'},
+  lil:{drives:'pickup',carName:'Lil’s pickup',weapon:'shotgun',fac:'freeholders',also:'fuelkings',
+    job:'driver: she rams anything that comes at the crew',ask:'“You want me to run down my own father’s tanker.” A long pause. “Is it true? Has he been feeding that thing all these years?”',
+    clue:'sec_tanker',clueText:'Find out where the Fuel King tankers go'},
+  benny:{rides:true,weapon:'rifle',fac:'settlers',
+    job:'gunner, and ex-Legion: he can talk two old mates out of the fight at the station',ask:'Benny’s hands shake. “Go back? To them?” He swallows. “Not without a proper gun. Mine’s rubbish. Give me a real firearm and I’ll ride with you.”',
+    gun:true},
+  jim:{rides:true,weapon:'rifle',fac:'settlers',
+    job:'gunner, and ranger: he knows a back way into the ranges, past the Legion’s guns',ask:'Jim folds his old map. “I know a way into those ranges the Legion’s never found. Dry creek bed, round the back. I’ll ride with you.”'}};
+const EP_STAGES={crew:'The Crew',tanker:'The Run to Nowhere',station:'Coolibah',key:'The Brass Key',done:'Breaking the Dry'};
+Object.assign(CLUES,{ep_dead_rosie:{ch:3,t:'Rosie Clancy died on the road to Coolibah, like her father, doing what somebody had to.'},ep_dead_lil:{ch:3,t:'Lil Vance died fighting her father’s tanker. The Fuel Kings will not forgive it.'},
+  ep_dead_benny:{ch:3,t:'Benny Ray went back to face the Legion, and didn’t come home.'},ep_dead_jim:{ch:3,t:'Jim Kurrajong died in the ranges he used to look after. The back way in died with him.'},
+  ep_tanker:{ch:3,t:'The run to nowhere ended in a pillar of black smoke on the western road. The Engine’s tanks are running low.'},
+  ep_kade_dead:{ch:3,t:'Marshal Hester Kade died at Coolibah, beside the machine she kept running.'},ep_kade_spared:{ch:3,t:'Marshal Hester Kade yielded at Coolibah, and walked west into the ranges alone.'}});
+function epic(){return G.flags.epic||null;}
+function epOn(st){const E=epic();return !!E&&E.stage===st;}
+function epDef(key){const id=STORY.loc[key];if(id===undefined)return null;return LOCS[id].npcs.find(q=>q.story===key)||null;}
+function epAlive(key){const d=epDef(key);return !!d&&!G.flags['dead_'+d.id];}
+function epCrew(){const E=epic();return E?Object.keys(E.crew).filter(k=>E.crew[k].st==='in'):[];}
+function epCrewName(k){return CAST[k].name.split(' ')[0];}
+function epMark(E,key,x,y,text){epUnmark(E,key);const m={id:G.markerSeq++,x:Math.round(x),y:Math.round(y),text,epic:true};G.markers.push(m);E.marks[key]=m.id;G.waypoint=m.id;}
+function epUnmark(E,key){const id=E.marks[key];if(id===undefined)return;G.markers=G.markers.filter(m=>m.id!==id);if(G.waypoint===id)G.waypoint=null;delete E.marks[key];}
+function epStart(){G.flags.epic={stage:'crew',crew:{},cars:{},marks:{},t0:G.clock,garrison:null,boss:null};showMsg('Epic quest: '+EP_STAGES.crew+'. Talk to Rosie, Lil, Benny and Jim (see the Work screen)',4);
+  for(const k in EP_CREW){const o=STORY.loc[k]!==undefined?LOCS[STORY.loc[k]]:null;if(o&&epAlive(k))G.known.add(o.id);}}
+// ---- the crew: who sits where. Drivers have their own vehicle and a seat for a gunner; your car takes two
+function epSeatFor(E,k){if(EP_CREW[k].drives&&E.cars[k]&&!E.cars[k].lost)return k;
+  for(const d of ['rosie','lil'])if(E.crew[d]&&E.crew[d].st==='in'&&E.cars[d]&&!E.cars[d].lost&&!epCrew().some(q=>q!==k&&E.crew[q].seat===d&&q!==d))return d;
+  return epCrew().filter(q=>q!==k&&E.crew[q].seat==='hero').length<2?'hero':null;}
+function epRecruit(k,n){const E=epic(),C=EP_CREW[k];E.crew[k]={st:'in',hp:100,seat:null};const d=epDef(k);if(d)G.npcGone.add(d.id);if(n)G.npcs=G.npcs.filter(q=>q!==n);
+  if(C.drives){const o=n&&n.loc||LOCS[STORY.loc[k]],sp=epRoadOut(o);E.cars[k]={type:C.drives,cond:100,x:sp.x,y:sp.y,a:sp.a};E.crew[k].seat=k;epSpawnCar(E,k,sp.x,sp.y,sp.a);}
+  else E.crew[k].seat=epSeatFor(E,k)||'hero';
+  // anyone riding with no seat yet (a driver just joined): sit them with the new driver
+  for(const q of epCrew())if(!EP_CREW[q].drives&&E.crew[q].seat==='hero'&&C.drives&&!epCrew().some(z=>z!==q&&E.crew[z].seat===k&&z!==k)){E.crew[q].seat=k;break;}
+  showMsg(CAST[k].name+' joins the crew'+(C.drives?', in '+C.carName:'')+'. '+epCrew().length+' of 4',3);skillPoints(2,'crew');}
+// the road out of a town: where a crew vehicle waits
+function epRoadOut(o){const l=o.links&&o.links[0];if(!l)return {x:o.x+80,y:o.y+80,a:0};const R=roads[l.road],i=l.dir>0?Math.min(R.n-2,10):Math.max(1,R.n-11),j=i+l.dir;
+  return {x:R.xs[i],y:R.ys[i],a:Math.atan2(R.ys[j]-R.ys[i],R.xs[j]-R.xs[i])};}
+function epCar(k){return G.cars.find(c=>c.allyKey===k&&!c.dead)||null;}
+function epSpawnCar(E,k,x,y,a){const s=E.cars[k],c=makeCar(s.type,x,y,a,{id:'ally_'+k,driver:'ally',fuel:100,cond:s.cond,engine:100,tyres:100,susp:100,touched:true});c.allyKey=k;c.maxSpeed*=1.08;G.cars.push(c);return c;}
+// a crew vehicle that's fallen far behind (or wasn't there after loading): brought up behind you on the road
+function epCatchUp(E,k){const p=body(),ri=p.ri;let x,y,a;if(ri.r>=0&&ri.d<300){const R=roads[ri.r],idx=Object.keys(E.cars).indexOf(k),j=clamp(ri.i-p.dir*(18+idx*5),1,R.n-2),j2=clamp(j+p.dir,0,R.n-1);x=R.xs[j];y=R.ys[j];a=Math.atan2(R.ys[j2]-R.ys[j],R.xs[j2]-R.xs[j]);}
+  else{const pa=p.speed>30?Math.atan2(p.vy,p.vx):p.a||0;x=p.x-Math.cos(pa)*500;y=p.y-Math.sin(pa)*500;a=pa;}
+  let c=epCar(k);if(!c)c=epSpawnCar(E,k,x,y,a);else{c.x=x;c.y=y;c.a=a;}c.vx=Math.cos(a)*(p.speed||0)*0.8;c.vy=Math.sin(a)*(p.speed||0)*0.8;return c;}
+// ---- the allied drivers: keep station behind you on the road (or follow your tracks across country), run down raiders that come at the crew
+function epObsSteer(e,diff){const obs=nearObstacles(e),look=150+e.speed*1.1,want0=e.a+diff;let ahead=look,bestA=0,bestS=-1e9;
+  for(const ro of [-1.1,-0.75,-0.5,-0.25,0,0.25,0.5,0.75,1.1]){const ang=e.a+ro,cx=Math.cos(ang),cy=Math.sin(ang);let clear=look;
+    for(const ob of obs){const px=ob.x-e.x,py=ob.y-e.y,along=px*cx+py*cy;if(along<0||along>clear)continue;const side=Math.abs(px*cy-py*cx);if(side<ob.r+e.r+32)clear=Math.max(0,along-ob.r);}
+    for(let s2=24;s2<clear;s2+=24)if(blockedAt(e.x+cx*s2,e.y+cy*s2)||insideMesa(e.x+cx*s2,e.y+cy*s2,e.r+10)||inShellWall(e.x+cx*s2,e.y+cy*s2,e.r+8)){clear=Math.max(0,s2-24);break;}
+    if(ro===0)ahead=clear;const score=clear-Math.abs(angDiff(ang,want0))*look*0.3;if(score>bestS){bestS=score;bestA=ro;}}
+  return {diff:ahead<look?bestA*1.8+angDiff(want0,e.a)*0.2:diff,ahead};}
+function allyDrive(c,dt){const E=epic();onRoadAt(c);c.fuel=100;c.flash=Math.max(0,(c.flash||0)-dt*5);
+  if(c.ri.r>=0){const s=c.vx*c.ri.tx+c.vy*c.ri.ty;c.dir=s>=0?1:-1;}
+  const p=body(),hc=heroCar(),keys=Object.keys(E.cars).filter(k=>!E.cars[k].lost),idx=Math.max(0,keys.indexOf(c.allyKey));
+  // a raider (or a Legion car) coming at the crew: go for it
+  let foe=null,fd=c.allyKey==='lil'?800:620;if(c.cond>25)for(const e of G.cars){if(e.driver!=='raider'||e.wipe>0||e.ambush&&!e.ambush.go)continue;const d=Math.min(Math.hypot(e.x-c.x,e.y-c.y),Math.hypot(e.x-p.x,e.y-p.y)+120);if(d<fd){fd=d;foe=e;}}
+  {const tk=E.stage==='tanker'?epTankCar():null;if(!foe&&tk&&!tk.wrecked&&Math.hypot(tk.x-c.x,tk.y-c.y)<900)foe=tk;}   // the tanker, once its escort's dealt with
+  let tx,ty,want;const dp=Math.hypot(p.x-c.x,p.y-c.y);
+  if(foe){tx=foe.x+foe.vx*0.35;ty=foe.y+foe.vy*0.35;want=c.maxSpeed;}
+  else if(hc&&p.ri.r>=0&&p.ri.d<300&&p.speed>60){const P=p.ri,R=roads[P.r],Tx=P.tx*p.dir,Ty=P.ty*p.dir,along=(c.x-p.x)*Tx+(c.y-p.y)*Ty,slot=-(170+idx*120);   // in line behind you
+    const j=clamp(P.i+p.dir*Math.round((slot+140+p.speed*0.25)/40),0,R.n-2),sx=R.xs[j+1]-R.xs[j],sy=R.ys[j+1]-R.ys[j],sl=Math.hypot(sx,sy)||1,lat=(idx%2?-1:1)*Math.max(10,R.w*0.18);
+    tx=R.xs[j]-sy/sl*p.dir*lat;ty=R.ys[j]+sx/sl*p.dir*lat;want=p.speed+clamp((slot-along)*1.6,-200,260);}
+  else{const pa=p.speed>30?Math.atan2(p.vy,p.vx):(p.a||0),back=160+idx*110;tx=p.x-Math.cos(pa)*back+Math.cos(pa+Math.PI/2)*(idx%2?-50:50);ty=p.y-Math.sin(pa)*back+Math.sin(pa+Math.PI/2)*(idx%2?-50:50);
+    const dt2=Math.hypot(tx-c.x,ty-c.y);want=dt2<60?0:Math.min(c.maxSpeed,40+dt2*(hc&&p.speed>60?1.6:0.9));}
+  // never into you: close to your car and closing, back right off
+  if(hc&&!foe){const dx=hc.x-c.x,dy=hc.y-c.y,d=Math.hypot(dx,dy),cl=((c.vx-hc.vx)*dx+(c.vy-hc.vy)*dy)/(d||1);if(d<c.r+hc.r+60&&cl>20)want=Math.min(want,hc.speed*0.6);}
+  let diff=angDiff(Math.atan2(ty-c.y,tx-c.x),c.a);const st=epObsSteer(c,diff);diff=st.diff;
+  let thr=want<=0?(c.vf>5?-1:0):clamp((want-c.vf)/60,-1,1)*(Math.abs(diff)<1.6?1:0.4);if(st.ahead<c.speed*0.75)thr=Math.min(thr,-0.7);
+  driveCar(c,thr,want<=0&&c.speed<10?0:clamp(diff*2.6,-1,1),dt,foe&&fd>200,false);
+  if(dp>4200&&!foe)epCatchUp(E,c.allyKey);}
+// gunners (and drivers with nobody to drive at) shoot from wherever they sit: raider cars, Legion and raiders on foot, the tanker
+function epShooters(E,dt){const hc=heroCar();for(const k of epCrew()){const m=E.crew[k],car=m.seat==='hero'?(hc||carById(G.lastCar)):epCar(m.seat);if(!car||car.wrecked)continue;
+    const drivingIt=EP_CREW[k].drives&&m.seat===k;if(drivingIt&&epCrew().some(q=>q!==k&&E.crew[q].seat===k))continue;   // a driver with a gunner aboard keeps both hands on the wheel
+    m.cd=(m.cd||rand(0.5,1.5))-dt;if(m.cd>0)continue;const W=WEAPONS[m.gun?ITEMS[m.gun].weapon:EP_CREW[k].weapon];
+    let tg=null,bd=Math.min(W.range*0.6,drivingIt?260:420);for(const e of G.cars){if(!(e.driver==='raider'&&e.wipe<=0||e.epicTarget&&!e.wrecked))continue;const d=Math.hypot(e.x-car.x,e.y-car.y);if(d<bd){bd=d;tg=e;}}
+    for(const f of G.foes){if(f.dead||f.townGuard||f.state==='flee'||(f.state!=='alert'&&!(G.fightT>0)))continue;const d=Math.hypot(f.x-car.x,f.y-car.y);if(d<bd&&losClear(car.x,car.y,f.x,f.y)){bd=d;tg=f;}}
+    if(!tg){m.cd=0.4;continue;}m.cd=Math.max(1.2,W.cd*1.4)+rand(0,0.7);fireWeapon({kind:'ally',x:car.x,y:car.y},W,Math.atan2(tg.y-car.y,tg.x-car.x),0.1,bd,tg.r);}}
+// hurt: from shots at their car, or the car going up
+function epHurt(k,n,why){const E=epic(),m=E&&E.crew[k];if(!m||m.st!=='in')return;m.hp-=n;if(m.hp<=0)epDie(k,why);}
+function epDie(k,why,quiet){const E=epic(),m=E.crew[k];m.st='dead';m.hp=0;const d=epDef(k);if(d){G.flags['dead_'+d.id]=true;G.npcGone.add(d.id);}
+  const C=EP_CREW[k];changeRep(C.fac,-15);if(C.also)changeRep(C.also,-20);addClue('ep_dead_'+k);E.deaths=(E.deaths||0)+1;
+  for(const q of epCrew())if(E.crew[q].seat===k){E.crew[q].seat=epSeatFor(E,q);if(!E.crew[q].seat)epStrand(q,epCar(k)||body());}
+  if(!quiet)showMsg(CAST[k].name+' is dead'+(why?' ('+why+')':'')+'. '+(k==='jim'?'The back way into the ranges dies with them':k==='benny'?'No one can talk the garrison down now':k==='rosie'?'Nobody to keep the cars going now':'The Fuel Kings will never forgive this'),4);}
+// a crew car wrecked: whoever was in it may die, or crawl out hurt and wait by the wreck for you
+function epCarLost(E,k,c){E.cars[k].lost=true;const inIt=epCrew().filter(q=>E.crew[q].seat===k),dead=[];for(const q of inIt){if(Math.random()<0.45){epDie(q,'their car went up',true);dead.push(q);}else{E.crew[q].hp=Math.min(E.crew[q].hp,35);epStrand(q,c);}}
+  showMsg(EP_CREW[k].carName+' is wrecked. '+(dead.length?dead.map(q=>CAST[q].name).join(' and ')+(dead.length>1?' are':' is')+' dead':'Whoever was in it crawls clear: pick them up')+'.',4);}
+function epStrand(k,at){const E=epic(),m=E.crew[k];m.seat=null;m.st='stranded';m.sx=at.x+rand(-30,30);m.sy=at.y+rand(-30,30);m.strandT=0;popText(m.sx,m.sy-24,epCrewName(k)+' crawls clear','#ff7a5a');}
+function epStrandNPC(k){const E=epic(),m=E.crew[k];let n=G.npcs.find(q=>q.def.id==='ep_'+k);if(n)return n;const d=epDef(k);
+  n={kind:'npc',def:{id:'ep_'+k,name:CAST[k].name,role:'crew',seed:d?d.seed:7,story:null,crew:k},loc:{type:'road',road:true,id:-1,name:'the road',x:m.sx,y:m.sy,faction:null,bld:[],npcs:[]},x:m.sx,y:m.sy,vx:0,vy:0,a:0,r:8,path:[],wait:1e9,walk:0,stuck:0,look:npcLook(d?d.seed:7),talking:false,speed:0};G.npcs.push(n);return n;}
+// ---- the tanker: the run to nowhere, west along the road to the ranges, two or three Legion cars riding escort
+function epInterceptSpot(){const st=LOCS[STORY.station],o=LOCS[STORY.loc.june]||LOCS[START];let best=null,bs=1e18;
+  const own=new Set((st.links||[]).map(l=>l.road));   // the track into the ranges itself, if there is one: that's the tanker's road
+  for(let ri=0;ri<roads.length;ri++){const R=roads[ri];if(own.size&&!own.has(ri))continue;if(!own.size&&(R.cls==='dirt'||R.junction))continue;for(let i=8;i<R.n-8;i+=6){const x=R.xs[i],y=R.ys[i],ds=Math.hypot(x-st.x,y-st.y);if(ds<16000||ds>45000||nearLoc(x,y,2500))continue;
+      const s=Math.abs(ds-26000)+Math.hypot(x-o.x,y-o.y)*0.15;if(s<bs){bs=s;best={ri,i,x,y};}}}
+  if(!best)return null;const R=roads[best.ri],dn=Math.hypot(R.xs[best.i+4]-st.x,R.ys[best.i+4]-st.y),dp=Math.hypot(R.xs[best.i-4]-st.x,R.ys[best.i-4]-st.y);best.dir=dn<dp?1:-1;return best;}
+function epTankCar(){return G.cars.find(c=>c.id==='ep_tanker')||null;}
+function epTankerSpawn(E){const T=E.tank,R=roads[T.ri],up=clamp(T.i-T.dir*40,2,R.n-3),j=clamp(up+T.dir,0,R.n-1),a=Math.atan2(R.ys[j]-R.ys[up],R.xs[j]-R.xs[up]);
+  const c=makeCar('tanker',R.xs[up],R.ys[up],a,{id:'ep_tanker',driver:'epic',fuel:100,cond:60,touched:false});c.epicTarget=true;c.maxSpeed=210;c.epRoad={ri:T.ri,dir:T.dir};G.cars.push(c);
+  const kinds=['pickup','cruiser'].concat(T.extra?['pickup']:[]);for(let k=0;k<kinds.length;k++){const b=clamp(up-T.dir*(5+k*4),1,R.n-2),e=makeRaider(kinds[k],R.xs[b],R.ys[b],a,180);e.fac='ironlegion';e.gunner=true;e.engaged=true;G.cars.push(e);}
+  const ah=clamp(up+T.dir*5,1,R.n-2),cap=makeRaider('brute',R.xs[ah],R.ys[ah],a,180);cap.fac='ironlegion';cap.gunner=true;cap.engaged=true;cap.stab=cap.maxStab=cap.stab*1.8;cap.boss='Sergeant Voss';cap.epicCaptain=true;G.cars.push(cap);
+  G.encActive=true;showMsg('There: the tanker, and its Legion escort. Sergeant Voss rides point in an armoured war wagon',3.4);}
+function epTankerDrive(c,dt){onRoadAt(c);const R=roads[c.epRoad.ri],ri=roadInfo(c.x,c.y),i=ri.r===c.epRoad.ri?ri.i:nearestIdx(R,c.x,c.y),j=clamp(i+c.epRoad.dir*4,0,R.n-1);
+  const diff=angDiff(Math.atan2(R.ys[j]-c.y,R.xs[j]-c.x),c.a);driveCar(c,c.speed<c.maxSpeed*0.95?(Math.abs(diff)<0.7?0.7:0.25):0,clamp(diff*2.2,-1,1),dt,false,false);c.fuel=100;
+  if(j===0||j===R.n-1)c.epEnd=true;}
+// ---- Coolibah: the garrison, the Marshal's war rig, the Marshal herself
+function epStationPts(st,n,r0,r1){const out=[];for(let t=0;t<n*12&&out.length<n;t++){const a=Math.random()*TAU,d=st.rad*(r0+Math.random()*(r1-r0)),x=st.x+Math.cos(a)*d,y=st.y+Math.sin(a)*d;
+    if(st.bld&&!clearOutdoor(st,x,y))continue;if(blockedAt(x,y)||obstacleAt(x,y,14))continue;if(out.some(p=>Math.hypot(p.x-x,p.y-y)<60))continue;out.push({x,y});}return out;}
+function epGarrisonUp(E,stealth){const st=LOCS[STORY.station],g=E.garrison,pts=epStationPts(st,g.left,0.25,1.1),wl=['rifle','shotgun','revolver','rifle','revolver','machete'];
+  pts.forEach((p,k)=>{const f=makeFoe({id:'epg'+k+'_'+(E.spawns||0),weapon:wl[k%wl.length],post:p,patrol:[p,{x:p.x+rand(-60,60),y:p.y+rand(-60,60)}],seed:hash2(k,31),brave:true},null,p.x,p.y);
+    f.loose=true;f.fac='ironlegion';f.epic='garrison';f.hp=f.maxHp=85;if(!stealth){f.state='alert';f.detect=1;f.lastSeen={x:body().x,y:body().y};}G.foes.push(f);});
+  E.spawns=(E.spawns||0)+1;
+  if(!stealth&&!g.carsDone){g.carsDone=true;for(let k=0;k<2;k++){const a=Math.random()*TAU,e=makeRaider(k?'pickup':'cruiser',st.x+Math.cos(a)*st.rad*1.4,st.y+Math.sin(a)*st.rad*1.4,a+Math.PI,0);e.fac='ironlegion';e.gunner=true;e.engaged=true;G.cars.push(e);}}
+  G.encActive=true;}
+function epBossName(){const d=epDef('hester');return d&&!G.flags['dead_'+d.id]?'Marshal Kade':'Major Duggan';}
+function epRigSpawn(E){const st=LOCS[STORY.station],b=body(),a=Math.atan2(b.y-st.y,b.x-st.x)+Math.PI+rand(-0.6,0.6),x=st.x+Math.cos(a)*2200,y=st.y+Math.sin(a)*2200;
+  const e=makeRaider('brute',x,y,a+Math.PI,200);e.fac='ironlegion';e.gunner=true;e.engaged=true;e.stab=e.maxStab=e.stab*(E.tankEscaped?4:3);e.mass*=1.6;e.boss=epBossName()+'’s war rig';e.epicBoss=true;G.cars.push(e);
+  E.boss={phase:'rig'};G.encActive=true;showMsg(epBossName()+'’s war rig comes roaring down out of the ranges',3.4);SFX.screech();}
+function epKadeSpawn(E,x,y){const f=makeFoe({id:'ep_kade',weapon:'rifle',post:{x,y},patrol:[{x,y}],seed:777,brave:true},null,x,y);f.loose=true;f.fac='ironlegion';f.epic='boss';f.hp=f.maxHp=380;f.boss=epBossName();
+  f.state='alert';f.detect=1;f.lastSeen={x:body().x,y:body().y};f.stun=0.8;G.foes.push(f);
+  for(let k=0;k<2;k++){const g=makeFoe({id:'ep_guard'+k,weapon:k?'shotgun':'revolver',post:{x:x+rand(-50,50),y:y+rand(-50,50)},patrol:[{x,y}],seed:k+88,brave:true},null,x+(k?40:-40),y+30);g.loose=true;g.fac='ironlegion';g.epic='guard';g.hp=g.maxHp=110;g.state='alert';g.detect=1;g.lastSeen={x:body().x,y:body().y};G.foes.push(g);}
+  E.boss={phase:'foot'};G.encActive=true;showMsg(epBossName()+' climbs out of the burning rig with a rifle and two of her guard. This ends here',3.4);}
+// she's beaten: on her knees, and it's your call
+function epYield(E,f){E.boss.phase='yield';G.foes=G.foes.filter(q=>q!==f);for(const q of G.foes)if(q.epic&&!q.dead&&Math.hypot(q.x-f.x,q.y-f.y)<900){q.state='flee';}
+  state='paused';showPanel({title:epBossName()+' yields',sub:'The rifle falls in the dust. '+epBossName()+' kneels, one hand pressed to a wound, and looks up at you without fear. “Go on, then. Turn it off. Then see who holds this country without me.”',
+    buttons:[{label:'Finish it',fn:()=>{hidePanel();state='play';epBossEnd(E,'dead');}},{label:'Let her walk west, into the ranges, alone',primary:true,fn:()=>{hidePanel();state='play';epBossEnd(E,'spared');}}]});}
+function epBossEnd(E,fate){E.boss.phase='done';E.boss.fate=fate;const d=epDef('hester'),real=epBossName()==='Marshal Kade';
+  if(real&&d){G.npcGone.add(d.id);if(fate==='dead')G.flags['dead_'+d.id]=true;}
+  if(real)addClue(fate==='dead'?'ep_kade_dead':'ep_kade_spared');changeRep('ironlegion',fate==='dead'?-25:-5);if(fate==='spared')changeRep('settlers',5);
+  skillPoints(5,'boss');showMsg(fate==='dead'?'It’s done. The way to the control room is open':'She limps away west without looking back. The way to the control room is open',3.2);epAdvance(E,'key');}
+// ---- moving on
+function epAdvance(E,st){E.stage=st;for(const k of Object.keys(E.marks))epUnmark(E,k);const S=LOCS[STORY.station];
+  if(st==='tanker'){const T=epInterceptSpot();if(!T){showMsg('The tanker’s already through. Straight on to Coolibah',3);return epAdvance(E,'station');}E.tank={ri:T.ri,i:T.i,dir:T.dir,x:T.x,y:T.y,extra:epCrew().length>=3};epMark(E,'tank',T.x,T.y,'Intercept the tanker');
+    G.known.add(S.id);setTimeout(()=>showMsg('Stage two: '+EP_STAGES.tanker+'. Catch the tanker on the western road (marked)',3.4),400);}
+  if(st==='station'){E.garrison={left:8+(E.tankEscaped?4:0)-(epCrew().includes('benny')?2:0),total:0,up:false};E.garrison.total=E.garrison.left;epMark(E,'station',S.x,S.y,'Take Coolibah');
+    if(epCrew().includes('jim')){const T=E.tank||{x:S.x+5000,y:S.y},a=Math.atan2(S.y-T.y,S.x-T.x),bx=S.x+Math.cos(a)*2600,by=S.y+Math.sin(a)*2600;E.back={x:bx,y:by};epMark(E,'back',bx,by,'Jim’s back way in');}
+    setTimeout(()=>showMsg('Stage three: '+EP_STAGES.station+'. Take the station'+(E.back?'. Jim knows a back way in (marked): go in quiet':''),3.6),400);}
+  if(st==='key'){epMark(E,'key',S.x,S.y,'The Engine');setTimeout(()=>showMsg('Stage four: '+EP_STAGES.key+'. Into the station',3),3400);}}
+function epFinish(E){E.stage='done';for(const k of Object.keys(E.marks))epUnmark(E,k);G.flags.story_engine=true;addClue('end_engine');G.flags.engineOff=true;changeRep('ironlegion',-30);changeRep('settlers',20);
+  for(const k of ['water','medkit','armour_heavy'])for(let i=0;i<({water:6,medkit:3,armour_heavy:1})[k];i++){if(invWeight(G.hero.inv)+ITEMS[k].kg<=heroCap())invAdd(G.hero.inv,k,1);else addPickup(k,body().x+rand(-30,30),body().y+rand(-30,30));}skillPoints(15,'Breaking the Dry');
+  const lines=[];for(const k in EP_CREW){const m=E.crew[k];if(!m)continue;if(m.st==='dead')lines.push(CAST[k].name+' didn’t live to hear it.');else if(m.st==='in')lines.push(CAST[k].name+' is there with you.');}
+  // the crew go home
+  for(const k in E.crew){const m=E.crew[k];if(m.st==='dead')continue;m.st='home';const d=epDef(k);if(d)G.npcGone.delete(d.id);}for(const c of G.cars)if(c.driver==='ally')c.gone=true;
+  state='paused';showPanel({title:'Breaking the Dry',sub:'Under the station, the Engine’s hum dies away. For the first time in five years it is silent. '+(lines.length?lines.join(' ')+' ':'')+'Outside, the wind has changed. It smells of rain. (June’s reward is yours: 6 water, 3 first-aid kits and heavy armour.)',
+    buttons:[{label:'Walk out into the wind',primary:true,fn:()=>{hidePanel();state='play';showMsg('Epic quest complete: Breaking the Dry',4);}}]});}
+// ---- every frame
+function epicTick(dt){const E=epic();if(!E||E.stage==='done'||TEST_MODE)return;const b=body(),S=LOCS[STORY.station];
+  // the crew's vehicles: there whenever you're out in the world; lost when wrecked
+  for(const k in E.cars){const s=E.cars[k];if(s.lost||!E.crew[k]||E.crew[k].st!=='in'){continue;}let c=epCar(k);if(!c)c=epCatchUp(E,k);s.cond=c.cond;
+    if(c.wrecked||c.cond<=0){if(!c.wrecked)wreckCar(c);c.driver=null;c.allyKey=null;epCarLost(E,k,c);}}
+  for(const c of G.cars)if(c.driver==='ally'&&(!E.crew[c.allyKey]||E.crew[c.allyKey].st!=='in'))c.gone=true;
+  epShooters(E,dt);
+  // Rosie keeps the cars going when they're stopped
+  if(epCrew().includes('rosie')){E.fixT=(E.fixT||0)-dt;const hc=heroCar()||carById(G.lastCar),rc=epCar('rosie')||hc;if(E.fixT<=0&&hc&&rc&&hc.speed<5&&Math.hypot(rc.x-hc.x,rc.y-hc.y)<400){
+      const cars=[hc].concat(Object.keys(E.cars).map(epCar).filter(Boolean));let best=null,bv=80,bp=null;for(const c of cars)for(const p of ['cond','engine','tyres','susp']){const v=p==='tyres'?Math.min(...c.tw):c[p];if(v<bv){bv=v;best=c;bp=p;}}
+      if(best){addPart(best,bp,20);best.touched=true;E.fixT=60;popText(best.x,best.y-30,'Rosie fixes the '+PARTS[bp].toLowerCase(),'#efe2c4');}else E.fixT=10;}}
+  // the crew heal slowly between fights
+  if(!G.encActive)for(const k of epCrew())E.crew[k].hp=Math.min(100,E.crew[k].hp+dt*0.3);
+  // the Legion shoot back at the crew's cars too
+  for(const f of G.foes){if(f.dead||f.state!=='alert'||!WEAPONS[f.weapon].gun)continue;f.allyCd=(f.allyCd??rand(2,4))-dt;if(f.allyCd>0)continue;f.allyCd=rand(2.5,4.5);
+    let tg=null,bd=Math.min(WEAPONS[f.weapon].range*0.6,380);for(const c of G.cars){if(c.driver!=='ally')continue;const d=Math.hypot(c.x-f.x,c.y-f.y);if(d<bd&&losClear(f.x,f.y,c.x,c.y)){bd=d;tg=c;}}
+    if(tg&&Math.random()<0.6)fireWeapon(f,WEAPONS[f.weapon],Math.atan2(tg.y-f.y,tg.x-f.x),0.12,bd,tg.r);}
+  // the stranded wait by the wreck; drive away and they make their own way home
+  for(const k in E.crew){const m=E.crew[k];if(m.st!=='stranded')continue;m.strandT=(m.strandT||0)+dt;const d=Math.hypot(m.sx-b.x,m.sy-b.y),n=epStrandNPC(k);
+    if(d>4500||m.strandT>600){m.st='home';G.npcs=G.npcs.filter(q=>q!==n);const dd=epDef(k);if(dd)G.npcGone.delete(dd.id);showMsg(CAST[k].name+' gives up waiting and limps off home. They’re out of the fight',3);}}
+  // stage two: the tanker
+  if(E.stage==='tanker'&&E.tank){const T=E.tank;if(!T.spawned&&Math.hypot(T.x-b.x,T.y-b.y)<2600&&state==='play'){T.spawned=true;epTankerSpawn(E);}
+    const c=epTankCar();if(T.spawned&&!c&&!T.done){T.done=true;E.tankEscaped=true;}   // (a reload mid-chase: it got away)
+if(c&&!T.done){if(c.cond<=0&&!c.wrecked){wreckCar(c);for(let i=0;i<20;i++)part({kind:'smoke',x:c.x+rand(-40,40),y:c.y+rand(-30,30),vx:rand(-10,10),vy:rand(-10,10),life:rand(5,8),max:8,size:rand(18,26),grow:20,drag:1,col:'#1e1a17',heavy:true});}
+      if(c.wrecked){T.done=true;addClue('ep_tanker');changeRep('fuelkings',-10);skillPoints(3,'tanker');showMsg('The tanker goes up in a pillar of black smoke. The Engine won’t be fed this week',3.4);}
+      else if(c.epEnd||Math.hypot(c.x-b.x,c.y-b.y)>7000||Math.hypot(c.x-S.x,c.y-S.y)<9000){T.done=true;E.tankEscaped=true;c.gone=true;showMsg('The tanker’s got through to the ranges. Coolibah will be full of fuel, and full of soldiers',3.6);}}
+    if(T.done&&!G.cars.some(c=>c.driver==='raider'&&c.fac==='ironlegion'&&Math.hypot(c.x-b.x,c.y-b.y)<2500))epAdvance(E,'station');}
+  // stage three: the station
+  if(E.stage==='station'&&S){const g=E.garrison,d=Math.hypot(S.x-b.x,S.y-b.y);if(E.back&&!g.stealth&&!g.up&&Math.hypot(E.back.x-b.x,E.back.y-b.y)<800&&epCrew().includes('jim')){g.stealth=true;showMsg('Jim leads you up a dry creek bed, round behind the station. They haven’t seen you',3.2);}
+    if(!g.up&&d<S.rad+2200&&state==='play'){g.up=true;if(epCrew().includes('benny')&&!g.bennyDone){g.bennyDone=true;showMsg('Benny walks out ahead with his hands up and talks two of his old mates into leaving. They go',3.2);}epGarrisonUp(E,!!g.stealth);}
+    if(g.up){for(const f of G.foes)if(f.epic==='garrison'&&f.dead&&!f.counted){f.counted=true;g.left=Math.max(0,g.left-1);}
+      if(g.left>0&&!G.foes.some(f=>f.epic==='garrison'))g.up=false;
+      if(d>S.rad+5000&&!E.boss){g.up=false;G.foes=G.foes.filter(f=>f.epic!=='garrison');}}   // gone away: they'll be back at their posts when you return
+    if(!E.boss&&g.up&&(g.left<=Math.ceil(g.total/2)||d<S.rad*0.5))epRigSpawn(E);
+    const B=E.boss;if(B&&B.phase==='rig'&&!G.cars.some(c=>c.epicBoss)&&!B.waiting&&d<S.rad+3000){B.waiting=true;const w=E.rigAt||{x:b.x+200,y:b.y};epKadeSpawn(E,w.x,w.y);}   // (the rig's gone some other way: she comes on foot)
+    if(B&&B.phase==='foot'){const k=G.foes.find(f=>f.epic==='boss');if(k&&!k.dead){if(k.hp<k.maxHp*0.5&&!B.called){B.called=true;const pts=epStationPts(S,3,1.2,1.6);for(const p of pts){const f=spawnLooseFoe(p.x,p.y,true);f.fac='ironlegion';f.epic='guard';f.weapon='rifle';f.hp=f.maxHp=80;f.brave=true;f.stun=0;}showMsg(epBossName()+' fires a flare: the last of the garrison come running',3);}
+        if(k.hp<k.maxHp*0.18&&state==='play')epYield(E,k);}
+      else if(!k&&d<S.rad+2500&&state==='play')epKadeSpawn(E,S.x+rand(-60,60),S.y+rand(-60,60));}}
+  // stage four: the key
+  if(E.stage==='key'&&S&&Math.hypot(S.x-b.x,S.y-b.y)<S.rad*0.6&&state==='play'&&!(E.keyWait>G.time)){state='paused';showPanel({title:'The Engine',sub:'Under the station, past a door blown off its hinges, a hall of humming steel, warm as a living thing. Fuel lines as thick as your arm run into it from tanks outside'+(E.tankEscaped?', full to the brim':', nearly dry')+'. On a desk in the control room, a brass key in a panel, and a photograph of a woman in a lab coat, laughing.',
+      buttons:[{label:'Close the fuel valves, then turn the brass key',primary:true,fn:()=>{hidePanel();state='play';epFinish(E);}},{label:'Not yet',fn:()=>{hidePanel();state='play';E.keyWait=G.time+60;}}]});}}
+// the rig wrecked: she comes out of it fighting
+{const _finishWipe=finishWipe;finishWipe=function(e){if(e.epicBoss){const E=epic();G.wiped++;skillPoints(3,'war rig');e.wasRaider=true;e.driver=null;e.wipe=0;burnOut(e);e.vx*=0.3;e.vy*=0.3;e.epicBoss=false;if(E){E.rigAt={x:e.x,y:e.y};if(E.boss&&E.boss.phase==='rig')epKadeSpawn(E,e.x+30,e.y+30);}return;}
+  if(e.epicCaptain)showMsg('Sergeant Voss is down',2.2);return _finishWipe(e);};}
+{const _foeDie=foeDie;foeDie=function(f){_foeDie(f);if(f.epic==='boss'){const E=epic();if(E&&E.boss&&E.boss.phase==='foot')epBossEnd(E,'dead');}};}
+// ---- talking: June starts it and moves it on; each of the crew can be asked
+function epGunKey(){const h=G.hero,g=['rifle','shotgun','revolver'];if(h.weapon&&g.includes(h.weapon)&&h.inv[h.weapon])return h.weapon;return g.find(z=>h.inv[z])||null;}
+const EP_ASK='June’s putting together a crew for Coolibah. Will you ride with us?';
+Object.assign(DLG,{
+  ep_start:{text:c=>'June listens to all of it without a word. Then she puts down the water bag. “Kade won’t just let you walk in and turn it off. She’s got soldiers at that station, and that monster of a truck of hers. You’d die on the road.” She takes your hands. “So you won’t go alone. Rosie Clancy. Lil Vance. Benny Ray. Old Jim Kurrajong. They’ve all got a reason to want the rain back. Ask them. Then come back to me, and we’ll talk about the tanker.”',
+    opts:[{t:'I’ll find them',do:c=>{epStart();return {end:true};}},{t:'Not yet',go:null}]},
+  ep_june:{text:c=>{const E=epic();if(!E)return '“Not yet.”';if(E.stage==='crew'){const n=epCrew().length;return n?'“'+epCrew().map(epCrewName).join(', ')+'. '+(n<4?'Good. More would be better, but it’s your call.':'All four. They’ll follow you anywhere now. Don’t waste them.')+'”':'“Nobody yet? You can’t do this on your own, love.”';}
+      if(E.stage==='tanker')return '“The tanker. Stop the diesel, and the Engine starves. It’s on the western road (marked).”';if(E.stage==='station'||E.stage==='key')return '“Coolibah. Go carefully.”';return '“You did it.”';},
+    opts:[{t:'We’re ready. What first?',if:c=>epOn('crew'),do:c=>{const E=epic();epAdvance(E,'tanker');return '“The run to nowhere. Every week a Fuel King tanker drives west to feed that thing, with Legion cars riding escort. Stop it on the road. Then the station.” (Stage two: '+EP_STAGES.tanker+'.)';}},
+      {t:'Thanks, Mother',go:null}]},
+  crew_start:{text:c=>{const k=c.n.def.crew,E=epic();if(!E||!E.crew[k])return '…';return '“Get me out of here. Please.”';},
+    opts:[{t:'Get in',if:c=>{const E=epic();return !!E&&!!epSeatFor(E,c.n.def.crew);},do:c=>{const k=c.n.def.crew,E=epic(),m=E.crew[k];m.seat=epSeatFor(E,k);m.st='in';G.npcs=G.npcs.filter(q=>q!==c.n);return '“Thanks. I owe you.” ('+epCrewName(k)+' rides '+(m.seat==='hero'?'with you':'in '+EP_CREW[m.seat].carName)+'.)';}},
+      {t:'There’s no room. Make your way home',do:c=>{const k=c.n.def.crew,E=epic();E.crew[k].st='home';G.npcs=G.npcs.filter(q=>q!==c.n);const d=epDef(k);if(d)G.npcGone.delete(d.id);return {end:true};}}]}});
+for(const k in EP_CREW){const C=EP_CREW[k];
+  DLG['ep_rec_'+k]={text:c=>C.ask,opts:[
+    {t:'Here: two lots of engine parts',if:c=>!!C.need&&Object.keys(C.need).every(q=>(G.hero.inv[q]||0)+((heroCar()||carById(G.lastCar))?.items?.[q]||0)>=C.need[q]),do:c=>{for(const q in C.need)for(let i=0;i<C.need[q];i++){if(!invTake(G.hero.inv,q,1)){const car=heroCar()||carById(G.lastCar);if(car)invTake(car.items,q,1);}}epRecruit(k,c.n);return {end:true};}},
+    {t:'It’s true. His tankers feed the Engine, every week',if:c=>!!C.clue&&hasClue(C.clue),do:c=>{epRecruit(k,c.n);return {end:true};}},
+    {t:c=>'Take my '+ITEMS[epGunKey()].name.toLowerCase(),if:c=>!!C.gun&&!!epGunKey(),do:c=>{const q=epGunKey();
+        invTake(G.hero.inv,q,1);if(G.hero.weapon===q&&!G.hero.inv[q])G.hero.weapon=null;epRecruit(k,c.n);epic().crew[k].gun=q;return {end:true};}},
+    {t:'Let’s go',if:c=>!C.need&&!C.clue&&!C.gun,do:c=>{epRecruit(k,c.n);return {end:true};}},
+    {t:'I’ll come back',go:null}]};
+  const N=DLG['st_'+k];if(N&&N.opts)N.opts.unshift({t:EP_ASK,if:c=>epOn('crew')&&!epic().crew[k],go:'ep_rec_'+k});}
+{const N=DLG.st_june;if(N&&N.opts){const o=N.opts.find(q=>q.go==='june_end');if(o){o.go='ep_start';const f=o.if;o.if=c=>f(c)&&!epic();}N.opts.unshift({t:'About Coolibah…',if:c=>!!epic()&&epic().stage!=='done',go:'ep_june'});}}
+Object.assign(ROLE_LABEL,{crew:'crew'});
+// shots at the crew's cars: the car takes it, and now and then someone inside
+function epBulletAlly(b){for(const c of G.cars){if(c.driver!=='ally'||c.wrecked)continue;if(!carCircles(c).some(([x,y])=>Math.hypot(x-b.x,y-b.y)<c.r+2))continue;
+    b.dead=true;sparks(b.x,b.y,4);c.flash=1;c.cond-=b.dmg*0.12/c.def.armor;const E=epic();if(E&&Math.random()<0.2){const inIt=epCrew().filter(q=>E.crew[q].seat===c.allyKey);if(inIt.length)epHurt(inIt[Math.floor(Math.random()*inIt.length)],b.dmg*0.35,'shot');}return true;}
+  return false;}
+function epPassengerHit(dmg){const E=epic();if(!E||Math.random()>0.15)return;const inIt=epCrew().filter(q=>E.crew[q].seat==='hero');if(inIt.length)epHurt(inIt[Math.floor(Math.random()*inIt.length)],dmg*0.35,'shot');}
+// the Work screen: where the epic quest stands, and who's riding with you
+function epicWorkHtml(){const E=epic();if(!E||E.stage==='done'&&!E.shown)return '';const st=E.stage;
+  const what={crew:'Recruit a crew: '+Object.keys(EP_CREW).map(k=>{const m=E.crew[k],d=epDef(k),o=STORY.loc[k]!==undefined?LOCS[STORY.loc[k]].name:'nowhere';
+      return CAST[k].name+(m?m.st==='in'?' (with you)':m.st==='dead'?' (dead)':m.st==='stranded'?' (stranded by a wreck)':' (gone home)':!d||G.flags['dead_'+d.id]?' (dead)':' in '+o);}).join(', ')+'. When you’re ready, tell June Pell.',
+    tanker:'Stop the Fuel King tanker on the western road before it reaches the ranges (marked).',
+    station:'Take the Coolibah Range Station from the Legion (marked).'+(E.back?' Jim knows a back way in.':''),
+    key:'Get into the station and shut down the Engine.',done:'Done.'}[st];
+  const crew=epCrew().map(k=>CAST[k].name+' ('+Math.round(E.crew[k].hp)+'%, '+(E.crew[k].seat==='hero'?'riding with you':EP_CREW[E.crew[k].seat]?EP_CREW[E.crew[k].seat].carName:'')+')');
+  return '<h3>Epic quest: Breaking the Dry</h3><div class="stats"><b>'+EP_STAGES[st]+'.</b> '+what+(crew.length?'<br>Crew: '+crew.join(', ')+'.':'')+(E.tankEscaped?'<br><i>The tanker got through: Coolibah is well supplied.</i>':'')+'</div>';}
+// raiders (and the Legion) go for the crew's cars too, not only for you
+let RAID_TGT=null;
+{const _ur=updateRaider;updateRaider=function(e,dt){const E=epic();if(!E||E.stage==='done'||e.type==='bike'||e.ambush||e.wipe>0)return _ur(e,dt);
+  e.tgtT=(e.tgtT||0)-dt;if(e.tgtT<=0){e.tgtT=rand(4,8);e.tgtAlly=null;if(Math.random()<0.45){let best=null,bd=700;for(const c of G.cars){if(c.driver!=='ally'||c.wrecked)continue;const d=Math.hypot(c.x-e.x,c.y-e.y);if(d<bd){bd=d;best=c;}}e.tgtAlly=best?best.id:null;}}
+  const t=e.tgtAlly&&carById(e.tgtAlly);if(!t||t.wrecked||t.driver!=='ally')return _ur(e,dt);RAID_TGT=t;try{return _ur(e,dt);}finally{RAID_TGT=null;}};}
 
 /* ===== skills (v10.4) =====
    Thirteen skills, each from untrained (0) up to level 6. Skill points buy them one level at a time:
@@ -4153,7 +4401,7 @@ function saveData(){
   return {v:5,layout:2,wreckState:G.wreckState||{},lastNode:G.lastNode,markers:G.markers.filter(m=>!m.ev),markerSeq:G.markerSeq,waypoint:G.waypoint,stock:G.stock,clock:G.clock,boxDelta:G.boxDelta,flags:G.flags,rep:G.rep,townJobs:G.townJobs||{},foraged:G.foraged||{},townRep:G.townRep||{},comp:cp?{type:cp.type,x:Math.round(cp.x),y:Math.round(cp.y),hp:Math.round(cp.hp),state:cp.state,weapon:cp.weapon,inv:cp.inv,missed:cp.missed,fedDay:cp.fedDay,inCar:cp.inCar}:null,at:G.atOutpost,visited:[...G.visited],known:[...G.known],wiped:G.wiped,dist:G.dist,time:G.time,legs:G.legsDone,dest:G.dest,
     removed:[...G.removed].slice(-800),lastCar:G.lastCar,
     kills:G.kills,hero:{x:G.hero.x,y:G.hero.y,a:G.hero.a,hp:G.hero.hp,water:G.hero.water,food:G.hero.food,rest:G.hero.rest,inv:G.hero.inv,weapon:G.hero.weapon,compass:!!G.hero.compass,armour:G.hero.armour||null,injuries:G.hero.injuries||[],capLoss:G.hero.capLoss||0,ill:G.hero.ill||null,dryT:G.hero.dryT||0,meds:G.hero.meds||null,buffs:G.hero.buffs||null,canFill:canFill(G.hero.inv),inCar:G.hero.inCar},
-    cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items),owned:!!c.owned}))};
+    cars:G.cars.filter(c=>c.touched&&!c.wrecked&&c.driver!=='raider'&&c.driver!=='ally'&&c.driver!=='epic'&&!c.convoy).map(c=>({id:c.id,type:c.type,x:Math.round(c.x),y:Math.round(c.y),a:+c.a.toFixed(3),fuel:+c.fuel.toFixed(1),cond:+c.cond.toFixed(1),engine:+c.engine.toFixed(1),tyres:+c.tyres.toFixed(1),tw:c.tw.map(t=>Math.round(t)),ups:c.ups||{},susp:+c.susp.toFixed(1),items:c.items,canFill:canFill(c.items),owned:!!c.owned}))};
 }
 // ---- saving is to files only (see the save-file code in the UI). Anything the old save slots left on a device is left alone, unused. ----
 function placeLabel(){const b=body();let best=null,bd=250000;for(const l of LOCS){const d=Math.hypot(l.x-b.x,l.y-b.y);if(d<bd){bd=d;best=l;}}
@@ -4628,7 +4876,7 @@ function standBar(name,v,two,note){const pc=Math.round(v),col=two?(v<-15?'#c2381
   return '<div class="sbar"><span class="nm">'+name+'</span><span class="tr">'+(two?'<i class="mid"></i>':'')+'<i class="fl" style="left:'+left+'%;width:'+w+'%;background:'+col+'"></i></span><span class="pc">'+(two&&pc>0?'+':'')+pc+'%'+(note?' '+note:'')+'</span></div>';}
 let jobConfirm=null;   // the job you've asked to give up, waiting on a yes
 function renderWork(){let html='';
-  html+='<h3>Jobs</h3>'+(jobs().length?jobs().map(J=>'<div class="stats"><b>'+J.title+'</b>'+(J.hitch?'':' for '+J.giverName+' in '+LOCS[J.town].name)+'. '+J.desc+(jobReady(J)?' <i>Done: go back for your pay.</i>':'')+(J.pax==='aboard'?' ('+J.who+' is with you.)':J.pax==='waiting'?' ('+J.who+' is waiting for you'+(J.hitch?' by the road':' in '+LOCS[J.paxTown].name)+'.)':'')+' Pays: '+rewardText(J.reward)+'.'+(jobConfirm===J.id?'<div class="jobx">Give this job up? <button data-a="jobcancel" data-k="'+J.id+'">Yes, give it up</button><button data-a="jobkeep" data-k="'+J.id+'" class="go">Keep it</button></div>':'<div class="jobx"><button data-a="jobask" data-k="'+J.id+'">Cancel job</button></div>')+'</div>').join(''):'<div class="stats">No jobs on. Ask around in the towns: “Got any work?”</div>');
+  html+=epicWorkHtml();html+='<h3>Jobs</h3>'+(jobs().length?jobs().map(J=>'<div class="stats"><b>'+J.title+'</b>'+(J.hitch?'':' for '+J.giverName+' in '+LOCS[J.town].name)+'. '+J.desc+(jobReady(J)?' <i>Done: go back for your pay.</i>':'')+(J.pax==='aboard'?' ('+J.who+' is with you.)':J.pax==='waiting'?' ('+J.who+' is waiting for you'+(J.hitch?' by the road':' in '+LOCS[J.paxTown].name)+'.)':'')+' Pays: '+rewardText(J.reward)+'.'+(jobConfirm===J.id?'<div class="jobx">Give this job up? <button data-a="jobcancel" data-k="'+J.id+'">Yes, give it up</button><button data-a="jobkeep" data-k="'+J.id+'" class="go">Keep it</button></div>':'<div class="jobx"><button data-a="jobask" data-k="'+J.id+'">Cancel job</button></div>')+'</div>').join(''):'<div class="stats">No jobs on. Ask around in the towns: “Got any work?”</div>');
   html+='<h3>Standing with the factions</h3><div class="stats">How their people treat you: below −15% they’re unfriendly (their towns won’t serve you, their convoys and gangs come for you); above +15%, friendly.</div>';
   html+=Object.keys(FACTIONS).filter(facKnown).map(f=>standBar(FACTIONS[f].name,rep(f),true,'('+repTier(rep(f)).toLowerCase()+')')).join('');
   const towns=Object.keys(G.townRep||{}).map(Number).filter(id=>LOCS[id]);
@@ -8322,7 +8570,7 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
   G.time+=dt;const h=G.hero;let car=heroCar();const inp=readInput(car);let eng={thr:0,boost:false};
   survival(dt,car);
   if(car)eng=driveHero(car,inp,dt);else updateHeroOnFoot(dt,inp);
-  for(const c of G.cars){if(c===car||c.dead)continue;if(c.driver==='raider')updateRaider(c,dt);else if(c.driver==='convoy'&&!c.wrecked)updateConvoyCar(c,dt);else if(c.encDrive&&!c.wrecked)evDriveCar(c,dt);else idleCar(c,dt);c.flash=Math.max(0,c.flash-dt*5);}
+  for(const c of G.cars){if(c===car||c.dead)continue;if(c.driver==='raider')updateRaider(c,dt);else if(c.driver==='convoy'&&!c.wrecked)updateConvoyCar(c,dt);else if(c.encDrive&&!c.wrecked)evDriveCar(c,dt);else if(c.driver==='ally'&&!c.wrecked)allyDrive(c,dt);else if(c.driver==='epic'&&!c.wrecked)epTankerDrive(c,dt);else idleCar(c,dt);c.flash=Math.max(0,c.flash-dt*5);}
   convoyTick(dt);
   if(car)car.flash=Math.max(0,car.flash-dt*5);
   for(const c of G.cars)if(!c.dead&&(c.speed>1||c===car))collideWorld(c);
@@ -8367,6 +8615,7 @@ function update(dt){if(state==='clinic'){clinicTick(dt);return;}
     if(near<G.encWarn.at||G.encWarn.t<=0){showMsg(G.encWarn.msg,2.6);G.encWarn=null;}}   // coming head-on: the call comes once they're close (you may have seen their dust first)
   if(G.encActive&&!raidingNow&&!G.encWarn){G.encActive=false;showMsg(pickLine(RAID_CLEAR),2.4);G.calmT=rand(180,300);G.encT=Math.max(G.encT,G.calmT);}
   roadEvTick(dt,car,b,raidingNow);   // roadside encounters (v12.6)
+  epicTick(dt);   // epic quests (v12.7)
   // route guidance
   if(G.leg){const L=G.leg,onVia=!!L.via&&b.ri.r===L.via.road&&b.ri.d<300;G.onLeg=(b.ri.r===L.road&&b.ri.d<300)||onVia;
     G.nearT-=dt;if(!G.onLeg&&G.nearT<=0){G.nearT=0.4;let bd=1e18,bx=0,by=0;for(const rr of L.via?[L.road,L.via.road]:[L.road]){const R=roads[rr];
@@ -8412,7 +8661,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
 window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
-  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive};
+  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,get RAID_TGT(){return RAID_TGT;}};
 newGame();applyMobile();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
 
