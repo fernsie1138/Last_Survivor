@@ -242,25 +242,25 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=12.9"></script>
-<script src="models/84-hero-model.js?v=12.9"></script>
-<script src="models/84b-hero-body.js?v=12.9"></script>
-<script src="models/84c-buggy-model.js?v=12.9"></script>
-<script src="models/84d-tarona-model.js?v=12.9"></script>
-<script src="models/84e-wall-model.js?v=12.9"></script>
-<script src="models/84f-plant-models.js?v=12.9"></script>
-<script src="models/84g-kestrel-model.js?v=12.9"></script>
-<script src="models/84h-building-models.js?v=12.9"></script>
-<script src="models/84i-building-models2.js?v=12.9"></script>
-<script src="models/84j-f100-model.js?v=12.9"></script>
-<script src="models/84l-kingsford-model.js?v=12.9"></script>
-<script src="models/84m-wagon-model.js?v=12.9"></script>
-<script src="models/84p-dog-model.js?v=12.9"></script>
+<script src="models/21b-mesa-models.js?v=13.0"></script>
+<script src="models/84-hero-model.js?v=13.0"></script>
+<script src="models/84b-hero-body.js?v=13.0"></script>
+<script src="models/84c-buggy-model.js?v=13.0"></script>
+<script src="models/84d-tarona-model.js?v=13.0"></script>
+<script src="models/84e-wall-model.js?v=13.0"></script>
+<script src="models/84f-plant-models.js?v=13.0"></script>
+<script src="models/84g-kestrel-model.js?v=13.0"></script>
+<script src="models/84h-building-models.js?v=13.0"></script>
+<script src="models/84i-building-models2.js?v=13.0"></script>
+<script src="models/84j-f100-model.js?v=13.0"></script>
+<script src="models/84l-kingsford-model.js?v=13.0"></script>
+<script src="models/84m-wagon-model.js?v=13.0"></script>
+<script src="models/84p-dog-model.js?v=13.0"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='12.9';
+const VERSION='13.0';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -4738,7 +4738,7 @@ function settingsPanel(back){
 function switchWorld(test){try{if(test)localStorage.setItem('lastsurvivor.world','test');else localStorage.removeItem('lastsurvivor.world');}catch(e){}
   try{if(location.hash==='#testrange'&&!test)history.replaceState(null,'',location.pathname+location.search);}catch(e){}location.reload();}
 // models by other people, credited as their licences ask
-const CREDITS='Hero body based on “Low Poly Base Mesh-530 Tri” (sketchfab.com/3d-models/low-poly-base-mesh-530-tri-138ca18c246a4b13b3e108bd88df95a2) by assblasterplastered (sketchfab.com/assblasterplastered), licensed under CC-BY-4.0. Dogs and dingoes from “animated low poly dog game ready” (sketchfab.com/3d-models/animated-low-poly-dog-game-ready-178343a2f1ef492ab788afe50cbe252a) by creosine (sketchfab.com/creosine), licensed under CC-BY-4.0; coats repainted for the game.';
+const CREDITS='Hero body based on “Low Poly Base Mesh-530 Tri” (sketchfab.com/3d-models/low-poly-base-mesh-530-tri-138ca18c246a4b13b3e108bd88df95a2) by assblasterplastered (sketchfab.com/assblasterplastered), licensed under CC-BY-4.0. Dogs and dingoes from “animated low poly dog game ready” (sketchfab.com/3d-models/animated-low-poly-dog-game-ready-178343a2f1ef492ab788afe50cbe252a) by creosine (sketchfab.com/creosine), licensed under CC-BY-4.0; coats repainted for the game. Their walk and run from the walk cycle of “Dog animated” (sketchfab.com/3d-models/dog-animated-21b7336c58a442578ab88fc47233ef11) by MAXDESIGN-3D (sketchfab.com/MAXDESIGN), licensed under CC-BY-4.0.';
 function titleScreen(){
   state='title';const btns=[];
   if(TEST_MODE){btns.push({label:'Load a save file',fn:()=>loadPanel(titleScreen)});
@@ -8309,7 +8309,8 @@ function dropRoo3(a){const e=FX3.roos.get(a);if(!e)return;e.mixer.stopAllAction(
    One model for both, in three coats: the sandy dingo, and the blue and red heelers your dog can be. Each is its own copy with its own
    skeleton. The model's clips are for standing about, looking round, sitting down, sitting (wagging, now and then a scratch), a play bow and
    a spring up; it has no walk or run, so those are worked into the legs here (dogGait3): a trot at walking pace, a long reaching run.
-   The dead lie on their side. The block dog and dingo stand in until the model's ready, if it can't load, and for a butchered carcass. */
+   The walk and run (v13.0) come from another dog's walk cycle, moved onto this skeleton (see 84p); the legs are only worked in code
+   (dogGait3) if those clips are missing. The dead lie on their side. The block dog and dingo stand in until the model's ready, if it can't load, and for a butchered carcass. */
 const DOG3={status:'off',src:null,clips:{},mats:{},fwd:0,lift:0,len:1,LEN:{dog:11.5,dingo:13}};
 function loadDog3(){if(DOG3.status!=='off'||!THREE.GLTFLoader||typeof DOG_GLB_B64==='undefined')return;DOG3.status='loading';
   try{const bin=atob(DOG_GLB_B64),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
@@ -8342,7 +8343,8 @@ function dogLegs3(root){const f=re=>{let b=null;root.traverse(o=>{if(!b&&o.isBon
 // what it's doing decides the clip: [clip, speed, gait ('trot', 'run' or none)]
 function dogClip3(a,e,dt){const mv=Math.hypot(a.vx||0,a.vy||0),h=G.hero,d=Math.hypot(h.x-a.x,h.y-a.y),D=a.sp==='dog'&&!a.stray?dogState():null;
   if(a.state==='dead')return ['Stand',0,null];
-  if(mv>110)return ['Stand',1,'run'];if(mv>8){e.still=0;return ['Stand',1,'trot'];}
+  if(mv>45){e.still=0;return e.acts.Run?['Run',clamp(mv/110,0.75,1.6),null]:['Stand',1,mv>110?'run':'trot'];}   // the walk and run from MAXDESIGN's dog (v13.0), sped up to suit; the legs worked in code only if they're missing
+  if(mv>8){e.still=0;return e.acts.Walk?['Walk',clamp(mv/24,0.6,1.9),null]:['Stand',1,'trot'];}
   e.still+=dt;e.idleT-=dt;
   const sitting=D&&(D.mode!=='follow'||e.still>9)||a.stray&&a.trust>=2&&e.still>4;
   if(sitting){if(e.cur!=='Sit'&&e.cur!=='SitWag'&&e.cur!=='SitPaw'&&e.cur!=='SitDown')return ['SitDown',1,null];
@@ -8358,7 +8360,7 @@ function setDogClip3(e,name){const a=e.acts[name]||e.acts.Stand;if(e.cur===name)
 function dog3(a,b,dt){if(DOG3.status==='off')loadDog3();if(DOG3.status!=='ready'||a.butchered)return false;
   const coat=a.sp==='dingo'?'dingo':(a.coat?'red':'blue');let e=FX3.dogs.get(a);if(e&&e.coat!==coat){dropDog3(a);e=null;}
   if(!e){e=makeDog3(a.sp==='dingo'?'dingo':'dog',coat);V3.scene.add(e.g);FX3.dogs.set(a,e);}
-  const [name,ts,gait]=dogClip3(a,e,dt);setDogClip3(e,name);e.acts[name]&&(e.acts[name].timeScale=ts||1);
+  const [name,ts,gait]=dogClip3(a,e,dt);setDogClip3(e,name);if(e.acts[name])e.acts[name].timeScale=ts||1;
   const far=Math.hypot(a.x-b.x,a.y-b.y)>1400;e.skip+=dt;
   if(!far||e.skip>0.12){const step=e.skip;e.skip=0;e.mixer.update(step);
     if(gait){const mv=Math.hypot(a.vx,a.vy),run=gait==='run';e.ph+=step*clamp(5+mv*0.085,6,21);dogGait3(e.legs,e.ph,clamp(mv/(run?150:45),0.35,1),run);}}
