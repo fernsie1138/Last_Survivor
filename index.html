@@ -125,6 +125,19 @@ canvas{position:fixed;inset:0;display:block}
 #bSneak.on{background:rgba(169,154,208,.7);color:var(--oil)}
 #bAttack,#bSneak,#ctx{transition:width .18s,height .18s,left .18s,bottom .18s,font-size .18s}
 .combat #bAttack{width:156px;height:156px;font-size:26px;box-shadow:0 0 0 4px rgba(194,56,31,.35)}
+/* on foot on a touchscreen (v13.2): two fixed thumb sticks, the camera on the left and moving on the right; Attack and Sneak in an arc
+   above the left stick, the things you can do here in an arc above the right one (placed by layoutCtxRing) */
+.tpad{position:fixed;width:176px;height:176px;border-radius:50%;border:2px solid rgba(239,226,196,.45);background:rgba(35,29,24,.18);display:none;pointer-events:none;bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+.tpad .tknob{position:absolute;left:50%;top:50%;width:68px;height:68px;margin:-34px 0 0 -34px;border-radius:50%;background:rgba(239,226,196,.55);box-shadow:0 0 0 2px rgba(35,29,24,.45)}
+#movePad .tknob{background:rgba(242,160,61,.75)}
+.tpad span{position:absolute;left:0;right:0;bottom:-24px;text-align:center;font:700 14px "Barlow Condensed",Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:rgba(239,226,196,.6)}
+.tpad.on{border-color:rgba(239,226,196,.75)}
+#lookPad{left:calc(48px + env(safe-area-inset-left,0px))}#movePad{right:calc(48px + env(safe-area-inset-right,0px))}
+.touch.onfoot .tpad{display:block}
+.touch.onfoot #bAttack{width:104px;height:104px;font-size:20px;left:calc(124px + env(safe-area-inset-left,0px));bottom:calc(257px + env(safe-area-inset-bottom,0px))}
+.touch.onfoot.combat #bAttack{width:150px;height:150px;font-size:25px;left:calc(101px + env(safe-area-inset-left,0px));bottom:calc(234px + env(safe-area-inset-bottom,0px))}
+.touch.onfoot #bSneak{width:76px;height:76px;left:calc(263px + env(safe-area-inset-left,0px));bottom:calc(186px + env(safe-area-inset-bottom,0px))}
+#ctx.ring{display:block}#ctx.ring .cbtn{position:fixed;min-width:0;max-width:210px;padding:10px 16px;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .combat #bSneak{left:calc(196px + env(safe-area-inset-left,0px))}
 .touch.combat #ctx{bottom:calc(206px + env(safe-area-inset-bottom,0px))}
 body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,.onfoot #bAttack,.onfoot #bSneak{display:block}
@@ -207,6 +220,8 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
 
 <div id="touch">
   <div id="stickBase"><div id="stickKnob"></div></div>
+  <div id="lookPad" class="tpad"><div class="tknob"></div><span>Look</span></div>
+  <div id="movePad" class="tpad"><div class="tknob"></div><span>Move</span></div>
   <button id="bBrake" class="abtn">Brake</button>
   <button id="bBoost" class="abtn">Boost</button>
   <button id="bReverse" class="abtn">Reverse</button>
@@ -242,25 +257,25 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=13.1"></script>
-<script src="models/84-hero-model.js?v=13.1"></script>
-<script src="models/84b-hero-body.js?v=13.1"></script>
-<script src="models/84c-buggy-model.js?v=13.1"></script>
-<script src="models/84d-tarona-model.js?v=13.1"></script>
-<script src="models/84e-wall-model.js?v=13.1"></script>
-<script src="models/84f-plant-models.js?v=13.1"></script>
-<script src="models/84g-kestrel-model.js?v=13.1"></script>
-<script src="models/84h-building-models.js?v=13.1"></script>
-<script src="models/84i-building-models2.js?v=13.1"></script>
-<script src="models/84j-f100-model.js?v=13.1"></script>
-<script src="models/84l-kingsford-model.js?v=13.1"></script>
-<script src="models/84m-wagon-model.js?v=13.1"></script>
-<script src="models/84p-dog-model.js?v=13.1"></script>
+<script src="models/21b-mesa-models.js?v=13.2"></script>
+<script src="models/84-hero-model.js?v=13.2"></script>
+<script src="models/84b-hero-body.js?v=13.2"></script>
+<script src="models/84c-buggy-model.js?v=13.2"></script>
+<script src="models/84d-tarona-model.js?v=13.2"></script>
+<script src="models/84e-wall-model.js?v=13.2"></script>
+<script src="models/84f-plant-models.js?v=13.2"></script>
+<script src="models/84g-kestrel-model.js?v=13.2"></script>
+<script src="models/84h-building-models.js?v=13.2"></script>
+<script src="models/84i-building-models2.js?v=13.2"></script>
+<script src="models/84j-f100-model.js?v=13.2"></script>
+<script src="models/84l-kingsford-model.js?v=13.2"></script>
+<script src="models/84m-wagon-model.js?v=13.2"></script>
+<script src="models/84p-dog-model.js?v=13.2"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='13.1';
+const VERSION='13.2';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -2021,7 +2036,7 @@ function updateHeroOnFoot(dt,inp){
   // in a fight, keep facing the nearest raider in reach while you move in any direction; otherwise face where you're going
   const lock=combatTarget();h.faceLock=Math.max(0,(h.faceLock||0)-dt);
   if(lock)h.a+=angDiff(Math.atan2(lock.y-h.y,lock.x-h.x),h.a)*Math.min(1,dt*14);
-  else if(h.speed>6&&h.faceLock<=0)h.a=Math.atan2(h.vy,h.vx);
+  else if(h.speed>6&&h.faceLock<=0){if(twinStick()&&stick.active&&inputRot3()!==null)h.a+=angDiff(V3.yaw,h.a)*Math.min(1,dt*12);else h.a=Math.atan2(h.vy,h.vx);}   // the sticks (v13.2): face the way the camera looks
   collideWorld(h);h.ri=roadInfo(h.x,h.y);h.flash=Math.max(0,h.flash-dt*5);
   if(h.speed>12&&!h.crouch)addNoise(h.x,h.y,h.speed>75?230:70);   // sneaking is silent, running is loud
 }
@@ -4530,7 +4545,9 @@ function saveSettings(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(SET
 /* ===== input, panels, settings, map, HUD ===== */
 const keys={};
 const touch={boost:false,brake:false,reverse:false};
-const stick={id:null,ox:0,oy:0,x:0,y:0,active:false};
+const stick={id:null,ox:0,oy:0,x:0,y:0,active:false,fixed:false};
+const lstick={id:null,ox:0,oy:0,x:0,y:0,active:false};   // the camera stick, on foot on a touchscreen (v13.2)
+function twinStick(){return document.body.classList.contains('touch')&&G&&!G.hero.inCar;}
 const STICK_R=82;const uiZ=()=>SETTINGS.mobile?0.5:1,stickR=()=>STICK_R*uiZ();   // mobile mode halves the interface   // how far the knob travels: a bigger stick means finer control at low speed
 window.addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='TEXTAREA')return;if(e.target&&e.target.tagName==='INPUT'){if(e.code==='Enter')markerSave();if(e.code==='Escape')markerClose();return;}keys[e.code]=true;
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
@@ -4590,9 +4607,18 @@ window.addEventListener('pointermove',e=>{
   if(e.pointerId!==stick.id)return;stick.x=e.clientX;stick.y=e.clientY;
   let dx=stick.x-stick.ox,dy=stick.y-stick.oy;const m=Math.hypot(dx,dy),R0=stickR();if(m>R0){dx*=R0/m;dy*=R0/m;}
   sk.style.transform='translate('+dx/uiZ()+'px,'+dy/uiZ()+'px)';});
-function endStick(e){if(e&&e.pointerId!==undefined&&e.pointerId!==stick.id)return;stick.id=null;stick.active=false;sb.style.display='none';}
-function startStick(id,x,y){stick.id=id;stick.ox=stick.x=x;stick.oy=stick.y=y;stick.active=true;sb.style.display='block';sb.style.left=x/uiZ()+'px';sb.style.top=y/uiZ()+'px';sk.style.transform='translate(0,0)';}
-function moveStick(x,y){stick.x=x;stick.y=y;let dx=x-stick.ox,dy=y-stick.oy;const m=Math.hypot(dx,dy),R0=stickR();if(m>R0){dx*=R0/m;dy*=R0/m;}sk.style.transform='translate('+dx/uiZ()+'px,'+dy/uiZ()+'px)';}
+function endStick(e){if(e&&e.pointerId!==undefined&&e.pointerId!==stick.id)return;stick.id=null;stick.active=false;sb.style.display='none';if(stick.fixed){stick.fixed=false;$('movePad').classList.remove('on');$('movePad').firstChild.style.transform='translate(0,0)';}}
+function startStick(id,x,y){stick.id=id;stick.ox=stick.x=x;stick.oy=stick.y=y;stick.active=true;stick.fixed=false;sb.style.display='block';sb.style.left=x/uiZ()+'px';sb.style.top=y/uiZ()+'px';sk.style.transform='translate(0,0)';}
+function moveStick(x,y){stick.x=x;stick.y=y;let dx=x-stick.ox,dy=y-stick.oy;const m=Math.hypot(dx,dy),R0=stickR();if(m>R0){dx*=R0/m;dy*=R0/m;}(stick.fixed?$('movePad').firstChild:sk).style.transform='translate('+dx/uiZ()+'px,'+dy/uiZ()+'px)';}
+// the fixed sticks on foot: a thumb anywhere on that side of the screen works the stick, measured from the stick's own centre
+function padCentre(id){const r=$(id).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};}
+function startPadStick(id,x,y){const c=padCentre('movePad');stick.id=id;stick.ox=c.x;stick.oy=c.y;stick.active=true;stick.fixed=true;$('movePad').classList.add('on');moveStick(x,y);}
+function startLookStick(id,x,y){const c=padCentre('lookPad');lstick.id=id;lstick.ox=c.x;lstick.oy=c.y;lstick.active=true;$('lookPad').classList.add('on');moveLookStick(x,y);lookHold(true);}
+function moveLookStick(x,y){lstick.x=x;lstick.y=y;let dx=x-lstick.ox,dy=y-lstick.oy;const m=Math.hypot(dx,dy),R0=stickR();if(m>R0){dx*=R0/m;dy*=R0/m;}$('lookPad').firstChild.style.transform='translate('+dx/uiZ()+'px,'+dy/uiZ()+'px)';}
+function endLookStick(){lstick.id=null;lstick.active=false;$('lookPad').classList.remove('on');$('lookPad').firstChild.style.transform='translate(0,0)';lookHold(false);}
+// the camera stick turns the view round you (left and right) and tilts it (up and down); the view stays where you leave it
+function lookStickTick(dt){if(!lstick.active)return;const R0=stickR();let dx=(lstick.x-lstick.ox)/R0,dy=(lstick.y-lstick.oy)/R0;const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m;}
+  const cv=v=>Math.sign(v)*Math.pow(Math.max(0,Math.abs(v)-0.12)/0.88,1.4);V3.yaw+=cv(dx)*2.6*dt;LOOK.yaw=0;LOOK.pitch=clamp(LOOK.pitch+cv(dy)*1.1*dt,-0.7,0.9);LOOK.idle=0;}
 function ptrUp(e){if(state==='map'&&mapPtrs.has(e.pointerId)){mapGestureEnd(e);mapPtrs.delete(e.pointerId);return;}
   playPtrs.delete(e.pointerId);if(pinch&&playPtrs.size<2){pinch=null;saveSettings();}endStick(e);}
 window.addEventListener('pointerup',ptrUp);window.addEventListener('pointercancel',ptrUp);
@@ -4615,15 +4641,19 @@ function fieldFingers(){return [...fingers.entries()].filter(([,f])=>f.role==='s
 // forget any finger the browser no longer reports as touching: Safari sometimes never tells us a finger lifted
 // (for instance when the button under it vanishes), and a finger stuck "down" would block scrolling everywhere
 function pruneFingers(e){const live=new Set();for(const t of e.touches||[])live.add(t.identifier);
-  for(const [id,f] of fingers)if(!live.has(id)){fingers.delete(id);if(f.role==='hold'){touch[f.key]=false;f.el.classList.remove('held');}else if(f.role==='tap')f.el.classList.remove('held');else if(f.role==='stick'&&stick.id==='t'+id)endStick();else if(f.role==='pinch'){pinch=null;}else if(f.role==='look'&&![...fingers.values()].some(q=>q.role==='look'))lookHold(false);}}
+  for(const [id,f] of fingers)if(!live.has(id)){fingers.delete(id);if(f.role==='hold'){touch[f.key]=false;f.el.classList.remove('held');}else if(f.role==='tap')f.el.classList.remove('held');else if(f.role==='stick'&&stick.id==='t'+id)endStick();else if(f.role==='pinch'){pinch=null;}else if(f.role==='look'&&![...fingers.values()].some(q=>q.role==='look'))lookHold(false);else if(f.role==='lstick'&&lstick.id==='t'+id)endLookStick();}}
 function touchStart(e){enableTouchUI();pruneFingers(e);for(const t of e.changedTouches)fingers.delete(t.identifier);
-  if(state!=='play'){for(const [id,f] of fingers)if(f.role==='stick'&&stick.id==='t'+id)endStick();fingers.clear();return;}   // menus, the map, dialogue and trading use ordinary taps and scrolling
+  if(state!=='play'){for(const [id,f] of fingers)if(f.role==='stick'&&stick.id==='t'+id)endStick();if(lstick.active)endLookStick();fingers.clear();return;}   // menus, the map, dialogue and trading use ordinary taps and scrolling
   for(const t of e.changedTouches){const b=t.target&&t.target.closest?t.target.closest('button'):null;
     if(b&&HOLD_BTNS[b.id]){touch[HOLD_BTNS[b.id]]=true;b.classList.add('held');fingers.set(t.identifier,{role:'hold',key:HOLD_BTNS[b.id],el:b});e.preventDefault();continue;}
     if(b&&TAP_BTNS[b.id]){b.classList.add('held');fingers.set(t.identifier,{role:'tap',el:b});TAP_BTNS[b.id]();e.preventDefault();continue;}
     if(b&&b.classList.contains('cbtn')){fingers.set(t.identifier,{role:'tap',el:b});runAction(b.dataset.k,b.dataset.label);e.preventDefault();continue;}
     if(b)continue;   // Gear, Map, Pause and the rest keep their normal taps
     fingers.set(t.identifier,{role:'field',x:t.clientX,y:t.clientY});e.preventDefault();
+    if(twinStick()){const f=fingers.get(t.identifier);   // on foot (v13.2): left half looks, right half moves; no pinch here, both thumbs are busy
+      if(t.clientX<W/2){if(lstick.id===null){f.role='lstick';startLookStick('t'+t.identifier,t.clientX,t.clientY);}}
+      else if(stick.id===null){f.role='stick';f.t0=performance.now();startPadStick('t'+t.identifier,t.clientX,t.clientY);}
+      continue;}
     const field=fieldFingers(),stickF=field.find(([,f])=>f.role==='stick'),now=performance.now();
     // a finger that isn't steering turns the view: the second finger while you steer, or a finger off to the left of the stick
     // (two fingers going down together still pinch to zoom)
@@ -4633,14 +4663,16 @@ function touchStart(e){enableTouchUI();pruneFingers(e);for(const t of e.changedT
     if(!pinch&&t.clientX>W*0.38&&stick.id===null){const f=fingers.get(t.identifier);f.role='stick';f.t0=now;startStick('t'+t.identifier,t.clientX,t.clientY);}}}
 function touchMove(e){pruneFingers(e);for(const t of e.changedTouches){const f=fingers.get(t.identifier);if(!f)continue;f.x=t.clientX;f.y=t.clientY;
     if(f.role==='stick'&&stick.id==='t'+t.identifier)moveStick(t.clientX,t.clientY);
+    if(f.role==='lstick'&&lstick.id==='t'+t.identifier)moveLookStick(t.clientX,t.clientY);
     if(f.role==='look'){lookDrag(t.clientX-f.lx,t.clientY-f.ly);f.lx=t.clientX;f.ly=t.clientY;}
     if(f.role==='pinch'&&pinch){const p=[...fingers.values()].filter(q=>q.role==='pinch');if(p.length>=2)setZoom(pinch.z0*Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)/pinch.d0);}}
   // only hold the page still while a finger is steering, pinching or holding a control, and only in play
-  if(state==='play'&&[...fingers.values()].some(f=>f.role==='stick'||f.role==='pinch'||f.role==='hold'||f.role==='field'||f.role==='look'))e.preventDefault();}
+  if(state==='play'&&[...fingers.values()].some(f=>f.role==='stick'||f.role==='pinch'||f.role==='hold'||f.role==='field'||f.role==='look'||f.role==='lstick'))e.preventDefault();}
 function touchEnd(e){pruneFingers(e);for(const t of e.changedTouches){const f=fingers.get(t.identifier);if(!f)continue;fingers.delete(t.identifier);if(f.role==='look'&&![...fingers.values()].some(q=>q.role==='look'))lookHold(false);
     if(f.role==='hold'){touch[f.key]=false;f.el.classList.remove('held');}
     else if(f.role==='tap')f.el.classList.remove('held');
     else if(f.role==='stick'&&stick.id==='t'+t.identifier)endStick();
+    else if(f.role==='lstick'&&lstick.id==='t'+t.identifier)endLookStick();
     else if(f.role==='pinch'&&pinch){const left=[...fingers.values()].filter(q=>q.role==='pinch');if(left.length<2){pinch=null;saveSettings();for(const q of left)q.role='field';}}}}
 window.addEventListener('touchstart',touchStart,{passive:false});window.addEventListener('touchmove',touchMove,{passive:false});
 window.addEventListener('touchend',touchEnd);window.addEventListener('touchcancel',touchEnd);
@@ -4903,7 +4935,20 @@ function updateCtx(){
     el.innerHTML=a.label+(hint?'<kbd>'+a.k+'</kbd>':'');
     el.dataset.k=a.k;el.dataset.label=a.label;el.addEventListener('pointerdown',ev=>{if(ev.pointerType==='touch'&&HAS_TOUCH)return;ev.preventDefault();ev.stopPropagation();runAction(a.k,a.label);});
     box.appendChild(el);});
+  layoutCtxRing();
 }
+// on foot on a touchscreen: the buttons round the moving stick, the first (the main thing to do here) nearest the thumb, the rest following
+// the arc up and over the stick; none overlapping, a wider second arc if there are a lot. In the car, or with a keyboard: the column as before
+function layoutCtxRing(){const box=$('ctx'),ring=twinStick();box.classList.toggle('ring',ring);const btns=[...box.children];
+  if(!ring){for(const b of btns){b.style.left=b.style.top='';}return;}
+  const z=uiZ(),c=padCentre('movePad'),cx=c.x/z,cy=c.y/z,vw=W/z,placed=[];let ring_=0,ang=196;
+  for(const b of btns){const w=b.offsetWidth,h=b.offsetHeight;let x=0,y=0,ok=false;
+    for(let guard=0;guard<400&&!ok;guard++){const r=205+ring_*72,a=ang*Math.PI/180;x=cx+Math.cos(a)*r;y=cy+Math.sin(a)*r;
+      const box1={l:x-w/2-6,r:x+w/2+6,t:y-h/2-5,b:y+h/2+5};
+      ok=box1.l>8&&box1.r<vw-8&&box1.t>70&&!placed.some(q=>box1.l<q.r&&box1.r>q.l&&box1.t<q.b&&box1.b>q.t);
+      if(!ok){ang+=2;if(ang>300){ring_++;ang=196;}}}
+    placed.push({l:x-w/2-6,r:x+w/2+6,t:y-h/2-5,b:y+h/2+5});b.style.left=(x-w/2)+'px';b.style.top=(y-h/2)+'px';ang+=4;}}
+window.addEventListener('resize',()=>{ctxKey='';});
 
 // ---- clock and sleep ----
 function fmtClock(m){const d=Math.floor(m/DAY)+1,t=m%DAY,hh=Math.floor(t/60),mm=Math.floor(t%60);return 'Day '+d+', '+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');}
@@ -7958,7 +8003,8 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
   // forward-ish: walking back toward the camera (or standing) holds it still, so pulling the stick back walks you back
   // rather than spinning you round and round.
   const h=G.hero;let want=V3.yaw,rate=0;
-  if(car){want=car.a;rate=2.6;}else{const sp=Math.hypot(h.vx,h.vy);if(sp>8){const mv=Math.atan2(h.vy,h.vx),df=Math.abs(angDiff(mv,V3.yaw));if(df<1.75){want=mv;rate=3.5*(df<1.2?1:(1.75-df)/0.55);}}}
+  if(!car&&lstick.active&&!twinStick())endLookStick();lookStickTick(dt);
+  if(car){want=car.a;rate=2.6;}else if(twinStick()){rate=0;}else{const sp=Math.hypot(h.vx,h.vy);if(sp>8){const mv=Math.atan2(h.vy,h.vx),df=Math.abs(angDiff(mv,V3.yaw));if(df<1.75){want=mv;rate=3.5*(df<1.2?1:(1.75-df)/0.55);}}}
   V3.yaw+=angDiff(want,V3.yaw)*Math.min(1,dt*rate);
   // step inside a building and the camera rises up and looks down over the walls (the roof lifts off as before)
   let indoor=false;if(!car)for(const [,e] of V3.locs){const o=e.o;if(Math.abs(o.x-h.x)>o.rad||Math.abs(o.y-h.y)>o.rad)continue;if(o.bld.some(bd=>!bd.tank&&bInside(bd,h.x,h.y,0))){indoor=true;break;}}
