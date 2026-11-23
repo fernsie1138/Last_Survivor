@@ -242,24 +242,25 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=12.8"></script>
-<script src="models/84-hero-model.js?v=12.8"></script>
-<script src="models/84b-hero-body.js?v=12.8"></script>
-<script src="models/84c-buggy-model.js?v=12.8"></script>
-<script src="models/84d-tarona-model.js?v=12.8"></script>
-<script src="models/84e-wall-model.js?v=12.8"></script>
-<script src="models/84f-plant-models.js?v=12.8"></script>
-<script src="models/84g-kestrel-model.js?v=12.8"></script>
-<script src="models/84h-building-models.js?v=12.8"></script>
-<script src="models/84i-building-models2.js?v=12.8"></script>
-<script src="models/84j-f100-model.js?v=12.8"></script>
-<script src="models/84l-kingsford-model.js?v=12.8"></script>
-<script src="models/84m-wagon-model.js?v=12.8"></script>
+<script src="models/21b-mesa-models.js?v=12.9"></script>
+<script src="models/84-hero-model.js?v=12.9"></script>
+<script src="models/84b-hero-body.js?v=12.9"></script>
+<script src="models/84c-buggy-model.js?v=12.9"></script>
+<script src="models/84d-tarona-model.js?v=12.9"></script>
+<script src="models/84e-wall-model.js?v=12.9"></script>
+<script src="models/84f-plant-models.js?v=12.9"></script>
+<script src="models/84g-kestrel-model.js?v=12.9"></script>
+<script src="models/84h-building-models.js?v=12.9"></script>
+<script src="models/84i-building-models2.js?v=12.9"></script>
+<script src="models/84j-f100-model.js?v=12.9"></script>
+<script src="models/84l-kingsford-model.js?v=12.9"></script>
+<script src="models/84m-wagon-model.js?v=12.9"></script>
+<script src="models/84p-dog-model.js?v=12.9"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='12.8';
+const VERSION='12.9';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -2970,7 +2971,7 @@ function updateFoe(f,dt){
         if(W.melee){if(toward>80&&d<260){const px=-dy/d,py=dx/d,s=(px*(f.x-t.x+t.vx)+py*(f.y-t.y+t.vy))>0?1:-1;foeMove(f,f.x+px*s*60,f.y+py*s*60,FOE_SPEED.run,dt);}
           else if(d>90)foeMove(f,t.x,t.y,FOE_SPEED.run*0.7,dt);else f.speed=0;break;}}
       if(W.melee){if(f.wind>0){f.wind-=dt;f.speed=0;f.a=Math.atan2(dy,dx);if(f.wind<=0){f.cd=W.cd*1.15;
-            if(t.kind!=='car'&&d<W.range+t.r+6){const kx=dx/(d||1),ky=dy/(d||1);if(t.kind==='comp')hurtComp(W.dmg*1.35);else if(t.kind==='dog')dogHurt(W.dmg*0.9,'a raider');else{hurtHero(W.dmg*1.35,'melee');h.vx+=kx*W.knock*0.8;h.vy+=ky*W.knock*0.8;}SFX.punch();sparks(t.x,t.y,4);}}}
+            if(t.kind!=='car'&&d<W.range+t.r+6){const kx=dx/(d||1),ky=dy/(d||1);if(t.kind==='comp')hurtComp(W.dmg*1.35);else if(t.kind==='dog')dogHurt(W.dmg*0.6,'a raider');else{hurtHero(W.dmg*1.35,'melee');h.vx+=kx*W.knock*0.8;h.vy+=ky*W.knock*0.8;}SFX.punch();sparks(t.x,t.y,4);}}}
         else if(d>W.range+h.r-2)foeMove(f,t.x,t.y,FOE_SPEED.run,dt);
         else{f.speed=0;f.a=Math.atan2(dy,dx);if(f.cd<=0)f.wind=0.3;}}   // a short wind-up you can react to
       else{const want=W.range*0.45;if(d<110)foeMove(f,f.x-dx/d*80,f.y-dy/d*80,FOE_SPEED.walk*1.4,dt);
@@ -3997,7 +3998,7 @@ function dogTick(dt){strayTick(dt);if(G.dogCorpse&&Math.hypot(G.dogCorpse.x-body
   if(car){const dd=Math.hypot(car.x-d.x,car.y-d.y);if(car.speed<40&&dd<420){if(dd<car.r+16){d.inCar=true;D.inCar=true;dogSay(D.name+' hops in','#efe2c4');}else foeMove(d,car.x,car.y,170,dt);}
     else if(dd>60)foeMove(d,car.x-Math.cos(car.a)*car.def.len*0.7,car.y-Math.sin(car.a)*car.def.len*0.7,Math.min(190,dd*1.2),dt);dogWatch(d,D);return;}
   // on foot with you: a fight, a hunt, or at your heel
-  const t=dogTarget(d);if(t&&d.hp>DOG_HP*0.25){dogFight(d,t,dt);dogWatch(d,D);return;}
+  const t=dogTarget(d);if(t&&d.hp>DOG_HP*0.4){dogFight(d,t,dt);dogWatch(d,D);return;}
   const dh=Math.hypot(h.x-d.x,h.y-d.y);if(dh>2200){d.x=h.x-30;d.y=h.y+30;}
   if(dh>(h.crouch?30:55)){const bx=h.x-Math.cos(h.a)*28+Math.sin(h.a)*18,by=h.y-Math.sin(h.a)*28-Math.cos(h.a)*18;foeMove(d,bx,by,dh>140?FOE_SPEED.run*1.15:h.crouch?26:70,dt);}else{d.speed=0;d.vx=d.vy=0;}
   dogWatch(d,D);}
@@ -4016,7 +4017,7 @@ function dogWatch(d,D){if(G.time<(d.watchAt||0))return;d.watchAt=G.time+0.5;
   for(const f of G.foes){if(f.dead||f.state==='alert'||f.dogSeen||f.townGuard)continue;if(Math.hypot(f.x-d.x,f.y-d.y)<520){f.dogSeen=true;dogSay('Grrr…','#ff9a7a');return;}}
   for(const a of G.animals){if(a.sp!=='snake'||a.state==='dead'||a.dogSeen)continue;if(Math.hypot(a.x-d.x,a.y-d.y)<160){a.dogSeen=true;dogBark('barks at something in the grass. A snake');return;}}}
 // a raider being bitten turns on the dog now and then
-function dogFoeTarget(f){const d=G.dogObj;if(!d||d.inCar||!dogState()||!(f.dogBit>0))return null;if(Math.hypot(d.x-f.x,d.y-f.y)>70)return null;if((f.dogAggroT=(f.dogAggroT??(Math.random()<0.55?1:0)))<1)return null;return d;}
+function dogFoeTarget(f){const d=G.dogObj;if(!d||d.inCar||!dogState()||!(f.dogBit>0)||d.hp<DOG_HP*0.4)return null;if(Math.hypot(d.x-f.x,d.y-f.y)>70)return null;if((f.dogAggroT=(f.dogAggroT??(Math.random()<0.4?1:0)))<1)return null;return d;}   // once it's hurt and backing off, they leave it be
 function dogBullet(b){const d=G.dogObj;if(!d||d.inCar||!dogState())return false;if(Math.hypot(d.x-b.x,d.y-b.y)<d.r+2){dogHurt(b.dmg*0.5,'shot');b.dead=true;sparks(b.x,b.y,3);return true;}return false;}
 // the dog's own menu: stay, come, a scratch behind the ears, a bandage
 function dogPanel(){const D=dogState(),d=G.dogObj;if(!D||!d)return;state='paused';endStick();const h=G.hero,hurt=d.hp<DOG_HP-12;
@@ -4737,7 +4738,7 @@ function settingsPanel(back){
 function switchWorld(test){try{if(test)localStorage.setItem('lastsurvivor.world','test');else localStorage.removeItem('lastsurvivor.world');}catch(e){}
   try{if(location.hash==='#testrange'&&!test)history.replaceState(null,'',location.pathname+location.search);}catch(e){}location.reload();}
 // models by other people, credited as their licences ask
-const CREDITS='Hero body based on “Low Poly Base Mesh-530 Tri” (sketchfab.com/3d-models/low-poly-base-mesh-530-tri-138ca18c246a4b13b3e108bd88df95a2) by assblasterplastered (sketchfab.com/assblasterplastered), licensed under CC-BY-4.0.';
+const CREDITS='Hero body based on “Low Poly Base Mesh-530 Tri” (sketchfab.com/3d-models/low-poly-base-mesh-530-tri-138ca18c246a4b13b3e108bd88df95a2) by assblasterplastered (sketchfab.com/assblasterplastered), licensed under CC-BY-4.0. Dogs and dingoes from “animated low poly dog game ready” (sketchfab.com/3d-models/animated-low-poly-dog-game-ready-178343a2f1ef492ab788afe50cbe252a) by creosine (sketchfab.com/creosine), licensed under CC-BY-4.0; coats repainted for the game.';
 function titleScreen(){
   state='title';const btns=[];
   if(TEST_MODE){btns.push({label:'Load a save file',fn:()=>loadPanel(titleScreen)});
@@ -8054,7 +8055,7 @@ function guide3D(){const b=body(),h=G.hero;
    Everything the old 2D view drew that the 3D world didn't yet: dust, smoke, fire and sparks (the game's own particles,
    lifted into the air), tyre tracks, bullets, wildlife, things dropped on the ground, marker flags, campfires, raiders'
    sight lines while you sneak, and the floating labels (place names, people's names, pop-up text). */
-const FX3={ready:false,pts:null,ptsAdd:null,trk:null,blt:null,cone:null,animals:new Map(),roos:new Map(),rooT:0,pickups:new Map(),markers:new Map(),fires:new Map(),fireLight:null};
+const FX3={ready:false,pts:null,ptsAdd:null,trk:null,blt:null,cone:null,animals:new Map(),roos:new Map(),dogs:new Map(),rooT:0,pickups:new Map(),markers:new Map(),fires:new Map(),fireLight:null};
 const FX3_MAXP=900,FX3_MAXT=1000;
 // soft round particles, sized in world units, faded by their own alpha and by the haze
 const LIN3='vec3 lsLin(vec3 c){return mix(c*0.0773993808,pow(c*0.9478672986+vec3(0.0521327014),vec3(2.4)),step(vec3(0.04045),c));}';
@@ -8136,12 +8137,15 @@ function animals3(b){const sc=V3.scene,seen=new Set(),now=performance.now(),dt=M
   for(const a of G.animals.concat(dogShown())){if(Math.abs(a.x-b.x)>2200||Math.abs(a.y-b.y)>2200)continue;seen.add(a);
     if(a.sp==='roo'&&roo3(a,b,dt)){const e0=FX3.animals.get(a);if(e0){drop3(e0.m);FX3.animals.delete(a);}continue;}   // the animated kangaroo (86c)
     if(a.sp==='roo')dropRoo3(a);
+    if((a.sp==='dog'||a.sp==='dingo')&&dog3(a,b,dt)){const e0=FX3.animals.get(a);if(e0){drop3(e0.m);FX3.animals.delete(a);}continue;}   // the animated dog and dingo (84p)
+    if(a.sp==='dog'||a.sp==='dingo')dropDog3(a);
     const dead=a.state==='dead',key=(dead?'d':'a')+(a.butchered?'b':'');let e=FX3.animals.get(a);
     if(!e||e.key!==key){if(e)drop3(e.m);const m=animalModel3(a).mesh(V3.mats.vc);if(!m)continue;m.matrixAutoUpdate=true;sc.add(m);e={m,key};FX3.animals.set(a,e);}
     const mv=Math.hypot(a.vx,a.vy),hop=a.sp==='roo'&&!dead&&mv>30?Math.abs(Math.sin((a.hop||0)*2))*9:0;
     e.m.position.set(a.x,groundY3(a.x,a.y)+hop,a.y);e.m.rotation.set(dead&&!a.butchered&&a.sp!=='snake'?Math.PI/2:0,-a.a,0,'YXZ');}
   for(const [a,e] of FX3.animals)if(!seen.has(a)){drop3(e.m);FX3.animals.delete(a);}
-  for(const a of [...FX3.roos.keys()])if(!seen.has(a)||a.butchered)dropRoo3(a);}
+  for(const a of [...FX3.roos.keys()])if(!seen.has(a)||a.butchered)dropRoo3(a);
+  for(const a of [...FX3.dogs.keys()])if(!seen.has(a)||a.butchered)dropDog3(a);}
 /* ---- things dropped on the ground: a jerrycan or a bundle in the item's colour, bobbing, a pulsing ring round it ---- */
 function pickups3(b){const sc=V3.scene,seen=new Set();
   for(const k of G.pickups){if(Math.abs(k.x-b.x)>2200||Math.abs(k.y-b.y)>2200)continue;seen.add(k);let e=FX3.pickups.get(k);
@@ -8300,6 +8304,67 @@ function roo3(a,b,dt){if(ROO3.status==='off')loadRoo3();if(ROO3.status!=='ready'
   const far=Math.hypot(a.x-b.x,a.y-b.y)>1400;e.skip+=dt;if(!far||e.skip>0.12){e.mixer.update(e.skip);e.skip=0;}   // far ones a few times a second
   e.g.position.set(a.x,groundY3(a.x,a.y),a.y);e.g.rotation.set(0,Math.PI/2-a.a,0);return true;}
 function dropRoo3(a){const e=FX3.roos.get(a);if(!e)return;e.mixer.stopAllAction();V3.scene.remove(e.g);FX3.roos.delete(a);}
+
+/* ===== dogs and dingoes as proper animated animals (v12.9), from the packed model in 84p (creosine's "animated low poly dog", CC-BY-4.0) =====
+   One model for both, in three coats: the sandy dingo, and the blue and red heelers your dog can be. Each is its own copy with its own
+   skeleton. The model's clips are for standing about, looking round, sitting down, sitting (wagging, now and then a scratch), a play bow and
+   a spring up; it has no walk or run, so those are worked into the legs here (dogGait3): a trot at walking pace, a long reaching run.
+   The dead lie on their side. The block dog and dingo stand in until the model's ready, if it can't load, and for a butchered carcass. */
+const DOG3={status:'off',src:null,clips:{},mats:{},fwd:0,lift:0,len:1,LEN:{dog:11.5,dingo:13}};
+function loadDog3(){if(DOG3.status!=='off'||!THREE.GLTFLoader||typeof DOG_GLB_B64==='undefined')return;DOG3.status='loading';
+  try{const bin=atob(DOG_GLB_B64),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+    new THREE.GLTFLoader().parse(u8.buffer,'',g=>{try{let base=null;
+        g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;base=o.material;}});
+        for(const k in DOG_COAT_TEX){const t=new THREE.TextureLoader().load(DOG_COAT_TEX[k]);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;
+          const m=base.clone();m.map=t;m.color.setScalar(1);m.metalness=0;m.roughness=0.95;DOG3.mats[k]=m;}
+        for(const c of g.animations)DOG3.clips[c.name]=c;
+        // how it sits in the world: which way its nose points, how long it is, where its feet are (standing)
+        const mx=new THREE.AnimationMixer(g.scene);mx.clipAction(DOG3.clips.Stand).play();mx.update(0);g.scene.updateMatrixWorld(true);
+        const bone=re=>{let b=null;g.scene.traverse(o=>{if(!b&&o.isBone&&re.test(o.name))b=o;});return b;},hd=bone(/HeadNub/).getWorldPosition(new THREE.Vector3()),tl=bone(/TailNub/).getWorldPosition(new THREE.Vector3());
+        DOG3.fwd=Math.atan2(hd.z-tl.z,hd.x-tl.x);DOG3.len=Math.hypot(hd.x-tl.x,hd.z-tl.z);DOG3.lift=-new THREE.Box3().setFromObject(g.scene,true).min.y;mx.stopAllAction();
+        DOG3.src=g.scene;DOG3.status='ready';}catch(e){DOG3.status='failed';console.warn('dog:',e);}},
+      e=>{DOG3.status='failed';console.warn('dog:',e);});}catch(e){DOG3.status='failed';console.warn('dog:',e);}}
+function makeDog3(sp,coat){const m=cloneSkinned3(DOG3.src),inner=new THREE.Group(),g=new THREE.Group();
+  m.traverse(o=>{if(o.isSkinnedMesh)o.material=DOG3.mats[coat]||DOG3.mats.dingo;});m.position.y=DOG3.lift;inner.add(m);inner.scale.setScalar(DOG3.LEN[sp]/DOG3.len);inner.rotation.y=DOG3.fwd;g.add(inner);
+  const mixer=new THREE.AnimationMixer(m),acts={};for(const k in DOG3.clips)acts[k]=mixer.clipAction(DOG3.clips[k]);
+  for(const k of ['SitDown','Rise']){if(acts[k]){acts[k].setLoop(THREE.LoopOnce,1);acts[k].clampWhenFinished=true;}}
+  return {g,mixer,acts,legs:dogLegs3(m),cur:null,ph:Math.random()*TAU,still:0,idle:'Stand',idleT:0,skip:0,coat};}
+// a trot (walking) or a run, worked into the legs over the standing pose: the leg bones swing on their own Z axis, the diagonal pairs
+// together at a trot, front and back pairs together at the run; the lower leg folds up as the leg swings forward
+function dogGait3(L,ph,k,run){if(!L.FL)return;const Q=L.q,Z=L.z;
+  const amp=(run?0.62:0.42)*k,offs=run?[0,0.35,Math.PI,Math.PI+0.35]:[0,Math.PI,Math.PI,0];   // FL, FR, HL, HR
+  const legs=[[L.FL,L.FLl,-1,offs[0]],[L.FR,L.FRl,-1,offs[1]],[L.HL,L.HLl,1,offs[2]],[L.HR,L.HRl,1,offs[3]]];
+  for(const [up,lo,sg,off] of legs){const s=Math.sin(ph+off),c=Math.cos(ph+off);up.quaternion.multiply(Q.setFromAxisAngle(Z,sg*amp*s));
+    if(lo)lo.quaternion.multiply(Q.setFromAxisAngle(Z,-sg*amp*1.3*Math.max(0,c)));}
+  if(L.spine)L.spine.quaternion.multiply(Q.setFromAxisAngle(Z,(run?0.12:0.04)*k*Math.sin(ph*2)));}
+function dogLegs3(root){const f=re=>{let b=null;root.traverse(o=>{if(!b&&o.isBone&&re.test(o.name))b=o;});return b;};
+  return {FL:f(/L_UpperArm/),FR:f(/R_UpperArm/),HL:f(/L_Thigh/),HR:f(/R_Thigh/),FLl:f(/L_Forearm/),FRl:f(/R_Forearm/),HLl:f(/L_Calf/),HRl:f(/R_Calf/),spine:f(/Spine1/),q:new THREE.Quaternion(),z:new THREE.Vector3(0,0,1)};}
+// what it's doing decides the clip: [clip, speed, gait ('trot', 'run' or none)]
+function dogClip3(a,e,dt){const mv=Math.hypot(a.vx||0,a.vy||0),h=G.hero,d=Math.hypot(h.x-a.x,h.y-a.y),D=a.sp==='dog'&&!a.stray?dogState():null;
+  if(a.state==='dead')return ['Stand',0,null];
+  if(mv>110)return ['Stand',1,'run'];if(mv>8){e.still=0;return ['Stand',1,'trot'];}
+  e.still+=dt;e.idleT-=dt;
+  const sitting=D&&(D.mode!=='follow'||e.still>9)||a.stray&&a.trust>=2&&e.still>4;
+  if(sitting){if(e.cur!=='Sit'&&e.cur!=='SitWag'&&e.cur!=='SitPaw'&&e.cur!=='SitDown')return ['SitDown',1,null];
+    if(e.cur==='SitDown'&&e.acts.SitDown.time<DOG3.clips.SitDown.duration-0.05)return ['SitDown',1,null];
+    if(e.idleT<=0){e.idle=!h.inCar&&d<90?'SitWag':Math.random()<0.2?'SitPaw':'Sit';e.idleT=e.idle==='SitPaw'?DOG3.clips.SitPaw.duration:rand(4,8);}
+    return [e.idle.startsWith('Sit')?e.idle:'Sit',1,null];}
+  if(D&&!h.inCar&&d<70&&e.still<3&&e.wasAway){e.wasAway=false;e.idle='Play';e.idleT=DOG3.clips.Play.duration*1.5;}   // you're back: a play bow and a wag
+  if(D&&d>400)e.wasAway=true;
+  if(e.idleT<=0||e.idle.startsWith('Sit')){e.idle=Math.random()<0.6?'Stand':'Look';e.idleT=rand(3,7);}
+  return [e.idle,1,null];}
+function setDogClip3(e,name){const a=e.acts[name]||e.acts.Stand;if(e.cur===name)return;const prev=e.cur&&e.acts[e.cur];a.reset();a.play();if(prev)a.crossFadeFrom(prev,0.25,false);e.cur=name;}
+// called by animals3 for each dog and dingo in view: true if the animated one is showing
+function dog3(a,b,dt){if(DOG3.status==='off')loadDog3();if(DOG3.status!=='ready'||a.butchered)return false;
+  const coat=a.sp==='dingo'?'dingo':(a.coat?'red':'blue');let e=FX3.dogs.get(a);if(e&&e.coat!==coat){dropDog3(a);e=null;}
+  if(!e){e=makeDog3(a.sp==='dingo'?'dingo':'dog',coat);V3.scene.add(e.g);FX3.dogs.set(a,e);}
+  const [name,ts,gait]=dogClip3(a,e,dt);setDogClip3(e,name);e.acts[name]&&(e.acts[name].timeScale=ts||1);
+  const far=Math.hypot(a.x-b.x,a.y-b.y)>1400;e.skip+=dt;
+  if(!far||e.skip>0.12){const step=e.skip;e.skip=0;e.mixer.update(step);
+    if(gait){const mv=Math.hypot(a.vx,a.vy),run=gait==='run';e.ph+=step*clamp(5+mv*0.085,6,21);dogGait3(e.legs,e.ph,clamp(mv/(run?150:45),0.35,1),run);}}
+  const dead=a.state==='dead',bob=gait&&!dead?Math.abs(Math.sin(e.ph))*(gait==='run'?1.1:0.35):0;
+  e.g.position.set(a.x,groundY3(a.x,a.y)+bob+(dead?1.6:0),a.y);e.g.rotation.set(dead?Math.PI/2:0,-a.a,0,'YXZ');return true;}
+function dropDog3(a){const e=FX3.dogs.get(a);if(!e)return;e.mixer.stopAllAction();V3.scene.remove(e.g);FX3.dogs.delete(a);}
 
 /* ---- grass (v11.2): living, wind-blown grass round the camera ----
    Two kinds of clump, each one InstancedMesh (one draw call, however many clumps):
