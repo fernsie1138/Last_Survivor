@@ -262,25 +262,25 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=13.3"></script>
-<script src="models/84-hero-model.js?v=13.3"></script>
-<script src="models/84b-hero-body.js?v=13.3"></script>
-<script src="models/84c-buggy-model.js?v=13.3"></script>
-<script src="models/84d-tarona-model.js?v=13.3"></script>
-<script src="models/84e-wall-model.js?v=13.3"></script>
-<script src="models/84f-plant-models.js?v=13.3"></script>
-<script src="models/84g-kestrel-model.js?v=13.3"></script>
-<script src="models/84h-building-models.js?v=13.3"></script>
-<script src="models/84i-building-models2.js?v=13.3"></script>
-<script src="models/84j-f100-model.js?v=13.3"></script>
-<script src="models/84l-kingsford-model.js?v=13.3"></script>
-<script src="models/84m-wagon-model.js?v=13.3"></script>
-<script src="models/84p-dog-model.js?v=13.3"></script>
+<script src="models/21b-mesa-models.js?v=13.4"></script>
+<script src="models/84-hero-model.js?v=13.4"></script>
+<script src="models/84b-hero-body.js?v=13.4"></script>
+<script src="models/84c-buggy-model.js?v=13.4"></script>
+<script src="models/84d-tarona-model.js?v=13.4"></script>
+<script src="models/84e-wall-model.js?v=13.4"></script>
+<script src="models/84f-plant-models.js?v=13.4"></script>
+<script src="models/84g-kestrel-model.js?v=13.4"></script>
+<script src="models/84h-building-models.js?v=13.4"></script>
+<script src="models/84i-building-models2.js?v=13.4"></script>
+<script src="models/84j-f100-model.js?v=13.4"></script>
+<script src="models/84l-kingsford-model.js?v=13.4"></script>
+<script src="models/84m-wagon-model.js?v=13.4"></script>
+<script src="models/84p-dog-model.js?v=13.4"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='13.3';
+const VERSION='13.4';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -7403,10 +7403,7 @@ function pickup3(c){const o=loft3(c,{lift:3,wr:4.6,tyreW:3.4,belt:[[-0.5,9.6],[0
   dress3(o,{tailY:4.5});const {gb,L,Wd,K,lift}=o;for(const sg of [1,-1])gb.box(-L*0.26,9.6+lift,sg*(Wd/2-0.8),L*0.48,3.2,1.2,0,K.body);   // tray sides
   gb.box(-L*0.15,10+lift,0,L*0.2,2.5,Wd*0.6,0,col3('#2a2622'));return gb;}
 /* ---- the Tarona: David's model, as built in Blender (shape untouched), dressed as a wasteland car ----
-   Scaled evenly to the car's length, nose forward, sitting on its tyres. Coloured face by face: paint gone to dusty grey-brown
-   with a primer bonnet or a mismatched replacement door, dust settled on the flat tops, mud caked up the sills and round the
-   arches, rust breaking through in patches, dull tarnished bumpers, dusty dark glass, black tyres on rusty rims. Every face
-   its own shade; each car's dirt and rust fall differently. */
+   Scaled evenly to the car's length, nose forward, sitting on its tyres. Painted with a texture (tarona3, v13.4). */
 const TAR={geo:null};
 function taronaGeo3(){if(TAR.geo)return TAR.geo;const M=TARONA_MODEL,b=Uint8Array.from(atob(M.pos),ch=>ch.charCodeAt(0)),q=new Int16Array(b.buffer),pt=Uint8Array.from(atob(M.part),ch=>ch.charCodeAt(0));
   const P=new Float32Array(q.length);for(let i=0;i<q.length;i++){const a=i%3;P[i]=M.min[a]+(q[i]+32767)/65534*(M.max[a]-M.min[a]);}
@@ -7580,25 +7577,110 @@ function wagonModel3(c){const T=wagonGeo3(),gb=new GB(),wk=c.wrecked,r=rng(hashS
     const v=0.88+r()*0.2;cl=cl.map(x=>x*v);
     for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]])gb.pushV(WAGON_DIR*(z-zc)*S,(y-T.min[1])*S,-WAGON_DIR*(x-xc)*S,cl[0],cl[1],cl[2],0);}   // nose (+z in the model) forward
   return gb;}
-function tarona3(c){const T=taronaGeo3(),gb=new GB(),wk=c.wrecked,r=rng(hashStr3(c.id||'hero0')+21),S=c.def.len*1.02*1.1/T.len,P=T.P;   /* 10% bigger than the collision length, as asked */
-  const col=(h,m)=>col3(wk?'#2a211b':h,m),paintBase=col('#6f685d'),primer=col('#78736a'),door=col(['#6b5a46','#5c5750','#6e5e44'][Math.floor(r()*3)]),mud=col('#6a5640'),dust=col('#cfc6a6'),rust=col('#7a4a2e'),rustD=col('#4e3e2c'),
-    steel=col('#7a7266'),glass=col('#3a332c'),tyre=col('#1c1814'),rim=col('#5a5650');
-  const doorSide=r()<0.5?1:-1,primerBonnet=r()<0.6,cell=new Map(),rustAt=(x,y,z)=>{const k=Math.floor(x/0.9)+','+Math.floor(y/0.7)+','+Math.floor(z/0.9);if(!cell.has(k))cell.set(k,r());return cell.get(k);};
+/* ---- the Tarona's paint job (v13.4): smooth, with no facets showing. Shaded smooth across every corner (only edges sharper than
+   about 40 degrees stay crisp) and painted from one texture, laid on in sections like the Kingsford's: a red car the outback has
+   worn away, the paint faded and chalky up top, scuffed through to primer and bare metal, rust breaking out round the arches, along the
+   sills and the bottoms of the doors and bleeding down the panels, mud and red dust thick on the lower body; the bonnet and its scoop
+   black, worn and scuffed, dusty, rusting at the edges; the windows filmed with dirt, the windscreen with two wiper arcs cleared.
+     A sides   B roof and boot   K bonnet and scoop   C side glass   D2 windscreen and back window   E sills and trim   D1 tyres   D3 bumpers and rims ---- */
+const TRR3={A:[0,0,512,512],B:[512,0,512,256],K:[512,256,512,256],C:[0,512,512,256],E:[0,768,512,256],D1:[512,512,256,512],D2:[768,512,256,256],D3:[768,768,256,256]};
+const TRB={z0:1.5,z1:4.36,sz0:1.86,sz1:3.16,sx:0.62};   // the bonnet (from the foot of the windscreen to the nose) and the scoop on it, in model units
+function trSize3(){const M=TARONA_MODEL;return {min:M.min,L:M.max[2]-M.min[2],H:M.max[1]-M.min[1],W:M.max[0]-M.min[0]};}
+let TRTX=null;
+function trTex3(){if(TRTX)return TRTX;const T=taronaGeo3(),D=trSize3(),cv=document.createElement('canvas');cv.width=cv.height=1024;const g=cv.getContext('2d'),r=rng(7741);
+  const rgba=(c,a)=>'rgba('+c.map(v=>Math.round(v*255)).join(',')+','+a+')',hx=h=>col3(h),RED=hx('#8c2618'),REDL=hx('#b0483a'),REDD=hx('#5e1a12'),PRIMER=hx('#7a766c'),METAL=hx('#8e8a80'),
+    BLK=hx('#1d1b19'),SCUFF=hx('#5a5650'),RUST=hx('#7a3e1c'),RUSTL=hx('#a0582a'),RUSTD=hx('#4a2a18'),MUD=hx('#9a7450'),MUDD=hx('#6e5036'),DUST=hx('#c4a274'),DUSTL=hx('#d8c49c');
+  const blob=(x,y,rad,c,a)=>{const gr=g.createRadialGradient(x,y,0,x,y,rad);gr.addColorStop(0,rgba(c,a));gr.addColorStop(1,rgba(c,0));g.fillStyle=gr;g.beginPath();g.arc(x,y,rad,0,TAU);g.fill();};
+  const spot=(x,y,rad,c,a)=>{g.fillStyle=rgba(c,a);g.beginPath();const n=7+Math.floor(r()*5);for(let i=0;i<n;i++){const t=i/n*TAU,q=rad*(0.55+r()*0.6);g.lineTo(x+Math.cos(t)*q,y+Math.sin(t)*q);}g.closePath();g.fill();};
+  const clip=R=>{g.save();g.beginPath();g.rect(R[0],R[1],R[2],R[3]);g.clip();},unclip=()=>g.restore();
+  const hubs=[1,2,3,4].map(k=>T.hub[k]).filter((h,i,a)=>a.findIndex(q=>Math.abs(q.z-h.z)<0.3)===i).map(h=>({u:(h.z-D.min[2])/D.L,v:(h.y-D.min[1])/D.H,rr:h.r/D.H}));
+  const rustAt=(x,y,rad,run)=>{spot(x,y,rad*1.3,RUSTD,0.35);spot(x,y,rad,RUST,0.85);if(r()<0.7)spot(x+(r()-0.5)*rad,y+(r()-0.5)*rad,rad*0.5,RUSTL,0.7);
+    for(let i=0;i<4;i++)spot(x+(r()-0.5)*rad*3,y+(r()-0.5)*rad*3,0.6+r()*rad*0.3,RUST,0.7);
+    if(run){g.strokeStyle=rgba(RUST,0.3);for(let i=0;i<2+Math.floor(r()*3);i++){g.lineWidth=0.8+r()*2;const sx=x+(r()-0.5)*rad*1.4;g.beginPath();g.moveTo(sx,y);g.lineTo(sx+(r()-0.5)*3,y+rad*(2+r()*5));g.stroke();}}};
+  // worn through: a scuffed patch down to primer, with bare metal at its heart
+  const wear=(x,y,rad)=>{spot(x,y,rad,PRIMER,0.75);spot(x+(r()-0.5)*rad*0.4,y+(r()-0.5)*rad*0.4,rad*0.45,METAL,0.6);for(let i=0;i<6;i++)spot(x+(r()-0.5)*rad*2.2,y+(r()-0.5)*rad*2.2,0.8+r()*rad*0.25,PRIMER,0.6);};
+  const scratches=(R,n,col,a,len)=>{const [x0,y0,w,h]=R;g.strokeStyle=rgba(col,a);for(let i=0;i<n;i++){g.lineWidth=0.5+r()*1.2;const x=x0+r()*w,y=y0+r()*h;g.beginPath();g.moveTo(x,y);g.lineTo(x+(r()-0.5)*len,y+(r()-0.5)*len*0.2);g.stroke();}};
+  const mudBand=(R,top,heavy)=>{const [x0,y0,w,h]=R,yAt=v=>y0+(1-v)*h;let gr=g.createLinearGradient(0,yAt(top),0,yAt(0));gr.addColorStop(0,rgba(DUST,0));gr.addColorStop(0.3,rgba(DUST,0.5*heavy));gr.addColorStop(0.65,rgba(MUD,0.82*heavy));gr.addColorStop(1,rgba(MUD,0.94*heavy));
+    g.fillStyle=gr;g.fillRect(x0,yAt(top),w,yAt(0)-yAt(top));
+    for(let i=0;i<1800*heavy*w/512;i++){const v=Math.pow(r(),1.8)*top*1.15,x=x0+r()*w,y=yAt(v);spot(x,y,1+r()*4*(1-v/top/1.3),r()<0.5?MUD:(r()<0.5?DUST:MUDD),0.25+r()*0.5);}
+    for(const hb of hubs)for(let i=0;i<300*heavy;i++){const a=Math.PI*(0.05+r()*0.9),d=hb.rr*(1.05+r()*r()*1.3),x=x0+(hb.u+Math.cos(a)*d*D.H/D.L)*w,y=yAt(hb.v+Math.sin(a)*d);spot(x,y,1+r()*3.5,r()<0.6?MUD:DUST,0.3+r()*0.45);}};
+  const grain=(R,amt)=>{const [x0,y0,w,h]=R,im=g.getImageData(x0,y0,w,h),d=im.data;for(let i=0;i<d.length;i+=4){const n=(r()-0.5)*amt;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}g.putImageData(im,x0,y0);};
+  // ---- A: the sides, red worn away ----
+  {const R=TRR3.A,[x0,y0,w,h]=R,yAt=v=>y0+(1-v)*h,xAt=u=>x0+u*w;clip(R);g.fillStyle=rgba(RED,1);g.fillRect(x0,y0,w,h);
+    let gr=g.createLinearGradient(0,y0,0,y0+h);gr.addColorStop(0,rgba(REDL,0.45));gr.addColorStop(0.5,rgba(REDL,0.12));gr.addColorStop(1,rgba(REDD,0.2));g.fillStyle=gr;g.fillRect(x0,y0,w,h);   // sun-faded and chalky up top
+    for(let i=0;i<70;i++)blob(x0+r()*w,y0+r()*h,20+r()*60,r()<0.5?REDL:REDD,0.1+r()*0.12);   // blotchy, uneven paint
+    for(let i=0;i<26;i++)wear(x0+r()*w,y0+h*(0.15+r()*0.6),3+r()*9);   // scuffed through to primer and metal
+    scratches(R,110,DUSTL,0.3,40);for(let i=0;i<28;i++)spot(x0+r()*w,y0+h*0.15+r()*h*0.7,0.8+r()*1.8,METAL,0.45);   // scratches and a few chips
+    for(let i=0;i<9;i++){const x=x0+r()*w,y=yAt(0.18+r()*0.2),rad=10+r()*10;spot(x,y,rad*1.25,RUSTD,0.4);spot(x,y,rad,RUST,0.75);for(let j=0;j<8;j++)rustAt(x+(r()-0.5)*rad*1.6,y+(r()-0.5)*rad,2+r()*4,r()<0.5);}   // bigger patches rusting through low on the doors and quarters
+    for(const hb of hubs)for(let i=0;i<14;i++){const a=Math.PI*(0.1+r()*0.8),d=hb.rr*(1.08+r()*0.3);rustAt(xAt(hb.u+Math.cos(a)*d*D.H/D.L),yAt(hb.v+Math.sin(a)*d),3+r()*8,r()<0.4);}   // the arches go first
+    for(let i=0;i<40;i++)rustAt(x0+r()*w,yAt(0.14+r()*0.18),3+r()*9,r()<0.3);for(let i=0;i<20;i++)rustAt(x0+r()*w,yAt(0.32+r()*0.35),2+r()*6,true);   // sills, door bottoms, spots running down the panels
+    mudBand(R,0.44,1);grain(R,14);unclip();}
+  // ---- B: roof and boot, baked by the sun ----
+  {const R=TRR3.B,[x0,y0,w,h]=R;clip(R);g.fillStyle=rgba(RED,1);g.fillRect(x0,y0,w,h);g.fillStyle=rgba(REDL,0.45);g.fillRect(x0,y0,w,h);g.fillStyle=rgba(DUSTL,0.18);g.fillRect(x0,y0,w,h);
+    for(let i=0;i<80;i++)blob(x0+r()*w,y0+r()*h,15+r()*55,r()<0.7?DUST:REDD,0.15+r()*0.22);for(let i=0;i<500;i++)spot(x0+r()*w,y0+r()*h,0.5+r()*1.4,r()<0.7?DUST:DUSTL,0.15+r()*0.25);
+    for(let i=0;i<22;i++)wear(x0+r()*w,y0+r()*h,3+r()*10);for(let i=0;i<18;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*7,false);scratches(R,60,DUSTL,0.3,40);grain(R,12);unclip();}
+  // ---- K: the bonnet and scoop, black, worn and scuffed ----
+  {const R=TRR3.K,[x0,y0,w,h]=R;clip(R);g.fillStyle=rgba(BLK,1);g.fillRect(x0,y0,w,h);
+    for(let i=0;i<60;i++)blob(x0+r()*w,y0+r()*h,15+r()*50,r()<0.6?SCUFF:DUST,0.1+r()*0.16);   // the black gone grey and dusty in patches
+    scratches(R,260,SCUFF,0.55,34);scratches(R,80,DUSTL,0.3,20);   // scuffed all over
+    for(let i=0;i<18;i++)wear(x0+r()*w,y0+r()*h,2+r()*7);for(let i=0;i<450;i++)spot(x0+r()*w,y0+r()*h,0.5+r()*1.3,r()<0.7?DUST:DUSTL,0.15+r()*0.25);   // through to primer here and there; dust
+    for(let i=0;i<20;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*6,false);for(let i=0;i<16;i++)rustAt(x0+(r()<0.5?r()*w*0.08:w-r()*w*0.08),y0+r()*h,3+r()*7,false);for(let i=0;i<10;i++)rustAt(x0+r()*w,y0+(r()<0.5?r()*h*0.1:h-r()*h*0.1),3+r()*7,false);   // rust spots, worst at the edges
+    grain(R,14);unclip();}
+  // ---- C and D2: dirty glass ----
+  for(const [key,wipe] of [['C',false],['D2',true]]){const R=TRR3[key],[x0,y0,w,h]=R;clip(R);g.fillStyle='#24282a';g.fillRect(x0,y0,w,h);
+    const gr=g.createLinearGradient(0,y0,0,y0+h);gr.addColorStop(0,rgba(DUST,0.38));gr.addColorStop(0.5,rgba(DUST,0.55));gr.addColorStop(1,rgba(MUD,0.85));g.fillStyle=gr;g.fillRect(x0,y0,w,h);   // a thick film of dust, worst at the bottom
+    for(let i=0;i<50;i++)blob(x0+r()*w,y0+r()*h,8+r()*40,DUSTL,0.18+r()*0.22);for(let i=0;i<700;i++)spot(x0+r()*w,y0+h*(0.2+r()*0.8),0.5+r()*1.8,r()<0.5?DUST:MUD,0.3+r()*0.45);
+    g.strokeStyle=rgba(hx('#3a3a38'),0.35);for(let i=0;i<16;i++){g.lineWidth=1+r()*2;const x=x0+r()*w;g.beginPath();g.moveTo(x,y0+r()*h*0.4);g.lineTo(x+(r()-0.5)*4,y0+h*(0.6+r()*0.4));g.stroke();}   // runs where rain's cut through
+    if(wipe){for(const cx of [0.3,0.7]){g.fillStyle='rgba(36,40,42,0.7)';g.beginPath();g.moveTo(x0+cx*w,y0+h*0.95);g.arc(x0+cx*w,y0+h*0.95,h*0.6,Math.PI*1.08,Math.PI*1.92);g.closePath();g.fill();}
+      g.strokeStyle=rgba(DUST,0.55);g.lineWidth=2;for(const cx of [0.3,0.7]){g.beginPath();g.arc(x0+cx*w,y0+h*0.95,h*0.6,Math.PI*1.08,Math.PI*1.92);g.stroke();}}
+    grain(R,10);unclip();}
+  // ---- E: sills, trim and underneath; D1 tyres; D3 bumpers and rims ----
+  {const R=TRR3.E,[x0,y0,w,h]=R;clip(R);g.fillStyle='#2a2622';g.fillRect(x0,y0,w,h);mudBand(R,1,1.2);for(let i=0;i<24;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*6,false);grain(R,16);unclip();}
+  {const R=TRR3.D1,[x0,y0,w,h]=R;clip(R);g.fillStyle='#1e1b18';g.fillRect(x0,y0,w,h);const gr=g.createLinearGradient(0,y0,0,y0+h);gr.addColorStop(0,rgba(DUST,0.08));gr.addColorStop(0.6,rgba(MUD,0.18));gr.addColorStop(1,rgba(MUD,0.4));g.fillStyle=gr;g.fillRect(x0,y0,w,h);   // dark rubber, dusty low down
+    for(let i=0;i<900;i++)spot(x0+r()*w,y0+Math.pow(r(),0.5)*h,0.6+r()*2,r()<0.5?MUD:DUST,0.12+r()*0.25);grain(R,14);unclip();}
+  {const R=TRR3.D3,[x0,y0,w,h]=R;clip(R);g.fillStyle='#7e786c';g.fillRect(x0,y0,w,h);for(let i=0;i<40;i++)blob(x0+r()*w,y0+r()*h,6+r()*25,r()<0.5?DUST:hx('#4e4a44'),0.28);
+    for(let i=0;i<22;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*6,true);mudBand(R,0.6,0.8);grain(R,14);unclip();}
+  const tx=new THREE.CanvasTexture(cv);tx.flipY=false;tx.anisotropy=4;tx.colorSpace=THREE.SRGBColorSpace;
+  // roughness (green) and metalness (blue): old paint half-gloss, the black bonnet matt, rust and dirt dull, glass smooth, the bumpers metal
+  const mr=document.createElement('canvas');mr.width=mr.height=256;{const q=mr.getContext('2d'),sc=256/1024,rr=rng(9917);
+    const fill=(R,ro,me)=>{q.fillStyle='rgb(0,'+Math.round(ro*255)+','+Math.round(me*255)+')';q.fillRect(R[0]*sc,R[1]*sc,R[2]*sc,R[3]*sc);};
+    fill(TRR3.A,0.55,0.25);fill(TRR3.B,0.66,0.2);fill(TRR3.K,0.82,0.1);fill(TRR3.C,0.16,0);fill(TRR3.D2,0.18,0);fill(TRR3.E,0.92,0.05);fill(TRR3.D1,0.96,0);fill(TRR3.D3,0.4,0.8);
+    const lowA=TRR3.A;q.fillStyle='rgba(0,240,30,0.55)';q.fillRect(lowA[0]*sc,(lowA[1]+lowA[3]*0.6)*sc,lowA[2]*sc,lowA[3]*0.4*sc);
+    for(let i=0;i<500;i++){const R=rr()<0.5?TRR3.A:TRR3.B;q.fillStyle='rgba(0,'+Math.round(200+rr()*55)+',20,'+(0.3+rr()*0.4)+')';q.beginPath();q.arc((R[0]+rr()*R[2])*sc,(R[1]+rr()*R[3])*sc,0.6+rr()*2.4,0,TAU);q.fill();}}
+  const mrT=new THREE.CanvasTexture(mr);mrT.flipY=false;
+  return TRTX={tex:tx,mat:stdMat3({vertexColors:true,map:tx,roughness:1,metalness:1,roughnessMap:mrT,metalnessMap:mrT,bumpMap:tx,bumpScale:0.5,envMapIntensity:1.2})};}
+// smooth normals, worked out once: each corner takes the average of the faces round it that meet it at less than about 40 degrees
+function trNormals3(){const T=taronaGeo3();if(T.N)return T.N;const P=T.P,nt=P.length/9,FN=new Float32Array(nt*3),key=(x,y,z)=>Math.round(x*2000)+','+Math.round(y*2000)+','+Math.round(z*2000),at=new Map();
+  for(let t=0;t<nt;t++){const o=t*9,ux=P[o+3]-P[o],uy=P[o+4]-P[o+1],uz=P[o+5]-P[o+2],vx=P[o+6]-P[o],vy=P[o+7]-P[o+1],vz=P[o+8]-P[o+2];   // (left at full size: bigger faces count for more)
+    FN[t*3]=uy*vz-uz*vy;FN[t*3+1]=uz*vx-ux*vz;FN[t*3+2]=ux*vy-uy*vx;for(let v=0;v<3;v++){const k=T.pt[t]+':'+key(P[o+v*3],P[o+v*3+1],P[o+v*3+2]);let L=at.get(k);if(!L)at.set(k,L=[]);L.push(t);}}
+  const unit=t=>{const x=FN[t*3],y=FN[t*3+1],z=FN[t*3+2],l=Math.hypot(x,y,z)||1;return [x/l,y/l,z/l];},N=new Float32Array(nt*9),COS=Math.cos(40*Math.PI/180);
+  for(let t=0;t<nt;t++){const o=t*9,me=unit(t);for(let v=0;v<3;v++){const L=at.get(T.pt[t]+':'+key(P[o+v*3],P[o+v*3+1],P[o+v*3+2]));let sx=0,sy=0,sz=0;
+      for(const q of L){const u=unit(q);if(u[0]*me[0]+u[1]*me[1]+u[2]*me[2]<COS)continue;sx+=FN[q*3];sy+=FN[q*3+1];sz+=FN[q*3+2];}
+      const l=Math.hypot(sx,sy,sz)||1;N[o+v*3]=sx/l;N[o+v*3+1]=sy/l;N[o+v*3+2]=sz/l;}}
+  return T.N=N;}
+function tarona3(c){const T=taronaGeo3(),D=trSize3(),gb=new GB(),wk=c.wrecked,S=c.def.len*1.02*1.1/T.len,P=T.P;   /* 10% bigger than the collision length, as asked */
+  const tex=typeof document!=='undefined'&&typeof THREE!=='undefined'?trTex3():null,N=tex?trNormals3():null,UV=[],C2=[],NN=[];
+  const plain={paint:col3(wk?'#2a211b':'#8c2618'),bonnet:col3(wk?'#2a211b':'#1d1b19'),glass:col3('#4a4236'),trim:col3('#2a2622'),tyre:col3('#1c1814'),rim:col3('#5a5650'),steel:col3('#7a7266')};
   for(let t=0;t<P.length/9;t++){const o=t*9,ax=P[o],ay=P[o+1],az=P[o+2],bx=P[o+3],by=P[o+4],bz=P[o+5],cx=P[o+6],cy=P[o+7],cz=P[o+8];
     const ux=bx-ax,uy=by-ay,uz=bz-az,vx=cx-ax,vy=cy-ay,vz=cz-az;let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;const nl=Math.hypot(nx,ny,nz)||1;nx/=nl;ny/=nl;nz/=nl;
-    const mx=(ax+bx+cx)/3,my=(ay+by+cy)/3,mz=(az+bz+cz)/3,k=T.pt[t];let cl;
-    if(k>=1){const h=T.hub[k];if(c.tw&&c.tw[(h.z>0?0:2)+(mx<0?1:0)]<0)continue;const d=Math.hypot(my-h.y,mz-h.z)/h.r;cl=d<0.62&&Math.abs(nx)>0.5?rim:tyre;}   // a rusty rim in a black tyre (or, taken off, nothing)
-    else if(my>1.45&&mz>-2.05&&mz<1.35&&Math.abs(ny)<0.82)cl=mix3(glass,dust,0.18);   // the glass, dusty
-    else if(Math.abs(mz)>4.0&&my<1.05)cl=mix3(steel,rust,r()*0.4);   // bumpers, tarnished
-    else{cl=paintBase;
-      if(primerBonnet&&mz>1.6&&ny>0.45&&my>1.0)cl=primer;   // a primer-grey bonnet
-      if(Math.sign(mx)===doorSide&&Math.abs(nx)>0.6&&mz>-1.2&&mz<0.9&&my>0.45&&my<1.55)cl=door;   // a door off another car
-      const rz=rustAt(mx,my,mz);if(rz<0.11)cl=mix3(cl,rust,0.75);else if(rz<0.16)cl=mix3(cl,rustD,0.6);   // rust coming through in patches
-      if(ny>0.55)cl=mix3(cl,dust,0.28);   // dust settled on the flat tops
-      const low=Math.max(0,(0.95-my)/0.75);if(low>0)cl=mix3(cl,mud,Math.min(0.85,low*0.9));   // mud caked up the sills and round the arches
-      for(let w=1;w<=4;w++){const h=T.hub[w],d=Math.hypot(my-h.y,mz-h.z);if(d<h.r*1.35&&Math.abs(mx)>1.0)cl=mix3(cl,mud,0.55);}}
-    const v=0.86+r()*0.24;cl=cl.map(x=>x*v);
-    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]])gb.pushV(z*S,(y-T.minY)*S,-x*S,cl[0],cl[1],cl[2],0);}
+    const mx=(ax+bx+cx)/3,my=(ay+by+cy)/3,mz=(az+bz+cz)/3,k=T.pt[t],anx=Math.abs(nx),anz=Math.abs(nz);let part;
+    if(k>=1){const h=T.hub[k];if(c.tw&&c.tw[(h.z>0?0:2)+(mx<0?1:0)]<0)continue;const d=Math.hypot(my-h.y,mz-h.z)/h.r;part=d<0.62&&anx>0.5?'rim':'tyre';}   // a rusty rim in a black tyre (or, taken off, nothing)
+    else if(my>1.45&&mz>-2.05&&mz<1.35&&Math.abs(ny)<0.82)part='glass';
+    else if(Math.abs(mz)>4.0&&my<1.05)part='steel';   // bumpers
+    else if(mz>TRB.sz0&&mz<TRB.sz1&&Math.abs(mx)<TRB.sx&&my>1.42)part='bonnet';   // the scoop, all round
+    else if(mz>TRB.z0&&mz<4.15&&ny>0.35&&my>1.0&&Math.abs(mx)<1.6)part='bonnet';   // the bonnet
+    else if((my-D.min[1])/D.H<0.12)part='trim';
+    else part='paint';
+    const cl=plain[part==='rim'?'rim':part];for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]])gb.pushV(z*S,(y-T.minY)*S,-x*S,cl[0],cl[1],cl[2],0);
+    if(!tex)continue;
+    for(let v=0;v<3;v++)NN.push(N[o+v*3+2],N[o+v*3+1],-N[o+v*3]);   // the smooth normals, turned the same way as the car
+    const sec=part==='paint'?(ny>0.6?'B':'A'):part==='bonnet'?'K':part==='glass'?(anz>anx&&mz>0?'D2':'C'):part==='trim'?'E':part==='tyre'?'D1':'D3',R=TRR3[sec],end=anz>anx&&ny<0.6;
+    for(const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]]){let u=(z-D.min[2])/D.L,v=(y-D.min[1])/D.H;const xn=(x-D.min[0])/D.W;
+      if(sec==='B')v=xn;else if(sec==='K'){u=(z-TRB.z0)/(TRB.z1-TRB.z0);v=xn;}else if(sec==='D2'){u=xn;v=(y-1.45)/(D.min[1]+D.H-1.45);}else if(sec==='C'){v=(v-0.5)/0.45;if(anz>anx)u=0.36+xn*0.28;}   // (the back window: a slice of the side glass)
+      else if(end&&(sec==='A'||sec==='E'||sec==='D3'))u=0.36+xn*0.28;   // the ends of the car: a slice of the side across them
+      u=Math.min(0.995,Math.max(0.005,u));v=Math.min(0.995,Math.max(0.005,v));UV.push((R[0]+u*R[2])/1024,(R[1]+(1-v)*R[3])/1024);}
+    const w2=wk?[0.3,0.26,0.23]:part==='rim'?[0.55,0.5,0.46]:[1,1,1];C2.push(...w2,...w2,...w2);}
+  if(tex){gb.uv=UV;gb.c2=C2;gb.tmat=tex.mat;gb.n=new Float32Array(NN);}
   return gb;}
 /* the body's own motion, for the look of it (the driving itself is unchanged): it leans out in a hard corner (more the harder
    the turn and the softer the car), squats under power and dips under braking, and follows the ground up and down with a little
@@ -8891,7 +8973,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
 window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
-  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
+  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,carModel3,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
 newGame();applyMobile();applySwap();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
 
