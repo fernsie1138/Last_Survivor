@@ -137,6 +137,11 @@ canvas{position:fixed;inset:0;display:block}
 .touch.onfoot #bAttack{width:104px;height:104px;font-size:20px;left:calc(124px + env(safe-area-inset-left,0px));bottom:calc(257px + env(safe-area-inset-bottom,0px))}
 .touch.onfoot.combat #bAttack{width:150px;height:150px;font-size:25px;left:calc(101px + env(safe-area-inset-left,0px));bottom:calc(234px + env(safe-area-inset-bottom,0px))}
 .touch.onfoot #bSneak{width:76px;height:76px;left:calc(263px + env(safe-area-inset-left,0px));bottom:calc(186px + env(safe-area-inset-bottom,0px))}
+/* swapped (Settings): move on the left, look on the right; Attack and Sneak mirrored round the look stick */
+.swapsticks #lookPad{left:auto;right:calc(48px + env(safe-area-inset-right,0px))}.swapsticks #movePad{right:auto;left:calc(48px + env(safe-area-inset-left,0px))}
+.swapsticks.touch.onfoot #bAttack{left:auto;right:calc(124px + env(safe-area-inset-right,0px))}
+.swapsticks.touch.onfoot.combat #bAttack{left:auto;right:calc(101px + env(safe-area-inset-right,0px))}
+.swapsticks.touch.onfoot #bSneak{left:auto;right:calc(263px + env(safe-area-inset-right,0px))}
 #ctx.ring{display:block}#ctx.ring .cbtn{position:fixed;min-width:0;max-width:210px;padding:10px 16px;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .combat #bSneak{left:calc(196px + env(safe-area-inset-left,0px))}
 .touch.combat #ctx{bottom:calc(206px + env(safe-area-inset-bottom,0px))}
@@ -257,25 +262,25 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=13.2"></script>
-<script src="models/84-hero-model.js?v=13.2"></script>
-<script src="models/84b-hero-body.js?v=13.2"></script>
-<script src="models/84c-buggy-model.js?v=13.2"></script>
-<script src="models/84d-tarona-model.js?v=13.2"></script>
-<script src="models/84e-wall-model.js?v=13.2"></script>
-<script src="models/84f-plant-models.js?v=13.2"></script>
-<script src="models/84g-kestrel-model.js?v=13.2"></script>
-<script src="models/84h-building-models.js?v=13.2"></script>
-<script src="models/84i-building-models2.js?v=13.2"></script>
-<script src="models/84j-f100-model.js?v=13.2"></script>
-<script src="models/84l-kingsford-model.js?v=13.2"></script>
-<script src="models/84m-wagon-model.js?v=13.2"></script>
-<script src="models/84p-dog-model.js?v=13.2"></script>
+<script src="models/21b-mesa-models.js?v=13.3"></script>
+<script src="models/84-hero-model.js?v=13.3"></script>
+<script src="models/84b-hero-body.js?v=13.3"></script>
+<script src="models/84c-buggy-model.js?v=13.3"></script>
+<script src="models/84d-tarona-model.js?v=13.3"></script>
+<script src="models/84e-wall-model.js?v=13.3"></script>
+<script src="models/84f-plant-models.js?v=13.3"></script>
+<script src="models/84g-kestrel-model.js?v=13.3"></script>
+<script src="models/84h-building-models.js?v=13.3"></script>
+<script src="models/84i-building-models2.js?v=13.3"></script>
+<script src="models/84j-f100-model.js?v=13.3"></script>
+<script src="models/84l-kingsford-model.js?v=13.3"></script>
+<script src="models/84m-wagon-model.js?v=13.3"></script>
+<script src="models/84p-dog-model.js?v=13.3"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='13.2';
+const VERSION='13.3';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -4547,6 +4552,7 @@ const keys={};
 const touch={boost:false,brake:false,reverse:false};
 const stick={id:null,ox:0,oy:0,x:0,y:0,active:false,fixed:false};
 const lstick={id:null,ox:0,oy:0,x:0,y:0,active:false};   // the camera stick, on foot on a touchscreen (v13.2)
+function applySwap(){document.body.classList.toggle('swapsticks',!!SETTINGS.swapSticks);ctxKey='';}
 function twinStick(){return document.body.classList.contains('touch')&&G&&!G.hero.inCar;}
 const STICK_R=82;const uiZ=()=>SETTINGS.mobile?0.5:1,stickR=()=>STICK_R*uiZ();   // mobile mode halves the interface   // how far the knob travels: a bigger stick means finer control at low speed
 window.addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='TEXTAREA')return;if(e.target&&e.target.tagName==='INPUT'){if(e.code==='Enter')markerSave();if(e.code==='Escape')markerClose();return;}keys[e.code]=true;
@@ -4651,7 +4657,7 @@ function touchStart(e){enableTouchUI();pruneFingers(e);for(const t of e.changedT
     if(b)continue;   // Gear, Map, Pause and the rest keep their normal taps
     fingers.set(t.identifier,{role:'field',x:t.clientX,y:t.clientY});e.preventDefault();
     if(twinStick()){const f=fingers.get(t.identifier);   // on foot (v13.2): left half looks, right half moves; no pinch here, both thumbs are busy
-      if(t.clientX<W/2){if(lstick.id===null){f.role='lstick';startLookStick('t'+t.identifier,t.clientX,t.clientY);}}
+      if((t.clientX<W/2)!==!!SETTINGS.swapSticks){if(lstick.id===null){f.role='lstick';startLookStick('t'+t.identifier,t.clientX,t.clientY);}}
       else if(stick.id===null){f.role='stick';f.t0=performance.now();startPadStick('t'+t.identifier,t.clientX,t.clientY);}
       continue;}
     const field=fieldFingers(),stickF=field.find(([,f])=>f.role==='stick'),now=performance.now();
@@ -4754,6 +4760,7 @@ function settingsPanel(back){
   const z=SETTINGS.zoom,dist=z>=1.25?'close':z<=0.8?'far back':'normal';
   showPanel({title:'Settings',sub:'Changes are saved on this device. The camera follows behind you; pinch to pull it in or out. '+CREDITS,buttons:[
     {label:'Camera distance: '+dist,primary:true,fn:()=>{SETTINGS.zoom=z>=1.25?0.7:z<=0.8?1:1.4;saveSettings();settingsPanel(back);}},
+    {label:'Thumb sticks on foot: '+(SETTINGS.swapSticks?'move on the left, look on the right':'look on the left, move on the right'),fn:()=>{SETTINGS.swapSticks=!SETTINGS.swapSticks;saveSettings();applySwap();settingsPanel(back);}},
     {label:'Mobile mode (half-size controls, for a phone): '+(SETTINGS.mobile?'On':'Off'),fn:()=>{SETTINGS.mobile=!SETTINGS.mobile;saveSettings();applyMobile();settingsPanel(back);}},
     {label:'Tilt steering: '+(SETTINGS.tilt?'On':'Off'),fn:()=>{if(SETTINGS.tilt){SETTINGS.tilt=false;saveSettings();settingsPanel(back);return;}
       tiltEnable(err=>{if(err){showMsg(err,4);SETTINGS.tilt=false;}else{SETTINGS.tilt=true;tiltCentre();showMsg('Tilt steering on. Hold it how you’ll drive: that’s straight ahead. Push the stick up to go, down to brake',4);}saveSettings();settingsPanel(back);});}},
@@ -4941,9 +4948,9 @@ function updateCtx(){
 // the arc up and over the stick; none overlapping, a wider second arc if there are a lot. In the car, or with a keyboard: the column as before
 function layoutCtxRing(){const box=$('ctx'),ring=twinStick();box.classList.toggle('ring',ring);const btns=[...box.children];
   if(!ring){for(const b of btns){b.style.left=b.style.top='';}return;}
-  const z=uiZ(),c=padCentre('movePad'),cx=c.x/z,cy=c.y/z,vw=W/z,placed=[];let ring_=0,ang=196;
+  const z=uiZ(),c=padCentre('movePad'),cx=c.x/z,cy=c.y/z,vw=W/z,placed=[],sw=!!SETTINGS.swapSticks;let ring_=0,ang=196;   // swapped: the arc mirrored, going up from the stick's right
   for(const b of btns){const w=b.offsetWidth,h=b.offsetHeight;let x=0,y=0,ok=false;
-    for(let guard=0;guard<400&&!ok;guard++){const r=205+ring_*72,a=ang*Math.PI/180;x=cx+Math.cos(a)*r;y=cy+Math.sin(a)*r;
+    for(let guard=0;guard<400&&!ok;guard++){const r=205+ring_*72,a=(sw?180-ang:ang)*Math.PI/180;x=cx+Math.cos(a)*r;y=cy+Math.sin(a)*r;
       const box1={l:x-w/2-6,r:x+w/2+6,t:y-h/2-5,b:y+h/2+5};
       ok=box1.l>8&&box1.r<vw-8&&box1.t>70&&!placed.some(q=>box1.l<q.r&&box1.r>q.l&&box1.t<q.b&&box1.b>q.t);
       if(!ok){ang+=2;if(ang>300){ring_++;ang=196;}}}
@@ -6060,7 +6067,21 @@ function updateHero3(dt){const H=HERO3,h=G.hero,P=H.prev;if(H.status!=='ready')r
   if(one&&!(dead&&H.one==='Death'))startOne3(H,one[0],one[1]);
   const oa=H.one&&H.acts[H.one];if(oa&&!dead&&(!oa.isRunning()||oa.time>=oa.getClip().duration-0.01))H.one=null;   // a one-off move has finished: back to moving
   locoBlend3(H,h.speed||0,dt);
-  H.mixer.update(dt);if(H.char.retarget)H.char.retarget();return true;}
+  H.mixer.update(dt);heroSwivel3(H,h,dt);if(H.char.retarget)H.char.retarget();return true;}
+// strafing (v13.3): the hips and legs turn toward the way you're going while the chest and shoulders keep facing ahead; going backwards,
+// the legs step backwards (the walk played in reverse) with the hips turned a little the other way. Worked on the driver rig before it's
+// copied onto the body
+const SWIV={q:null,up:null,pq:null};
+function heroSwivel3(H,h,dt){const D=H.char&&H.char.drv;if(!D||!D.Hips)return;
+  if(!SWIV.up){SWIV.up=new THREE.Vector3(0,1,0);SWIV.q=new THREE.Quaternion();SWIV.pq=new THREE.Quaternion();}
+  const sp=h.inCar||h.lying?0:Math.hypot(h.vx||0,h.vy||0);let want=0,back=false;
+  if(sp>8){const d=angDiff(Math.atan2(h.vy,h.vx),h.a);back=Math.abs(d)>Math.PI*0.6;
+    want=back?angDiff(d,Math.PI)*0.55:clamp(d,-Math.PI/2,Math.PI/2)*0.62;want*=Math.min(1,sp/30);}
+  H.swiv=(H.swiv||0)+(want-(H.swiv||0))*Math.min(1,dt*8);H.mixer.timeScale=back&&sp>8&&!H.one?-1:1;   // (not a punch or a shot: those always play forwards)
+  const a=-(H.swiv||0);if(Math.abs(a)<0.002)return;   // three turns the other way round from the game
+  const turn=(b,ang)=>{if(!b||!b.parent)return;b.parent.getWorldQuaternion(SWIV.pq);SWIV.q.setFromAxisAngle(SWIV.up,ang);
+    b.quaternion.premultiply(SWIV.pq.clone().invert().multiply(SWIV.q).multiply(SWIV.pq));b.updateMatrixWorld(true);};
+  turn(D.Hips,a);turn(D.Abdomen,-a*0.6);turn(D.Torso,-a*0.4);}
 
 /* ---- geometry builder: triangles with a colour each; faces are turned to point the way they should ---- */
 const C3=new Map();
@@ -8870,8 +8891,8 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
 window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
-  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
-newGame();applyMobile();titleScreen();
+  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
+newGame();applyMobile();applySwap();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
 
 })();
