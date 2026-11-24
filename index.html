@@ -262,25 +262,25 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=13.4"></script>
-<script src="models/84-hero-model.js?v=13.4"></script>
-<script src="models/84b-hero-body.js?v=13.4"></script>
-<script src="models/84c-buggy-model.js?v=13.4"></script>
-<script src="models/84d-tarona-model.js?v=13.4"></script>
-<script src="models/84e-wall-model.js?v=13.4"></script>
-<script src="models/84f-plant-models.js?v=13.4"></script>
-<script src="models/84g-kestrel-model.js?v=13.4"></script>
-<script src="models/84h-building-models.js?v=13.4"></script>
-<script src="models/84i-building-models2.js?v=13.4"></script>
-<script src="models/84j-f100-model.js?v=13.4"></script>
-<script src="models/84l-kingsford-model.js?v=13.4"></script>
-<script src="models/84m-wagon-model.js?v=13.4"></script>
-<script src="models/84p-dog-model.js?v=13.4"></script>
+<script src="models/21b-mesa-models.js?v=13.5"></script>
+<script src="models/84-hero-model.js?v=13.5"></script>
+<script src="models/84b-hero-body.js?v=13.5"></script>
+<script src="models/84c-buggy-model.js?v=13.5"></script>
+<script src="models/84d-tarona-model.js?v=13.5"></script>
+<script src="models/84e-wall-model.js?v=13.5"></script>
+<script src="models/84f-plant-models.js?v=13.5"></script>
+<script src="models/84g-kestrel-model.js?v=13.5"></script>
+<script src="models/84h-building-models.js?v=13.5"></script>
+<script src="models/84i-building-models2.js?v=13.5"></script>
+<script src="models/84j-f100-model.js?v=13.5"></script>
+<script src="models/84l-kingsford-model.js?v=13.5"></script>
+<script src="models/84m-wagon-model.js?v=13.5"></script>
+<script src="models/84p-dog-model.js?v=13.5"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='13.4';
+const VERSION='13.5';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -4584,7 +4584,8 @@ const mapPtrs=new Map();let mapGesture=null;
 const LOOK={yaw:0,pitch:0,held:false,idle:0,keys:0};
 function lookDrag(dx,dy){LOOK.yaw=clamp(LOOK.yaw+dx*0.008,-Math.PI,Math.PI);LOOK.pitch=clamp(LOOK.pitch-dy*0.006,-0.7,0.9);LOOK.idle=0;}
 function lookHold(on){LOOK.held=on;LOOK.idle=0;}
-function updateLook(dt){const k=(keys.KeyE?1:0)-(keys.KeyQ?1:0);if(k){LOOK.yaw=clamp(LOOK.yaw+k*dt*1.8,-Math.PI,Math.PI);LOOK.idle=0;LOOK.keys=1;}
+function updateLook(dt){if(twinStick()){LOOK.idle=0;}   // on foot with the thumb sticks (v13.5): the tilt stays where you leave it
+  const k=(keys.KeyE?1:0)-(keys.KeyQ?1:0);if(k){LOOK.yaw=clamp(LOOK.yaw+k*dt*1.8,-Math.PI,Math.PI);LOOK.idle=0;LOOK.keys=1;}
   if(LOOK.held||k){LOOK.idle=0;return;}LOOK.idle+=dt;if(LOOK.idle>1.2){const e=Math.min(1,dt*2.2);LOOK.yaw-=LOOK.yaw*e;LOOK.pitch-=LOOK.pitch*e;}}
 window.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===2&&state==='play'){LOOK.mouse={x:e.clientX,y:e.clientY};lookHold(true);}});
 window.addEventListener('pointermove',e=>{if(LOOK.mouse&&e.pointerType==='mouse'){lookDrag(e.clientX-LOOK.mouse.x,e.clientY-LOOK.mouse.y);LOOK.mouse={x:e.clientX,y:e.clientY};}});
@@ -7641,6 +7642,9 @@ function trTex3(){if(TRTX)return TRTX;const T=taronaGeo3(),D=trSize3(),cv=docume
   {const R=TRR3.D3,[x0,y0,w,h]=R;clip(R);g.fillStyle='#7e786c';g.fillRect(x0,y0,w,h);for(let i=0;i<40;i++)blob(x0+r()*w,y0+r()*h,6+r()*25,r()<0.5?DUST:hx('#4e4a44'),0.28);
     for(let i=0;i<22;i++)rustAt(x0+r()*w,y0+r()*h,2+r()*6,true);mudBand(R,0.6,0.8);grain(R,14);unclip();}
   const tx=new THREE.CanvasTexture(cv);tx.flipY=false;tx.anisotropy=4;tx.colorSpace=THREE.SRGBColorSpace;
+  // the paint itself comes from textures/tarona.jpg (v13.5), so it can be edited as an image: laid over all of the above once it's
+  // loaded (if it can't be, the paint worked out here stays). The layout is fixed: TRR3 says where each part of the car is on it
+  {const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{try{g.globalCompositeOperation='copy';g.drawImage(im,0,0,1024,1024);g.globalCompositeOperation='source-over';tx.needsUpdate=true;}catch(e){}};im.src=TEX3.dir+'tarona.jpg?v='+VERSION;}
   // roughness (green) and metalness (blue): old paint half-gloss, the black bonnet matt, rust and dirt dull, glass smooth, the bumpers metal
   const mr=document.createElement('canvas');mr.width=mr.height=256;{const q=mr.getContext('2d'),sc=256/1024,rr=rng(9917);
     const fill=(R,ro,me)=>{q.fillStyle='rgb(0,'+Math.round(ro*255)+','+Math.round(me*255)+')';q.fillRect(R[0]*sc,R[1]*sc,R[2]*sc,R[3]*sc);};
@@ -8973,7 +8977,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
 window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
-  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,carModel3,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
+  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,LOOK,trTex3,TRR3,carModel3,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
 newGame();applyMobile();applySwap();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
 
