@@ -262,25 +262,26 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=13.5"></script>
-<script src="models/84-hero-model.js?v=13.5"></script>
-<script src="models/84b-hero-body.js?v=13.5"></script>
-<script src="models/84c-buggy-model.js?v=13.5"></script>
-<script src="models/84d-tarona-model.js?v=13.5"></script>
-<script src="models/84e-wall-model.js?v=13.5"></script>
-<script src="models/84f-plant-models.js?v=13.5"></script>
-<script src="models/84g-kestrel-model.js?v=13.5"></script>
-<script src="models/84h-building-models.js?v=13.5"></script>
-<script src="models/84i-building-models2.js?v=13.5"></script>
-<script src="models/84j-f100-model.js?v=13.5"></script>
-<script src="models/84l-kingsford-model.js?v=13.5"></script>
-<script src="models/84m-wagon-model.js?v=13.5"></script>
-<script src="models/84p-dog-model.js?v=13.5"></script>
+<script src="models/21b-mesa-models.js?v=13.6"></script>
+<script src="models/84-hero-model.js?v=13.6"></script>
+<script src="models/84b-hero-body.js?v=13.6"></script>
+<script src="models/84c-buggy-model.js?v=13.6"></script>
+<script src="models/84d-tarona-model.js?v=13.6"></script>
+<script src="models/84e-wall-model.js?v=13.6"></script>
+<script src="models/84f-plant-models.js?v=13.6"></script>
+<script src="models/84g-kestrel-model.js?v=13.6"></script>
+<script src="models/84h-building-models.js?v=13.6"></script>
+<script src="models/84i-building-models2.js?v=13.6"></script>
+<script src="models/84j-f100-model.js?v=13.6"></script>
+<script src="models/84l-kingsford-model.js?v=13.6"></script>
+<script src="models/84m-wagon-model.js?v=13.6"></script>
+<script src="models/84p-dog-model.js?v=13.6"></script>
+<script src="models/84q-deadgum-models.js?v=13.6"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='13.5';
+const VERSION='13.6';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -6198,7 +6199,8 @@ function roadCands3(ox,oy,pad){const out=[],seen=new Set();for(let gx=Math.floor
       const x0=Math.min(R.xs[s0],R.xs[s0+1]),x1=Math.max(R.xs[s0],R.xs[s0+1]),y0=Math.min(R.ys[s0],R.ys[s0+1]),y1=Math.max(R.ys[s0],R.ys[s0+1]);if(x1<ox-pad||x0>ox+CH+pad||y1<oy-pad||y0>oy+CH+pad)continue;out.push(arr[k],s0);}}return out;}
 function roadNear3(x,y,cand){let bd=1e18,br=-1,bi=0,bt=0;for(let k=0;k<cand.length;k+=2){const R=roads[cand[k]],s0=cand[k+1],ax=R.xs[s0],ay=R.ys[s0],ex=R.xs[s0+1]-ax,ey=R.ys[s0+1]-ay,l2=ex*ex+ey*ey||1,t=clamp(((x-ax)*ex+(y-ay)*ey)/l2,0,1),qx=ax+ex*t-x,qy=ay+ey*t-y,sc=qx*qx+qy*qy-(R.w*R.w)*0.001;
     if(sc<bd){bd=sc;br=cand[k];bi=s0;bt=t;}}if(br<0)return NOROAD;const R=roads[br],px=R.xs[bi]+(R.xs[bi+1]-R.xs[bi])*bt,py=R.ys[bi]+(R.ys[bi+1]-R.ys[bi])*bt;return {d:Math.hypot(px-x,py-y),r:br,i:bi,t:bt,w:R.w};}
-function buildChunk3(c){const ox=c.cx*CH,oy=c.cy*CH,N=V3_TV,E=N+2,hs=new Float32Array(E*E),pos=new Float32Array(N*N*3),nor=new Float32Array(N*N*3),colr=new Float32Array(N*N*3),gnd=new Float32Array(N*N*3);
+function buildChunk3(c){DT3.sink=DT3.status==='failed'?null:[];   // the dead gums this chunk has (v13.6): noted, not drawn
+  const ox=c.cx*CH,oy=c.cy*CH,N=V3_TV,E=N+2,hs=new Float32Array(E*E),pos=new Float32Array(N*N*3),nor=new Float32Array(N*N*3),colr=new Float32Array(N*N*3),gnd=new Float32Array(N*N*3);
   const sinks=new Float32Array(N*N),roadK=new Float32Array(N*N),cuts=new Float32Array(N*N);
   const cand=roadCands3(ox,oy,160),near3=new Uint8Array(E*E);
   for(let k=0;k<cand.length;k+=2){const R=roads[cand[k]],s0=cand[k+1],reach=R.w/2+ROADFLAT3+ROADBLEND3+V3_TS;   // mark the vertices a road segment could reach
@@ -6240,6 +6242,7 @@ function buildChunk3(c){const ox=c.cx*CH,oy=c.cy*CH,N=V3_TV,E=N+2,hs=new Float32
   // roads, bridges, rocks, trees and scrub, wrecks
   const props=new GB(),rm=roadsMesh3(c,props);if(rm)grp.add(rm);   // the road; its posts and signs go in with the rocks and scrub (one mesh, one draw)
   const ob=objectsMesh3(c,props);if(ob)grp.add(ob);const rk=rocksMesh3(c);if(rk)grp.add(rk);   // smooth, textured rocks (v11.3)
+  grp.userData.dead=DT3.sink;DT3.sink=null;DT3.dirty=true;
   grp.matrixAutoUpdate=false;return grp;}
 
 /* ---- roads: ribbons laid along the road's own line, a few px above the ground; bridges where they cross rivers and canyons ---- */
@@ -6355,7 +6358,8 @@ function fenceRun3(gb,pts,seed,y3){const r=rng(seed),postC=['#8f8a80','#7d786e',
     if(prev&&top&&prev.top){for(const f of [0.35,0.62,0.9]){if(r()<0.12)continue;const a=[prev.x+(prev.top[0]-prev.x)*f,prev.gy+(prev.top[1]-prev.gy)*f,prev.y+(prev.top[2]-prev.y)*f],b=[x+(top[0]-x)*f,gy+(top[1]-gy)*f,y+(top[2]-y)*f],m=[(a[0]+b[0])/2,(a[1]+b[1])/2-0.8-r()*0.8,(a[2]+b[2])/2];   // sagging wire
         gb.beam(a,m,0.22,wireC);gb.beam(m,b,0.22,wireC);}}
     prev={x,y,gy,top};}}
-function deadTree3(gb,x,y,gy,s,seed){const r=rng(seed),bark=col3(['#9a958a','#a8a296','#8a857a'][Math.floor(r()*3)]),h=(26+r()*20)*s,lean=(r()-0.5)*0.2,la=r()*TAU;
+function deadTree3(gb,x,y,gy,s,seed){if(DT3.sink){const r0=rng(seed);DT3.sink.push(dtRec3(x,y,gy,(26+r0()*20)*s*1.25,r0));return;}   // one of David's models (v13.6)
+  const r=rng(seed),bark=col3(['#9a958a','#a8a296','#8a857a'][Math.floor(r()*3)]),h=(26+r()*20)*s,lean=(r()-0.5)*0.2,la=r()*TAU;
   const top=[x+Math.cos(la)*lean*h,gy+h,y+Math.sin(la)*lean*h];gb.beam([x,gy-1,y],[x+(top[0]-x)*0.55,gy+h*0.55,y+(top[2]-y)*0.55],3.2*s,bark);gb.beam([x+(top[0]-x)*0.55,gy+h*0.55,y+(top[2]-y)*0.55],top,2*s,bark);
   for(let k=0;k<3+Math.floor(r()*3);k++){const f=0.35+r()*0.6,base=[x+(top[0]-x)*f,gy+h*f,y+(top[2]-y)*f],a=r()*TAU,len=(8+r()*14)*s*(r()<0.25?0.35:1),up=0.4+r()*0.7;
     const end=[base[0]+Math.cos(a)*len,base[1]+len*up,base[2]+Math.sin(a)*len];gb.beam(base,end,1.2*s,bark);if(r()<0.5)gb.beam(end,[end[0]+Math.cos(a+0.6)*len*0.4,end[1]+len*0.35,end[2]+Math.sin(a+0.6)*len*0.4],0.7*s,bark);}}
@@ -6440,10 +6444,43 @@ function wreck3(gb,w){const r0=rng(hash2(Math.round(w.x),Math.round(w.y))+19);if
   // sand drifted up one side, and a few bits lying about
   const side=r()<0.5?1:-1;for(let k=0;k<3;k++){const p=P((k-1)*L*0.28+(r()-0.5)*6,0,side*(hw+1.5));gb.lump(p[0],gy-1.2,p[2],5+r()*3,2+r()*1.5,r()*TAU,col3('#c8ab7c').map(v=>v*(0.9+r()*0.15)));}
   for(let k=0;k<2;k++){const a=r()*TAU,d=L*0.5+r()*14,px=w.x+Math.cos(a)*d,py=w.y+Math.sin(a)*d;if(r()<0.5)gb.wheel(px,landY3(px,py)+0.8,py,4,1.6,r()*TAU,10,rim,rim);else gb.box(px,landY3(px,py),py,8+r()*6,0.5,5,r()*TAU,shade());}}
+/* ---- dead gums (v13.6): David's four Meshy models (84q), in place of the bare, bleached red gums and the roadside and field-edge dead
+   trees. A chunk being built doesn't draw them: it notes each one (where, how tall, which way it's turned, which of the four, a touch
+   of colour) and they're all drawn together, each model as one instanced mesh in two levels of detail, so the whole lot costs a
+   handful of draw calls: close up (DT3.LOD0) the textured model, about 700-900 triangles; further off a plain-coloured one of about
+   300. A few times a second (or when you move, or chunks come and go) the trees in view are picked out (the rest aren't drawn, as the
+   chunk meshes they used to be part of weren't) and each put in its level. Out on the distant ground they're picture cards of the same
+   four trees (scatMeshes3). If the models can't load, the old trees are drawn instead. ---- */
+const DT3={status:'off',src:[],sink:null,dirty:true,t:0,meshes:null,last:null,LOD0:560,cap:[260,1600],origin:[0,0]};
+function dtRec3(x,y,gy,h,r){return {x,y,gy,h,rot:r()*TAU,m:Math.floor(r()*4),c:0.86+r()*0.22};}
+function dtFloat3(geo){for(const k of Object.keys(geo.attributes)){const a=geo.attributes[k],n=a.itemSize,arr=new Float32Array(a.count*n),get=[a.getX,a.getY,a.getZ,a.getW];
+    for(let i=0;i<a.count;i++)for(let c=0;c<n;c++)arr[i*n+c]=get[c].call(a,i);geo.setAttribute(k,new THREE.BufferAttribute(arr,n));}return geo;}   // (the models' numbers come packed small: unpacked before they're moved)
+function loadDT3(){if(DT3.status!=='off'||!THREE.GLTFLoader||typeof DEADGUM_MODELS==='undefined')return;DT3.status='loading';let left=DEADGUM_MODELS.length*2;
+  const dec=b64=>{const bin=atob(b64),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return u8.buffer;},fail=e=>{DT3.status='failed';console.warn('dead gum:',e);};
+  try{DEADGUM_MODELS.forEach((M,i)=>{DT3.src[i]={};for(const L of ['l0','l1'])new THREE.GLTFLoader().parse(dec(M[L]),'',g=>{try{let mesh=null;g.scene.updateMatrixWorld(true);g.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
+        const geo=dtFloat3(mesh.geometry.clone());geo.applyMatrix4(mesh.matrixWorld);geo.computeBoundingBox();const bb=geo.boundingBox,h=bb.max.y-bb.min.y;
+        geo.translate(-(bb.min.x+bb.max.x)/2,-bb.min.y,-(bb.min.z+bb.max.z)/2);geo.scale(1/h,1/h,1/h);geo.computeBoundingSphere();   // a tree one unit tall, standing on its base at the origin
+        const mat=L==='l0'?stdMat3({map:mesh.material.map,roughness:0.95}):stdMat3({vertexColors:true,roughness:0.95,side:THREE.DoubleSide,flatShading:true,color:new THREE.Color(2.6,2.6,2.6)});   // (flat: its simplified faces don't all wind the same way, so shared normals would cancel out and darken it)
+        DT3.src[i][L]={geo,mat};if(--left===0){DT3.status='ready';DT3.dirty=true;}}catch(e){fail(e);}},fail);});}catch(e){fail(e);}}
+function makeDT3(){const sc=V3.scene;DT3.meshes=[0,1].map(L=>DT3.src.map(S=>{const m=new THREE.InstancedMesh(S['l'+L].geo,S['l'+L].mat,DT3.cap[L]);m.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(DT3.cap[L]*3),3);
+    m.count=0;m.visible=false;m.frustumCulled=false;m.castShadow=L===0;m.receiveShadow=true;sc.add(m);return m;}));   // (only the close ones cast shadows: further off they're barely seen, and they'd cost the trees twice over)
+  DT3.fr=new THREE.Frustum();DT3.pm=new THREE.Matrix4();DT3.sph=new THREE.Sphere();}
+function deadGums3(bx,by,dt){if(DT3.status==='off')loadDT3();if(DT3.status!=='ready')return;if(!DT3.meshes)makeDT3();
+  DT3.t-=dt;const cam=V3.cam,cy=cam.rotation.y,moved=!DT3.last||Math.hypot(bx-DT3.last.x,by-DT3.last.y)>24||Math.abs(angDiff(V3.viewYaw??V3.yaw,DT3.last.yaw))>0.12;
+  if(!DT3.dirty&&!moved&&DT3.t>0)return;DT3.t=0.2;DT3.dirty=false;DT3.last={x:bx,y:by,yaw:V3.viewYaw??V3.yaw};
+  cam.updateMatrixWorld();DT3.pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);DT3.fr.setFromProjectionMatrix(DT3.pm);
+  const ox=Math.round(bx),oy=Math.round(by),cnt=[[0,0,0,0],[0,0,0,0]],sph=DT3.sph;DT3.origin=[ox,oy];let total=0;
+  for(const [,g] of V3.chunks){const list=g.userData.dead;if(!list)continue;for(const t of list){total++;sph.center.set(t.x,t.gy+t.h*0.5,t.y);sph.radius=t.h*0.75+60;if(!DT3.fr.intersectsSphere(sph))continue;   // (with room to spare: nothing pops in at the edges as you turn)
+      const L=Math.hypot(t.x-bx,t.y-by)<DT3.LOD0?0:1,m=DT3.meshes[L][t.m],n=cnt[L][t.m];if(n>=DT3.cap[L])continue;cnt[L][t.m]++;
+      const e=m.instanceMatrix.array,o=n*16,c=Math.cos(t.rot)*t.h,s2=Math.sin(t.rot)*t.h;e[o]=c;e[o+1]=0;e[o+2]=-s2;e[o+3]=0;e[o+4]=0;e[o+5]=t.h;e[o+6]=0;e[o+7]=0;e[o+8]=s2;e[o+9]=0;e[o+10]=c;e[o+11]=0;
+      e[o+12]=t.x-ox;e[o+13]=t.gy-1.2;e[o+14]=t.y-oy;e[o+15]=1;const ca=m.instanceColor.array;ca[n*3]=t.c;ca[n*3+1]=t.c*0.98;ca[n*3+2]=t.c*0.95;}}
+  for(let L=0;L<2;L++)for(let i=0;i<4;i++){const m=DT3.meshes[L][i];m.position.set(ox,0,oy);m.updateMatrix();m.count=cnt[L][i];m.visible=m.count>0;m.instanceMatrix.needsUpdate=true;m.instanceColor.needsUpdate=true;}
+  DT3.stats={total,near:cnt[0].reduce((a,b)=>a+b,0),far:cnt[1].reduce((a,b)=>a+b,0)};}
 /* a river red gum: a thick pale trunk mottled cream, grey and rust where the bark has shed, leaning and twisting as it rises,
    forking into crooked limbs that spread wide; open, drooping clumps of grey-green leaves hung off the branch ends.
    Sizes run from saplings to great old trees; now and then a dead one, bleached and bare. */
-function redGum3(gb,x,y,gy,s,rot,r){const dead=r()<0.667,bark=['#d8d0c0','#c9c2b4','#b8b0a2','#cdb8a0','#a89c8c'],bc=()=>col3(dead?'#b8b0a2':bark[Math.floor(r()*bark.length)],0.92+r()*0.12);
+function redGum3(gb,x,y,gy,s,rot,r){const dead=r()<0.667;if(dead&&DT3.sink){DT3.sink.push(dtRec3(x,y,gy,(46+r()*24)*s,r));return;}   // a dead one: one of David's models (v13.6)
+  const bark=['#d8d0c0','#c9c2b4','#b8b0a2','#cdb8a0','#a89c8c'],bc=()=>col3(dead?'#b8b0a2':bark[Math.floor(r()*bark.length)],0.92+r()*0.12);
   const H=(46+r()*24)*s,lean=(r()-0.5)*0.35,la=r()*TAU,seg=3,trunk=[[x,gy-2,y]];let px=x,pz=y;
   for(let k=1;k<=seg;k++){const t=k/seg;px+=Math.cos(la+(r()-0.5)*0.8)*lean*H/seg;pz+=Math.sin(la+(r()-0.5)*0.8)*lean*H/seg;trunk.push([px,gy+H*0.62*t,pz]);}   // the trunk to where it forks
   for(let k=1;k<trunk.length;k++)gb.beam(trunk[k-1],trunk[k],(6.5-k*1.3)*s,bc());
@@ -7990,7 +8027,7 @@ function farGround3(bx,by){if(!FAR3.mats.length)FAR3.mats=[farMat3(),farMat3()];
    meshes: one low-poly rock, one clump of scrub, one spiky tussock, and the gums as crossed picture-cards (billboards) of a tree.
    That's four draw calls for all of it. They're cut away under the detailed ground, where the real rocks and plants take over. */
 const SCAT3={tiles:new Map(),meshes:null,dirty:false,t:0,origin:[0,0]};
-const SCAT_CAP={rock:9000,bush:9000,tuft:9000,gum:3000,deadgum:6000};
+const SCAT_CAP={rock:9000,bush:9000,tuft:9000,gum:3000,deadgum:6000,dg0:2000,dg1:2000,dg2:2000,dg3:2000};
 function scatMat3(opts){const m=stdMat3(Object.assign({vertexColors:true,roughness:0.95},opts||{}));m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,FAR3.mats[0].userData.u);
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vWxz;').replace('#include <project_vertex>','#include <project_vertex>\n#ifdef USE_INSTANCING\nvWxz=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xz;\n#else\nvWxz=(modelMatrix*vec4(transformed,1.0)).xz;\n#endif');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vWxz;uniform vec2 holeC;uniform float holeH;').replace('void main() {','void main() {\nif(abs(vWxz.x-holeC.x)<holeH&&abs(vWxz.y-holeC.y)<holeH)discard;');};return m;}
@@ -8009,6 +8046,12 @@ function scatMeshes3(){if(SCAT3.meshes)return SCAT3.meshes;const sc=V3.scene,out
     for(const i of [0,1,2,0,2,3]){P.push(q[i][0],q[i][1],q[i][2]);UV.push(q[i][3],q[i][4]);C.push(1,1,1);}}
   cg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(P),3));cg.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(UV),2));cg.setAttribute('color',new THREE.BufferAttribute(new Float32Array(C),3));cg.computeVertexNormals();
   const gm=new THREE.InstancedMesh(cg,scatMat3(tex?{map:tex,alphaTest:0.5,side:THREE.DoubleSide}:{side:THREE.DoubleSide}),SCAT_CAP.gum);gm.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(SCAT_CAP.gum*3),3);gm.count=0;gm.frustumCulled=false;sc.add(gm);out.gum=gm;
+  // the dead gums (v13.6): David's four trees, each on its own crossed cards (half as wide as they're tall, like the trees)
+  if(typeof DEADGUM_MODELS!=='undefined'){const dg=new THREE.BufferGeometry(),P2=[],UV2=[],C2=[];for(const a of [0,Math.PI/2]){const c=Math.cos(a),s=Math.sin(a);const q=[[-0.25,0,0,1],[0.25,0,1,1],[0.25,1,1,0],[-0.25,1,0,0]].map(([u,v,tu2,tv])=>[u*c,v,u*s,tu2,1-tv]);
+      for(const i of [0,1,2,0,2,3]){P2.push(q[i][0],q[i][1],q[i][2]);UV2.push(q[i][3],q[i][4]);C2.push(1,1,1);}}
+    dg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(P2),3));dg.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(UV2),2));dg.setAttribute('color',new THREE.BufferAttribute(new Float32Array(C2),3));dg.computeVertexNormals();
+    DEADGUM_MODELS.forEach((M,i)=>{const t=new THREE.TextureLoader().load(M.card);t.colorSpace=THREE.SRGBColorSpace;const k='dg'+i,m=new THREE.InstancedMesh(dg,scatMat3({map:t,alphaTest:0.5,side:THREE.DoubleSide}),SCAT_CAP[k]);
+      m.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(SCAT_CAP[k]*3),3);m.count=0;m.frustumCulled=false;sc.add(m);out[k]=m;});}
   {const td=gumCard3(true),dm=new THREE.InstancedMesh(cg,scatMat3(td?{map:td,alphaTest:0.5,side:THREE.DoubleSide}:{side:THREE.DoubleSide}),SCAT_CAP.deadgum);dm.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(SCAT_CAP.deadgum*3),3);dm.count=0;dm.frustumCulled=false;sc.add(dm);out.deadgum=dm;}   // dead gums: bare, bleached limbs
   SCAT3.meshes=out;return out;}
 // what grows and lies about on one distant tile: [type, x, y, ground height, turn, size, height scale, r, g, b]
@@ -8027,9 +8070,9 @@ function scatterTile3(L,i,j,tt,E,F){if(L!==0)return null;const r=rng(hash2(i*31+
     for(let k=0;k<2;k++){if(r()>0.5)continue;const a=r()*TAU,d=34+r()*30,gx=x+Math.cos(a)*d,gy=y+Math.sin(a)*d;if(!okAt(gx,gy))continue;const q=r(),s=q<0.25?0.5+r()*0.3:q<0.8?0.9+r()*0.4:1.4+r()*0.7;out.push([r()<0.667?'deadgum':'gum',gx,gy,hAt(gx,gy),r()*TAU,64*s,1,0.9+r()*0.15,0.9+r()*0.15,0.9+r()*0.15]);}}   // two in three dead
   return out;}
 // write every tile's scatter into the instanced meshes (positions kept relative to a nearby origin, so nothing jitters)
-function rebuildScatter3(bx,by){const M=scatMeshes3(),cnt={rock:0,bush:0,tuft:0,gum:0,deadgum:0};SCAT3.origin=[Math.round(bx),Math.round(by)];const [ox,oy]=SCAT3.origin;
+function rebuildScatter3(bx,by){const M=scatMeshes3(),cnt={rock:0,bush:0,tuft:0,gum:0,deadgum:0,dg0:0,dg1:0,dg2:0,dg3:0};SCAT3.origin=[Math.round(bx),Math.round(by)];const [ox,oy]=SCAT3.origin;
   for(const k in M)M[k].position.set(ox,0,oy);
-  for(const [,list] of SCAT3.tiles)for(const it of list){const k=it[0],m=M[k];const n=cnt[k];if(n>=SCAT_CAP[k])continue;cnt[k]++;const e=m.instanceMatrix.array,o=n*16,c=Math.cos(it[4]),s=Math.sin(it[4]),S=it[5],SY=it[5]*it[6];
+  for(const [,list] of SCAT3.tiles)for(const it of list){let k=it[0];if(k==='deadgum'&&M.dg0)k='dg'+(Math.abs(Math.round(it[1]*0.37+it[2]*0.61))%4);const m=M[k];   /* (a dead gum: one of the four trees, v13.6) */const n=cnt[k];if(n>=SCAT_CAP[k])continue;cnt[k]++;const e=m.instanceMatrix.array,o=n*16,c=Math.cos(it[4]),s=Math.sin(it[4]),S=it[5],SY=it[5]*it[6];
     e[o]=c*S;e[o+1]=0;e[o+2]=-s*S;e[o+3]=0;e[o+4]=0;e[o+5]=SY;e[o+6]=0;e[o+7]=0;e[o+8]=s*S;e[o+9]=0;e[o+10]=c*S;e[o+11]=0;e[o+12]=it[1]-ox;e[o+13]=it[3];e[o+14]=it[2]-oy;e[o+15]=1;
     const ca=m.instanceColor.array;ca[n*3]=it[7];ca[n*3+1]=it[8];ca[n*3+2]=it[9];}
   for(const k in M){M[k].count=cnt[k];M[k].instanceMatrix.needsUpdate=true;M[k].instanceColor.needsUpdate=true;}SCAT3.dirty=false;SCAT3.counts=cnt;}
@@ -8080,7 +8123,7 @@ function stream3(bx,by){const t0=performance.now(),cx=Math.floor(bx/CH),cy=Math.
   for(let j=-V3_RAD;j<=V3_RAD;j++)for(let i=-V3_RAD;i<=V3_RAD;i++){const k=(cx+i)+','+(cy+j);if(!V3.chunks.has(k))need.push([i*i+j*j,cx+i,cy+j,k]);}
   need.sort((a,b)=>a[0]-b[0]);
   for(let n=0;n<need.length&&(n<1||performance.now()-t0<7);n++){const [,i,j,k]=need[n],g=buildChunk3(getChunk(i,j));g.updateMatrix();V3.scene.add(g);V3.chunks.set(k,g);}
-  for(const [k,g] of V3.chunks){const [i,j]=k.split(',').map(Number);if(Math.abs(i-cx)>V3_RAD+1||Math.abs(j-cy)>V3_RAD+1){drop3(g);V3.chunks.delete(k);}}
+  for(const [k,g] of V3.chunks){const [i,j]=k.split(',').map(Number);if(Math.abs(i-cx)>V3_RAD+1||Math.abs(j-cy)>V3_RAD+1){drop3(g);V3.chunks.delete(k);DT3.dirty=true;}}
   V3.scanT-=1;if(V3.scanT>0)return;V3.scanT=15;   // landforms and places: look round every quarter second or so
   const keep=(map,list,build,far)=>{const live=new Set();for(const o of list){live.add(o.id);if(!map.has(o.id)){const m=build(o);if(m)V3.scene.add(m);map.set(o.id,{m,o});}}
     for(const [id,e] of map)if(!live.has(id)&&Math.hypot(e.o.x-bx,e.o.y-by)>far(e.o)){drop3(e.m);map.delete(id);}};
@@ -8103,7 +8146,7 @@ function render3D(){const now=performance.now(),dt=V3.last?Math.min(0.1,(now-V3.
     if(CHAR3.mat&&CHAR3.mat.userData.u){const u=CHAR3.mat.userData.u;u.uT.value=G.time||0;u.uWind.value.set(W.x/(W.s||1),W.y/(W.s||1));u.uS.value=s;}}   // the slicks drift
   {const cv=injFx().view;if(cv&&SETTINGS.viewDist!==cv){V3.viewSaved=V3.viewSaved||SETTINGS.viewDist;SETTINGS.viewDist=cv;}else if(!cv&&V3.viewSaved){SETTINGS.viewDist=V3.viewSaved;V3.viewSaved=null;}}   // concussed: you can't see far
   if(V3.viewKey!==SETTINGS.viewDist){V3.viewKey=SETTINGS.viewDist;applyView3();}
-  stream3(b.x,b.y);farGround3(b.x,b.y);grassTick3(b.x,b.y);syncDynamic3();syncLoot3(b);syncFX3(b);
+  stream3(b.x,b.y);farGround3(b.x,b.y);grassTick3(b.x,b.y);deadGums3(b.x,b.y,V3.dt||0.016);syncDynamic3();syncLoot3(b);syncFX3(b);
   for(const [,e] of V3.locs)if(e.m&&e.m.userData.roofs)e.m.userData.roofs.visible=!V3.noRoofs&&!e.o.bld.some(bd=>!bd.tank&&bd.roofA!==undefined&&bd.roofA<0.5);   // step indoors and the roof lifts off, as in 2D
   // chase camera: behind and above, swinging round after the car's heading (or the way you're facing on foot)
   // in the car the camera swings round after the car. On foot it follows the way you're walking, but only when that's
@@ -8977,7 +9020,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
 window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
-  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,LOOK,trTex3,TRR3,carModel3,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
+  roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,DT3,LOOK,trTex3,TRR3,carModel3,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
 newGame();applyMobile();applySwap();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
 
