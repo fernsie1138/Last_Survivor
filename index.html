@@ -262,26 +262,27 @@ body:not(.onfoot) #bBrake,body:not(.onfoot) #bBoost,body:not(.onfoot) #bReverse,
   </div>
 </div>
 
-<script src="models/21b-mesa-models.js?v=13.6"></script>
-<script src="models/84-hero-model.js?v=13.6"></script>
-<script src="models/84b-hero-body.js?v=13.6"></script>
-<script src="models/84c-buggy-model.js?v=13.6"></script>
-<script src="models/84d-tarona-model.js?v=13.6"></script>
-<script src="models/84e-wall-model.js?v=13.6"></script>
-<script src="models/84f-plant-models.js?v=13.6"></script>
-<script src="models/84g-kestrel-model.js?v=13.6"></script>
-<script src="models/84h-building-models.js?v=13.6"></script>
-<script src="models/84i-building-models2.js?v=13.6"></script>
-<script src="models/84j-f100-model.js?v=13.6"></script>
-<script src="models/84l-kingsford-model.js?v=13.6"></script>
-<script src="models/84m-wagon-model.js?v=13.6"></script>
-<script src="models/84p-dog-model.js?v=13.6"></script>
-<script src="models/84q-deadgum-models.js?v=13.6"></script>
+<script src="models/21b-mesa-models.js?v=13.7"></script>
+<script src="models/84-hero-model.js?v=13.7"></script>
+<script src="models/84b-hero-body.js?v=13.7"></script>
+<script src="models/84c-buggy-model.js?v=13.7"></script>
+<script src="models/84d-tarona-model.js?v=13.7"></script>
+<script src="models/84e-wall-model.js?v=13.7"></script>
+<script src="models/84f-plant-models.js?v=13.7"></script>
+<script src="models/84g-kestrel-model.js?v=13.7"></script>
+<script src="models/84h-building-models.js?v=13.7"></script>
+<script src="models/84i-building-models2.js?v=13.7"></script>
+<script src="models/84j-f100-model.js?v=13.7"></script>
+<script src="models/84l-kingsford-model.js?v=13.7"></script>
+<script src="models/84m-wagon-model.js?v=13.7"></script>
+<script src="models/84p-dog-model.js?v=13.7"></script>
+<script src="models/84q-deadgum-models.js?v=13.7"></script>
+<script src="models/84r-survivor-model.js?v=13.7"></script>
 <script>
 (function(){
 'use strict';
 // the version shown on the title screen and at the bottom of the screen: goes up by 0.1 with every published build
-const VERSION='13.6';
+const VERSION='13.7';
 /* ===== core: maths, random, canvas ===== */
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -2036,11 +2037,16 @@ function updateHeroOnFoot(dt,inp){
   // walking pace is deliberately unhurried
   const h=G.hero,A=heroArmour(),lg=injFx().walk,sp=(h.crouch?28:inp.sprint?100*(1+skill('athlete')*SK_RUN)*(1-(A?A.slow:0)):58)*lg,k=Math.min(1,dt*10);h.atkCd-=dt;h.swing=Math.max(0,h.swing-dt);   // cooldowns run on foot; driveHero runs them in the car
   const sf=slopeFactor(h.x,h.y,inp.mx,inp.my,false)*(terrainAt(h.x,h.y)===T.DRY?0.85:1);   // climbing is slow going, and so is soft sand
-  h.vx+=(inp.mx*sp*sf-h.vx)*k;h.vy+=(inp.my*sp*sf-h.vy)*k;
+  let tx=inp.mx*sp*sf,ty=inp.my*sp*sf;const lock=combatTarget();
+  // (v13.7) facing one way while moving another (the thumb sticks, or squared up to a raider): stepping sideways and backing up are
+  // slower than going ahead, at the pace of his side-step and backward walk
+  if(lock||(h.faceLock||0)>0||(twinStick()&&stick.active&&inputRot3()!==null)){const c=Math.cos(h.a),s_=Math.sin(h.a);let f=tx*c+ty*s_,l=tx*s_-ty*c;const lim=lg*(h.crouch?20:26);
+    l=clamp(l,-lim,lim);f=Math.max(f,-32*lg);tx=f*c+l*s_;ty=f*s_-l*c;}
+  h.vx+=(tx-h.vx)*k;h.vy+=(ty-h.vy)*k;
   h.x+=h.vx*dt;h.y+=h.vy*dt;h.speed=Math.hypot(h.vx,h.vy);
   if(h.speed>6)h.walk+=h.speed*dt*0.12;
   // in a fight, keep facing the nearest raider in reach while you move in any direction; otherwise face where you're going
-  const lock=combatTarget();h.faceLock=Math.max(0,(h.faceLock||0)-dt);
+  h.faceLock=Math.max(0,(h.faceLock||0)-dt);
   if(lock)h.a+=angDiff(Math.atan2(lock.y-h.y,lock.x-h.x),h.a)*Math.min(1,dt*14);
   else if(h.speed>6&&h.faceLock<=0){if(twinStick()&&stick.active&&inputRot3()!==null)h.a+=angDiff(V3.yaw,h.a)*Math.min(1,dt*12);else h.a=Math.atan2(h.vy,h.vx);}   // the sticks (v13.2): face the way the camera looks
   collideWorld(h);h.ri=roadInfo(h.x,h.y);h.flash=Math.max(0,h.flash-dt*5);
@@ -4779,7 +4785,7 @@ function settingsPanel(back){
 function switchWorld(test){try{if(test)localStorage.setItem('lastsurvivor.world','test');else localStorage.removeItem('lastsurvivor.world');}catch(e){}
   try{if(location.hash==='#testrange'&&!test)history.replaceState(null,'',location.pathname+location.search);}catch(e){}location.reload();}
 // models by other people, credited as their licences ask
-const CREDITS='Hero body based on “Low Poly Base Mesh-530 Tri” (sketchfab.com/3d-models/low-poly-base-mesh-530-tri-138ca18c246a4b13b3e108bd88df95a2) by assblasterplastered (sketchfab.com/assblasterplastered), licensed under CC-BY-4.0. Dogs and dingoes based on “Dog animated” (https://sketchfab.com/3d-models/dog-animated-21b7336c58a442578ab88fc47233ef11) by MAXDESIGN-3D (https://sketchfab.com/MAXDESIGN), licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/); coats repainted for the game.';
+const CREDITS='The hero: made in Meshy, animated in Mixamo. Motorbike riders’ bodies based on “Low Poly Base Mesh-530 Tri” (sketchfab.com/3d-models/low-poly-base-mesh-530-tri-138ca18c246a4b13b3e108bd88df95a2) by assblasterplastered (sketchfab.com/assblasterplastered), licensed under CC-BY-4.0. Dogs and dingoes based on “Dog animated” (https://sketchfab.com/3d-models/dog-animated-21b7336c58a442578ab88fc47233ef11) by MAXDESIGN-3D (https://sketchfab.com/MAXDESIGN), licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/); coats repainted for the game.';
 function titleScreen(){
   state='title';const btns=[];
   if(TEST_MODE){btns.push({label:'Load a save file',fn:()=>loadPanel(titleScreen)});
@@ -4789,7 +4795,7 @@ function titleScreen(){
   btns.push({label:'Start',primary:true,fn:()=>{newGame();arrive(LOCS[START],'intro');}});
   btns.push({label:'Load a save file',fn:()=>loadPanel(titleScreen)});
   btns.push({label:'Settings',fn:()=>settingsPanel(titleScreen)},{label:'Test range',fn:()=>switchWorld(true)});
-  showPanel({title:'Last Survivor',ver:true,sub:'Outback Australia, a few years after it all ended. The roads still run between the last outposts. Raiders own the stretches in between. Haven is somewhere far to the east. (Hero body by assblasterplastered, CC-BY-4.0: full credit in Settings.)',buttons:btns,controls:true});
+  showPanel({title:'Last Survivor',ver:true,sub:'Outback Australia, a few years after it all ended. The roads still run between the last outposts. Raiders own the stretches in between. Haven is somewhere far to the east. (Some models CC-BY-4.0: full credits in Settings.)',buttons:btns,controls:true});
 }
 // reaching any place on the network: update the route
 function nodeReached(id){
@@ -5652,8 +5658,9 @@ function setupHero3(g){const sc=g.scene;sc.updateMatrixWorld(true);
         vec3 w=vec3(uWind.x,0.0,uWind.y),wl=vec3(dot(modelMatrix[0].xyz,w),dot(modelMatrix[1].xyz,w),dot(modelMatrix[2].xyz,w))/max(1e-6,dot(modelMatrix[0].xyz,modelMatrix[0].xyz));   // the wind, in the body's own frame
         transformed+=aFlow*(wl*(0.012+0.05*uS)*(0.7+0.3*s1)+vec3(s1,0.0,s2)*(0.006+0.012*uS)+vec3(0.0,(0.003+0.008*uS)*s2,0.0));}`);};
   loadBuggy2();
-  loadHeroBody3(()=>{let ch=null;if(HB3.ok){try{ch=makeHeroBody3(HERO_SPEC3);}catch(e){console.warn('hero body:',e);}}if(!ch)ch=makeChar3(HERO_SPEC3);   // the hero's own body if it builds, the shared one otherwise
-    HERO3.char=ch;HERO3.outfit=ch.bones;Object.assign(HERO3,{wrap:ch.wrap,mixer:ch.mixer,acts:ch.acts,status:'ready'});ch.wrap.visible=false;});}
+  loadHeroBody3(()=>loadSurvivor3(()=>{let ch=null;if(SURV3.ok){try{ch=makeSurvivor3();}catch(e){console.warn('survivor:',e);}}   // the survivor (v13.7); failing that, the old body, or the shared one
+    if(!ch&&HB3.ok){try{ch=makeHeroBody3(HERO_SPEC3);}catch(e){console.warn('hero body:',e);}}if(!ch)ch=makeChar3(HERO_SPEC3);   // the hero's own body if it builds, the shared one otherwise
+    HERO3.char=ch;HERO3.outfit=ch.bones;Object.assign(HERO3,{wrap:ch.wrap,mixer:ch.mixer,acts:ch.acts,status:'ready'});ch.wrap.visible=false;}));}
 GB.prototype.ellip=function(cx,cy,cz,rx,ry,rz,nu,nv,col,keep,shade){const P=(u,v)=>{const th=u/nu*TAU,ph=v/nv*Math.PI;return [cx+Math.sin(ph)*Math.cos(th)*rx,cy+Math.cos(ph)*ry,cz+Math.sin(ph)*Math.sin(th)*rz];};
   const rnd=rng(nu*31+nv);for(let v=0;v<nv;v++)for(let u=0;u<nu;u++){const a=P(u,v),b=P(u+1,v),c=P(u+1,v+1),d=P(u,v+1),m=[(a[0]+c[0])/2-cx,(a[1]+c[1])/2-cy,(a[2]+c[2])/2-cz];
     if(keep&&!keep(m[0]/rx,m[1]/ry,m[2]/rz))continue;const k=shade?0.9+rnd()*0.18:1,cc=[col[0]*k,col[1]*k,col[2]*k];this.quad(a,b,c,d,cc,[cx,cy,cz]);}};
@@ -6034,6 +6041,108 @@ function animChar3(ch,p,dt,fresh){const down=p.dead||p.state==='down';
     const w=p.wind||0;if(w>0&&ch.prevWind<=0&&(p.weapon!==undefined||p.kind==='comp')){const W=WEAPONS[p.weapon||'fists']||WEAPONS.fists;startOne3(ch,W.gun?'Shoot_OneHanded':W===WEAPONS.fists?'Punch':'SwordSlash',W.gun?1.3:1.6);}
     ch.prevWind=w;const oa=ch.one&&ch.acts[ch.one];if(oa&&(!oa.isRunning()||oa.time>=oa.getClip().duration-0.01))ch.one=null;}
   locoBlend3(ch,down?0:sp,dt||0.016);ch.mixer.update(dt);if(ch.retarget)ch.retarget();}
+/* ===== the survivor (v13.7): the hero's own model, made in Meshy and animated in Mixamo =====
+   He plays his own clips where he has them (walking, running, a crouched side-step each way for strafing, a jab, a lunge, a bow shot)
+   on his own skeleton. The moves he lacks (standing, falling, flinching, picking up, a one-handed shot, a swing...) are copied across once,
+   when he loads, from the game's usual rig: each frame of those clips is played on a hidden copy of that rig, every bone of his is turned
+   the way its partner has turned from rest, and the result is kept as an ordinary clip on his skeleton. So one mixer plays everything.
+   Clothing and gear, for later (he has no cloak or pack yet):
+   - heroAttach3(slot,obj) hangs a rigid piece on one of SV_SOCKETS (back, chest, hips, head, handR, handL). The piece is in metres,
+     in his own frame (+z the way he faces, +y up, +x his left), its origin at the socket; heroAttach3(slot,null) takes it off.
+   - heroWear3(slot,gltf) puts on a piece rigged in Mixamo to the same skeleton (a cloak, a long coat): its bones are matched to his by
+     name, so it bends with him; heroWear3(slot,null) takes it off. */
+const SURV3={g:null,ok:false};
+function loadSurvivor3(done){if(typeof SURVIVOR_GLB_B64==='undefined'){done();return;}
+  try{const bin=atob(SURVIVOR_GLB_B64),u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+    new THREE.GLTFLoader().parse(u8.buffer,'',g=>{SURV3.g=g;SURV3.ok=true;done();},e=>{console.warn('survivor:',e);done();});}catch(e){console.warn('survivor:',e);done();}}
+const SV_MAP=[['Hips','Hips'],['Abdomen','Spine'],['Torso','Spine1'],['Neck','Neck'],['Head','Head'],
+  ['ShoulderL','LeftShoulder'],['UpperArmL','LeftArm'],['LowerArmL','LeftForeArm'],['FistL','LeftHand'],
+  ['ShoulderR','RightShoulder'],['UpperArmR','RightArm'],['LowerArmR','RightForeArm'],['FistR','RightHand'],
+  ['UpperLegL','LeftUpLeg'],['LowerLegL','LeftLeg'],['FootL','LeftFoot'],['UpperLegR','RightUpLeg'],['LowerLegR','RightLeg'],['FootR','RightFoot']];
+// his limb bones' rest directions (from the bone to the next joint down), to line up with the usual rig's (HB_DIRS)
+const SV_DIRS={ShoulderL:['LeftShoulder','LeftArm'],UpperArmL:['LeftArm','LeftForeArm'],LowerArmL:['LeftForeArm','LeftHand'],FistL:['LeftForeArm','LeftHand'],
+  ShoulderR:['RightShoulder','RightArm'],UpperArmR:['RightArm','RightForeArm'],LowerArmR:['RightForeArm','RightHand'],FistR:['RightForeArm','RightHand'],
+  UpperLegL:['LeftUpLeg','LeftLeg'],LowerLegL:['LeftLeg','LeftFoot'],UpperLegR:['RightUpLeg','RightLeg'],LowerLegR:['RightLeg','RightFoot']};
+// how fast each of his own clips covers the ground at normal speed, in metres a second (the walk and run measured from their footfalls,
+// the side-steps from the drift taken out of them when they were packed)
+const SV_PACE={Walk:1.4,Run:4.7,StrafeL:1.15,StrafeR:1.0};
+const SV_ONE=['Death','Punch','SwordSlash','Shoot_OneHanded','RecieveHit','PickUp','Jab','Lunge','Bow'];
+const SV_SOCKETS={back:['Spine2',[0,0.02,-0.13]],chest:['Spine2',[0,0.02,0.12]],hips:['Hips',[0,0,0]],head:['Head',[0,0.1,0]],handR:['RightHand',[0,0,0]],handL:['LeftHand',[0,0,0]]};
+function makeSurvivor3(){const g=SURV3.g,T=CHAR3.tpl,root=g.scene;let sm=null;root.traverse(o=>{if(o.isSkinnedMesh&&!sm)sm=o;});
+  root.position.set(0,0,0);root.rotation.set(0,0,0);root.scale.set(1,1,1);root.updateMatrixWorld(true);
+  const skel=sm.skeleton,bones=skel.bones,names=bones.map(b=>b.name),ti=n=>names.indexOf('mixamorig'+n),si=n=>T.boneNames.indexOf(n),B=n=>bones[ti(n)];
+  const dec=m=>{const p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();m.decompose(p,q,s);return {p,q,s};};
+  const TB=bones.map(b=>dec(b.matrixWorld)),SB=T.boneInverses.map(m=>dec(m.clone().invert()));   // his rest pose (metres, his frame) and the usual rig's
+  const restQ=bones.map(b=>b.quaternion.clone()),restP=bones.map(b=>b.position.clone()),parent=bones.map(b=>bones.indexOf(b.parent));
+  const order=[];const walk=i=>{order.push(i);bones.forEach((b,j)=>{if(parent[j]===i)walk(j);});};bones.forEach((b,i)=>{if(parent[i]<0)walk(i);});
+  const baseQ=bones.map((b,i)=>{const q=new THREE.Quaternion();if(parent[i]<0&&b.parent)b.parent.getWorldQuaternion(q);return q;});   // what the top bone hangs from (the armature)
+  // the turn about the vertical that faces the usual rig his way (both face +z, but measure it rather than trust it)
+  const hor=v=>new THREE.Vector3(v.x,0,v.z).normalize(),la=hor(SB[si('UpperLegL')].p.clone().sub(SB[si('UpperLegR')].p)),lb=hor(TB[ti('LeftUpLeg')].p.clone().sub(TB[ti('RightUpLeg')].p));
+  const A=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.atan2(la.z*lb.x-la.x*lb.z,la.x*lb.x+la.z*lb.z)),Ai=A.clone().invert();
+  // sizes: his height (metres), and his hip height against the rig's, to scale the hips' bob and drop
+  const bb=new THREE.Box3().setFromObject(root,true),height=bb.max.y-bb.min.y,foot=bb.min.y;   // (his skinned shape at rest)
+  const hr=(TB[ti('Hips')].p.y-TB[ti('LeftFoot')].p.y)/(SB[si('Hips')].p.y-SB[si('FootL')].p.y);
+  const C={};for(const [s] of SV_MAP){const d=HB_DIRS[s],e=SV_DIRS[s];if(!d||!e){C[s]=new THREE.Quaternion();continue;}
+    const sd=SB[si(d[1])].p.clone().sub(SB[si(d[0])].p).applyQuaternion(A).normalize(),td=TB[ti(e[1])].p.clone().sub(TB[ti(e[0])].p).normalize();C[s]=new THREE.Quaternion().setFromUnitVectors(td,sd);}
+  const map={};for(const [s,t] of SV_MAP)map[ti(t)]=s;
+  // ---- the moves he lacks, copied from the usual rig ----
+  const dRoot=T.scene.clone(true),rm=[];dRoot.traverse(o=>{if(o.isMesh)rm.push(o);});for(const o of rm)o.parent.remove(o);dRoot.updateMatrixWorld(true);
+  const dBone={};dRoot.traverse(o=>{if(o.isBone)dBone[o.name]=o;});const dm=new THREE.AnimationMixer(dRoot),rootQi=dRoot.getWorldQuaternion(new THREE.Quaternion()).invert();
+  const SBinv={};for(const [s] of SV_MAP)SBinv[s]=SB[si(s)].q.clone().invert();
+  const mQ=bones.map(()=>new THREE.Quaternion()),qa=new THREE.Quaternion(),qb=new THREE.Quaternion(),v1=new THREE.Vector3(),hi=ti('Hips'),hip0=SB[si('Hips')].p;
+  const clips=g.animations.slice(),have=new Set(clips.map(c=>c.name));
+  for(const c0 of T.clips){if(have.has(c0.name))continue;dm.stopAllAction();const act=dm.clipAction(c0);act.play();
+    const n=Math.max(2,Math.round(c0.duration*30)),times=[],tq=bones.map(()=>[]),tp=[];
+    for(let k=0;k<=n;k++){const t=Math.min(c0.duration-1e-4,k/n*c0.duration);times.push(k/n*c0.duration);dm.setTime(t);dRoot.updateMatrixWorld(true);
+      for(const i of order){const s=map[i],pq=parent[i]>=0?mQ[parent[i]]:baseQ[i];
+        if(s){dBone[s].getWorldQuaternion(qa).premultiply(rootQi).multiply(SBinv[s]);qa.premultiply(A).multiply(Ai);mQ[i].copy(qa).multiply(C[s]).multiply(TB[i].q);   // the rig's turn from rest, on his rest
+          if(SHRUG[s]!==undefined){qb.copy(pq).multiply(restQ[i]);mQ[i].slerp(qb,1-SHRUG[s]);}}
+        else mQ[i].copy(pq).multiply(restQ[i]);
+        qb.copy(pq).invert().multiply(mQ[i]);tq[i].push(qb.x,qb.y,qb.z,qb.w);}
+      dBone.Hips.getWorldPosition(v1);dRoot.worldToLocal(v1);v1.sub(hip0).multiplyScalar(hr).applyQuaternion(A).add(TB[hi].p);bones[hi].parent.worldToLocal(v1);tp.push(v1.x,v1.y,v1.z);}
+    const tracks=bones.map((b,i)=>new THREE.QuaternionKeyframeTrack(b.name+'.quaternion',times,tq[i]));tracks.push(new THREE.VectorKeyframeTrack(bones[hi].name+'.position',times,tp));
+    clips.push(new THREE.AnimationClip(c0.name,c0.duration,tracks));}
+  dm.stopAllAction();dm.uncacheRoot(dRoot);
+  // ---- the body: his own texture, the game's lighting ----
+  const m0=sm.material;sm.material=stdMat3({map:m0.map,roughness:0.86});m0.dispose();sm.castShadow=true;sm.receiveShadow=true;sm.frustumCulled=false;
+  const k=19/height,body=new THREE.Group();body.add(root);root.position.y=-foot;body.scale.setScalar(k);body.rotation.y=Math.PI/2;   // he faces +z; the game's "forward" is +x
+  const wrap=new THREE.Group();wrap.add(body);V3.scene.add(wrap);
+  const mixer=new THREE.AnimationMixer(root),acts={};
+  for(const c of clips){const a=mixer.clipAction(c);if(SV_ONE.includes(c.name)){a.setLoop(THREE.LoopOnce,1);a.clampWhenFinished=true;}acts[c.name]=a;}
+  // ---- sockets for gear: each a point on a bone, its axes lined up with his body at rest, its units metres ----
+  const sockets={};for(const nm in SV_SOCKETS){const [bn,off]=SV_SOCKETS[nm],i=ti(bn);if(i<0)continue;const s=new THREE.Group();s.name='socket_'+nm;const R=TB[i];
+    s.quaternion.copy(R.q).invert();s.position.set(...off).applyQuaternion(s.quaternion).divideScalar(R.s.x);s.scale.setScalar(1/R.s.x);bones[i].add(s);sockets[nm]=s;}
+  // ---- weapons: the usual models, carried from the rig's right fist to his right hand, the same size in the game as in anyone's ----
+  const wsc=T.k*height/19,hand=ti('RightHand'),fist=SB[si('FistR')].p,Ci=C.FistR.clone().invert(),wcache={},bInv=sm.bindMatrix.clone().invert(),nb=new THREE.Matrix3().getNormalMatrix(bInv);
+  const weaponGeo=key=>{if(key in wcache)return wcache[key];const gb=weaponGB3(key);if(!gb){wcache[key]=null;return null;}
+    const g2=new THREE.BufferGeometry();g2.setAttribute('position',new THREE.BufferAttribute(new Float32Array(gb.p),3));g2.computeVertexNormals();const nn=g2.attributes.normal.array,n=gb.p.length/3,P=new Float32Array(n*3),N=new Float32Array(n*3),v=new THREE.Vector3();
+    for(let i=0;i<n;i++){v.set(gb.p[i*3],gb.p[i*3+1],gb.p[i*3+2]).sub(fist).multiplyScalar(wsc).applyQuaternion(A).applyQuaternion(Ci).add(TB[hand].p).applyMatrix4(bInv);P[i*3]=v.x;P[i*3+1]=v.y;P[i*3+2]=v.z;
+      v.set(nn[i*3],nn[i*3+1],nn[i*3+2]).applyQuaternion(A).applyQuaternion(Ci).applyMatrix3(nb).normalize();N[i*3]=v.x;N[i*3+1]=v.y;N[i*3+2]=v.z;}
+    const geo=new THREE.BufferGeometry(),SI=new Uint16Array(n*4),SW=new Float32Array(n*4);for(let i=0;i<n;i++){SI[i*4]=hand;SW[i*4]=1;}
+    geo.setAttribute('position',new THREE.BufferAttribute(P,3));geo.setAttribute('normal',new THREE.BufferAttribute(N,3));geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(gb.c),3));
+    geo.setAttribute('skinIndex',new THREE.BufferAttribute(SI,4));geo.setAttribute('skinWeight',new THREE.BufferAttribute(SW,4));g2.dispose();wcache[key]=geo;return geo;};
+  return {wrap,body,root,mixer,acts,mesh:sm,skel,bones:[],cur:null,one:null,prevWind:0,surv:true,weaponGeo,bindMatrix:sm.bindMatrix,sockets,worn:{},attached:{},height,k};}
+// gear for later: a rigid piece on a socket (see above)
+function heroAttach3(slot,obj){const ch=HERO3.char;if(!ch||!ch.sockets||!ch.sockets[slot])return false;const old=ch.attached[slot];if(old)old.parent.remove(old);ch.attached[slot]=null;
+  if(obj){obj.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;}});ch.sockets[slot].add(obj);ch.attached[slot]=obj;}return true;}
+// a piece rigged in Mixamo to the same skeleton (a loaded glTF, or its scene): its bones swapped for his by name, so it moves with him
+function heroWear3(slot,gltf){const ch=HERO3.char;if(!ch||!ch.surv)return false;const old=ch.worn[slot];if(old)for(const m of old)m.parent.remove(m);ch.worn[slot]=null;if(!gltf)return true;
+  const sc=gltf.scene||gltf,byName={};for(const b of ch.skel.bones)byName[b.name]=b;sc.updateMatrixWorld(true);const got=[];
+  sc.traverse(o=>{if(!o.isSkinnedMesh)return;const bs=o.skeleton.bones.map(b=>byName[b.name]);if(bs.some(b=>!b)){console.warn('heroWear3: bones not on his skeleton',o.name);return;}got.push(o);});
+  for(const o of got){const sk=new THREE.Skeleton(o.skeleton.bones.map(b=>byName[b.name]),o.skeleton.boneInverses.map(m=>m.clone())),bm=o.bindMatrix.clone();
+    o.parent.remove(o);ch.mesh.parent.add(o);o.position.copy(ch.mesh.position);o.quaternion.copy(ch.mesh.quaternion);o.scale.copy(ch.mesh.scale);o.bind(sk,bm);o.castShadow=true;o.frustumCulled=false;}
+  ch.worn[slot]=got;return got.length>0;}
+// his feet: a blend of standing, walking or running ahead (or walking backwards), and side-stepping left or right, by which way he's going
+function survLoco3(H,h,dt){const ch=H.char,a=h.a||0,vx=h.inCar||h.lying?0:h.vx||0,vy=h.inCar||h.lying?0:h.vy||0,sp=Math.hypot(vx,vy),upm=ch.k;   // (game units a metre)
+  const fw=vx*Math.cos(a)+vy*Math.sin(a),sd=vx*Math.sin(a)-vy*Math.cos(a);   // how fast ahead, and to his left
+  const tw={Idle:1,Walk:0,Run:0,StrafeL:0,StrafeR:0},m=clamp((sp-5)/12,0,1);let back=false;
+  if(m>0){const s2=sp>0?(sd/sp)**2:0,run=sp>=45&&fw>0;back=fw<-0.2*sp;tw.Idle=1-m;tw[run?'Run':'Walk']=m*(1-s2);tw[sd>0?'StrafeL':'StrafeR']+=m*s2;}
+  H.lw=H.lw||{Idle:1,Walk:0,Run:0,StrafeL:0,StrafeR:0};for(const k in tw)H.lw[k]+=(tw[k]-H.lw[k])*Math.min(1,dt*7);
+  H.oneW=(H.oneW||0)+((H.one?1:0)-(H.oneW||0))*Math.min(1,dt*(H.one?14:7));
+  for(const k in tw){const ac=H.acts[k];if(!ac)continue;if(!ac.isRunning())ac.play();ac.setEffectiveWeight(H.lw[k]*(1-H.oneW));
+    if(k!=='Idle')ac.timeScale=clamp(Math.max(sp,8)/(SV_PACE[k]*upm),0.6,k==='Run'?1.7:2.4)*(k==='Walk'&&back?-1:1);}
+  for(const k of SV_ONE){const ac=H.acts[k];if(!ac)continue;ac.setEffectiveWeight(k===H.one||(ac===H.oneAct&&H.oneW>0.01)?H.oneW:0);}
+  H.cur=H.one||Object.keys(tw).reduce((b,k)=>H.lw[k]>H.lw[b]?k:b,'Idle');}
 function heroPlay3(name,ts,fade){const H=HERO3,next=H.acts[name];if(!next)return;
   if(H.cur===name){next.timeScale=ts;return;}
   next.reset();next.timeScale=ts;next.setEffectiveWeight(1);next.play();if(H.cur)H.acts[H.cur].crossFadeTo(next,fade,false);H.cur=name;}
@@ -6068,7 +6177,7 @@ function updateHero3(dt){const H=HERO3,h=G.hero,P=H.prev;if(H.status!=='ready')r
   if(H.one==='hold'){H.mixer.update(dt);if(H.char.retarget)H.char.retarget();return true;}   // (posed by hand, for close-ups)
   if(one&&!(dead&&H.one==='Death'))startOne3(H,one[0],one[1]);
   const oa=H.one&&H.acts[H.one];if(oa&&!dead&&(!oa.isRunning()||oa.time>=oa.getClip().duration-0.01))H.one=null;   // a one-off move has finished: back to moving
-  locoBlend3(H,h.speed||0,dt);
+  if(H.char.surv)survLoco3(H,h,dt);else locoBlend3(H,h.speed||0,dt);
   H.mixer.update(dt);heroSwivel3(H,h,dt);if(H.char.retarget)H.char.retarget();return true;}
 // strafing (v13.3): the hips and legs turn toward the way you're going while the chest and shoulders keep facing ahead; going backwards,
 // the legs step backwards (the walk played in reverse) with the hips turned a little the other way. Worked on the driver rig before it's
@@ -9019,7 +9128,7 @@ function frame(t){requestAnimationFrame(frame);const raw=last?(t-last)/1000:0.01
   if(state==='play'){let left=Math.min(raw,0.1);while(left>1e-4&&state==='play'){const st=Math.min(left,1/30);update(st);left-=st;}}
   else if(state!=='paused'&&state!=='map'&&state!=='inv'&&state!=='talk'&&G)stepEffects(dt);
   renderView();}
-window.__LT={LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
+window.__LT={SURV3,makeSurvivor3,heroAttach3,heroWear3,survLoco3,SV_PACE,LEVEL_GRID,collideMesas,MTN,mtnCore,mtnHeight,mtnSolid,hillHeight,chunks,cancelJob,acceptJob,nearestIdx,updateConvoyCar,ROO_GLB_B64,ROO3,FX3,makeRoo3,loadRoo3,rooClip3,PONCHO3,runAction,naturalIdle3,CLOUDS3,cloudCover3,clouds3,collideWalls,angDiff,relayoutProps,props,propKey,obbHit,ruinTheme,ruinRad,inTown,wallRadAt,shapeAt,townShape,COOK,BUFFS,FORAGE,cook,canCook,forage,canForage,giveBuff,buffLeft,hasBuff,buffList,eatExtras,bestOf,myStores,takeMed,medLeft,onPainkillers,onStims,injFx,injure,getActions,bite,illCap,illDrain,sicken,illLvl,illLeft,takeCure,drinkRiver,tiredFx,thirstBlur,needsTick,heroHpCap,GFX3,GND3,ROCKT3,rocksMesh3,RB,GRASS3,GRASSU3,grassTick3,grassCell3,grassBld3,grassOpen3,gndMask3,THREE_HALF:null,applyGfx3,STOCK_LISTS,invOtherKind:()=>invOther&&invOther.kind,throwBomb,stepThrows,forSale,propOffers,buyProp,props,propHere,storeCar,takeCar,carsNearProp,claimCar,theftTick,carTown,craftFuel,THROWN,skillsBadge,fireWeapon,missChance,foeDie,driveCar,keepBottle,skill,skillPoints,raiseSkill,skState,SKILLS,SKILL_COST,discovered,scroungeBox,openSkills,skDrain,skBoilMins,bottleStore,V3,moveStick,startStick,TILT,tiltSteer,tiltCentre,tiltEnable,convoyTick,sunDir3,applyShadows3,talk,openJournal,storyTick,folkStory,journal,STORY,mesaTris,MESA_MODELS,otherName,otherCap,trade,serviceCar,kestrelSpot,huntCar,rewardText,huntRumour,huntPos,whoIsHiring,carCap,toMorning,sightRange,stormK,needsReturn,rng,hash2,maybeInjure,INJURIES,clinicTick,leaveClinic,startClinic,heroCap,injFx,heroInj,heroCapLoss,heroHpCap,injure,learnFac,payJob,openWork,townJobCap,townStanding,townTier,applyMobile,windStep,ROADCRASH_GRID,obstacleAt,ROADCRASH,roadCrashes,convoyNear,flagConvoy,heightRaw,hillPull,partsBonus,applyService,carMotor,hurtHero,angDiff,bikeEvade,setState:v=>{state=v;},carBody3,groundY3,burnOut,invCar,useItem,markerAction,setMapMarker:id=>{mapMarker=id;},invOther:()=>invOther&&invOther.kind==='car'?invOther.car:null,boilBilly,fillBilly,atRiver,wreckCar,carCircles,convoyProvoked,convoyTurn,spawnConvoy,legRemaining,HB3,riderPose3,carModel3,hashStr3,BUGGY2,getChunk,invAdd,finishWipe,jobs,jobOffer,acceptJob,jobReady,jobsTick,jobsArrive,compAbility,FACTIONS,rep,changeRep,raiderDown,facKnown,townClosed,routePath,endTalk,FIELDS,fieldAt,fieldsNear,get RAID_WARN_ALL(){return [].concat(RAID_WARN_BIKES,RAID_WARN_ONE,RAID_WARN_MANY,RAID_WARN_AHEAD_ONE,RAID_WARN_AHEAD_MANY,RAID_WARN_SIDE_ONE,RAID_WARN_SIDE_MANY);},FARP3,scatterTile3,rebuildScatter3,SCAT3,FAR3,applyView3,SETTINGS,spawnEncounter,spawnLooseFoe,LOOK,lookDrag,lookHold,pickLine,RAID_CLEAR,HAMLETS,bInside,nearLoc,makeHeroBody3,updateHero3,invClick,openInv,closeInv,hurtComp,arrive,healComp,compPackChanged,buildMapTile,zoneAt,landValue,terrainFactors,ridge,nRiv,nCan,mapView,traderStock,WX,WY,bigAt,bigNear,BIG,mapPixel3,get MAPT(){return MAPT;},genLoot,ITEMS,WEAPONS,updateComp,heroAttack,saveData,giveCompWeapon,giveCompAmmo,takeCompWeapon,compWeapon,compAmmo,makeComp,setCharWeapon3,nearestBed,bedPanel,doBedRest,getUp,get FX3(){return FX3;},spawnAnimal,killAnimal,addPickup,buildChunk3,readInput,inputRot3,get CHAR3(){return CHAR3;},makeChar3,charSpec3,get HERO3(){return HERO3;},renderView,reset3D,roadTerrain,heightAt,terrainAt,insideMesa,get G(){return G;},get state(){return state;},update,render,newGame,arrive,setDest,depart:departPanel,openInv,closeInv,invClick,renderInv,useItem,quickUse,doSleep,sleepPanel,sleepUntilMorning,startTalk,chooseOpt,endTalk,setZoom,navPathTest:(o,a,b)=>navPath(o,a,b),navGridTest:o=>navGrid(o),shellAt,shellsNear,inShellWall,SHELL_CELL,layoutRefinery,SPECIES,spawnAnimal,updateWildlife,hitAnimal,killAnimal,carcassNear,butcher,spook,mesaAt,mesasNear,insideMesa,mesaR,MESA_CELL,exportSaveText,parseSaveText,importSaveText,saveFileName,downloadSave,T,terrainAt,terrainRaw,blockedAt,heightAt,slopeFactor,buildTerrain,HERO_CAP,invMove,canFill,setFill,canSpace,salvageTarget,strippable,doSiphon,doStrip,siphonPanel,stripPanel,wreckState,nearestWreck,CAN_CAP,resumeSave,savePanel,loadPanel,canSaveNow,markerDialog,markerSave,markerAction,markerClose,get mapDrop(){return mapDrop;},get mapMarker(){return mapMarker;},combatTarget,heroDriveShoot,openTrade,closeTrade,tradeClick,renderTrade,doDeal,tradeTotals,traderStock,servicesFor,priceMods,buyPrice,sellPrice,VALUE,RECIPES,craft,canCraft,atWorkbench,UPGRADES,upMods,fitUpgrade,hasUp,get trade(){return trade;},bounceTest:(c,nx,ny)=>bounce(c,nx,ny),carPairTest:(a,b)=>carPair(a,b),darkness,rep,repTier,changeRep,townHostile,townRefuses,assault,hostileGuards,COMPANIONS,FACTIONS,recruit,compLeave,hurtComp,reviveComp,updateComp,compTick,amendsOptions,headlightsOn,TEST_MODE,toolsPanel,teleportPanel,panel:()=>panelCfg,heroAttack,heroWeapon,canSee,losClear,syncFoes,spawnLooseFoe,makeFoe,WEAPONS,hitFoe,get talk(){return talk;},nearestNPC,syncNPCs,QCOL,DLG,bInside,genLoot,ITEMS,LOOT,invWeight,boxItems,nearestBox,fmtClock,openMap,closeMap,mapTap,mapView,saveData,SETTINGS,
   roads,LOCS,START,ZONES,CARS,ROADCLS,roadInfo,routePath,zoneAt,landValue,waterAt,keys,touch,stick,makeCar,makeRaider,enterCar,exitCar,getActions,heroCar,body,nearestCar,syncCars,chunks,getChunk,spawnRoadEv,evEnd,evActive,roadEvBusy,evRoadside,jobs,payJob,jobsArrive,epic,epStart,epRecruit,epAdvance,epCrew,epTankCar,epDef,epStationPts,epSeatFor,STORY,CAST,DLG,addClue,saveData,resumeSave,startTalk,DT3,LOOK,trTex3,TRR3,carModel3,SETTINGS,applySwap,HERO3,dogTick,strayOffer,dogAdopt,dogPanel,dogState,dogObj,makeDogBody,dogFoodKey,dogHurt,get RAID_TGT(){return RAID_TGT;}};
 newGame();applyMobile();applySwap();titleScreen();
 if(!window.__TEST)requestAnimationFrame(frame);
